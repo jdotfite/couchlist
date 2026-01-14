@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import db from '@/lib/db';
+import { db, initDb } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,12 +13,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user already exists
-    const existingUser = db
-      .prepare('SELECT id FROM users WHERE email = ?')
-      .get(email);
+    await initDb();
 
-    if (existingUser) {
+    // Check if user already exists
+    const existingUserResult = await db`
+      SELECT id FROM users WHERE email = ${email}
+    `;
+
+    if (existingUserResult.rows.length > 0) {
       return NextResponse.json(
         { error: 'User already exists' },
         { status: 400 }
@@ -29,18 +31,16 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const result = db
-      .prepare('INSERT INTO users (email, password, name) VALUES (?, ?, ?)')
-      .run(email, hashedPassword, name || null);
+    const result = await db`
+      INSERT INTO users (email, password, name)
+      VALUES (${email}, ${hashedPassword}, ${name || null})
+      RETURNING id, email, name
+    `;
 
     return NextResponse.json(
       {
         success: true,
-        user: {
-          id: result.lastInsertRowid,
-          email,
-          name,
-        },
+        user: result.rows[0],
       },
       { status: 201 }
     );

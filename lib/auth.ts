@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import db from '@/lib/db';
+import { db, initDb } from '@/lib/db';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -16,9 +16,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         try {
-          const user = db
-            .prepare('SELECT * FROM users WHERE email = ?')
-            .get(credentials.email as string) as any;
+          await initDb();
+          
+          const result = await db`
+            SELECT * FROM users WHERE email = ${credentials.email as string}
+          `;
+          
+          const user = result.rows[0];
 
           if (!user) {
             return null;
