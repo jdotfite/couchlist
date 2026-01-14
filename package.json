@@ -30,6 +30,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.12"
   }
 }
