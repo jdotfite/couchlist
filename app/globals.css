@@ -47,3 +47,13 @@ h1, h2, h3, h4, h5, h6 {
 .snap-start {
   scroll-snap-align: start;
 }
+
+/* Menu push content effect */
+body.menu-open > div {
+  transform: translateX(280px);
+  transition: transform 0.3s ease-out;
+}
+
+body > div {
+  transition: transform 0.3s ease-out;
+}

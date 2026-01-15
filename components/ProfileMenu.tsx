@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { X, Plus, Sparkles, TrendingUp, Clock, Settings, LogOut } from 'lucide-react';
@@ -8,6 +8,16 @@ import { X, Plus, Sparkles, TrendingUp, Clock, Settings, LogOut } from 'lucide-r
 export default function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = useSession();
+
+  // Add/remove class on body to push content
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('menu-open');
+    } else {
+      document.body.classList.remove('menu-open');
+    }
+    return () => document.body.classList.remove('menu-open');
+  }, [isOpen]);
 
   if (!session?.user) {
     return (
@@ -47,17 +57,17 @@ export default function ProfileMenu() {
         </div>
       </button>
 
-      {/* Overlay */}
+      {/* Overlay - click to close */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+          className="fixed inset-0 z-40"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Slide-out Menu */}
       <div
-        className={`fixed top-0 left-0 bottom-0 w-[280px] bg-zinc-950 z-50 transform transition-transform duration-300 ease-out ${
+        className={`fixed top-0 left-0 bottom-0 w-[280px] bg-zinc-900 z-50 transform transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -149,20 +159,8 @@ export default function ProfileMenu() {
               <span className="font-medium">Log out</span>
             </button>
           </nav>
-
-          {/* Footer Message */}
-          <div className="p-6 border-t border-zinc-800">
-            <p className="text-xs text-gray-400">
-              Share what you love with friends, right on CouchList.
-            </p>
-          </div>
         </div>
       </div>
-
-      {/* Push Content */}
-      {isOpen && (
-        <div className="fixed inset-0 z-30 pointer-events-none transform translate-x-[280px] transition-transform duration-300" />
-      )}
     </>
   );
 }
