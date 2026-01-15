@@ -18,7 +18,7 @@ export default function ProfileMenu() {
   }
 
   const getInitials = () => {
-    const name = session.user.name || session.user.email?.split('@')[0] || 'U';
+    const name = session?.user?.name || session?.user?.email?.split('@')[0] || 'U';
     const parts = name.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
@@ -26,7 +26,7 @@ export default function ProfileMenu() {
     return name.charAt(0).toUpperCase();
   };
   const userInitials = getInitials();
-  const userName = session.user.name || session.user.email?.split('@')[0] || 'User';
+  const userName = session?.user?.name || session?.user?.email?.split('@')[0] || 'User';
 
   const getGreeting = () => {
     const hour = new Date().getHours();
