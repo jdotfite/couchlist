@@ -80,10 +80,9 @@ export default function SearchPage() {
     setIsLoading(true);
 
     try {
-      const category = categories.find(c => c.id === categoryId);
-      if (!category) return;
+      const response = await fetch(`/api/browse?category=${categoryId}`);
+      if (!response.ok) throw new Error('Failed to fetch category');
 
-      const response = await fetch(`https://api.themoviedb.org/3${category.endpoint}?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`);
       const data = await response.json();
       setResults(data.results || []);
     } catch (error) {
