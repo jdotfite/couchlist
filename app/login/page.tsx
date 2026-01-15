@@ -47,13 +47,13 @@ export default function LoginPage() {
         {/* Logo/Brand */}
         <div className="mb-12">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl font-bold">CouchList</h1>
+            <h1 className="text-3xl">CouchList</h1>
           </Link>
         </div>
 
         {/* Login Card */}
         <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-          <h2 className="text-5xl font-bold mb-8">Log in to CouchList</h2>
+          <h2 className="text-5xl mb-8">Welcome!</h2>
 
           {/* Error Message */}
           {error && (

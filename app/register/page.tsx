@@ -57,13 +57,13 @@ export default function RegisterPage() {
         {/* Logo/Brand */}
         <div className="mb-12">
           <Link href="/" className="inline-block">
-            <h1 className="text-3xl font-bold">CouchList</h1>
+            <h1 className="text-3xl">CouchList</h1>
           </Link>
         </div>
 
         {/* Register Card */}
         <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-          <h2 className="text-5xl font-bold mb-2">Sign up to start tracking</h2>
+          <h2 className="text-5xl mb-2">Sign up to start tracking</h2>
           <p className="text-lg text-gray-400 mb-8">Create your free account</p>
 
           {/* Error Message */}

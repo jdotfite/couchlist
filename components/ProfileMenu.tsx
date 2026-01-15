@@ -68,7 +68,7 @@ export default function ProfileMenu() {
                 {userInitial}
               </div>
               <div>
-                <h2 className="font-bold text-lg">{userName}</h2>
+                <h2 className="text-lg">{userName}</h2>
                 <Link href="/profile" onClick={() => setIsOpen(false)} className="text-sm text-gray-400 hover:text-white">
                   View profile
                 </Link>

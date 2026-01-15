@@ -55,7 +55,7 @@ export default function WatchedPage() {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center pb-24">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Sign in to view your watched content</h2>
+          <h2 className="text-2xl mb-2">Sign in to view your watched content</h2>
           <p className="text-gray-400">Track the movies and shows you've watched</p>
         </div>
       </div>
@@ -73,7 +73,7 @@ export default function WatchedPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       <header className="px-4 pt-8 pb-6">
-        <h1 className="text-3xl font-bold mb-2">Watched</h1>
+        <h1 className="text-3xl mb-2">Watched</h1>
         <p className="text-gray-400 text-sm">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
       </header>
 

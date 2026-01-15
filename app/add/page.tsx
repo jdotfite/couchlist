@@ -43,7 +43,7 @@ export default function AddPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       <header className="px-4 pt-8 pb-6">
-        <h1 className="text-3xl font-bold mb-2">Add Content</h1>
+        <h1 className="text-3xl mb-2">Add Content</h1>
         <p className="text-gray-400 text-sm">
           Quickly add movies and shows to your lists
         </p>
@@ -66,7 +66,7 @@ export default function AddPage() {
         {!hasSearched && (
           <>
             <section className="mb-8">
-              <h2 className="text-xl font-bold mb-4">Quick Add</h2>
+              <h2 className="text-xl mb-4">Quick Add</h2>
           
           <div className="space-y-3">
             <button className="w-full bg-gradient-to-r from-green-600 to-green-700 rounded-lg p-4 flex items-center gap-3 hover:from-green-700 hover:to-green-800 transition">
@@ -89,7 +89,7 @@ export default function AddPage() {
 
         {/* AI Assistant Placeholder */}
         <section className="mb-8">
-          <h2 className="text-xl font-bold mb-4">AI Assistant</h2>
+          <h2 className="text-xl mb-4">AI Assistant</h2>
           <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 rounded-lg p-6">
             <div className="flex items-start gap-3 mb-4">
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -119,7 +119,7 @@ export default function AddPage() {
 
         {/* Recently Added */}
         <section>
-          <h2 className="text-xl font-bold mb-4">Recently Added by Others</h2>
+          <h2 className="text-xl mb-4">Recently Added by Others</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8 text-center">
             <p className="text-gray-400 text-sm">
               See what the community is watching

@@ -53,7 +53,7 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">TV show not found</h1>
+          <h1 className="text-2xl text-red-500 mb-4">TV show not found</h1>
           <Link href="/search" className="text-blue-500 hover:underline">
             Back to search
           </Link>
@@ -113,7 +113,7 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
             )}
           </div>
 
-          <h1 className="text-3xl font-bold leading-tight">{show.name}</h1>
+          <h1 className="text-3xl leading-tight">{show.name}</h1>
 
           {show.genres.length > 0 && (
             <div className="flex flex-wrap gap-2">

@@ -117,7 +117,7 @@ export default function Home() {
       <main className="px-4 pt-4">
         {/* Your Lists Section */}
         <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Your Lists</h2>
+          <h2 className="text-2xl mb-4">Your Lists</h2>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin" />
@@ -213,7 +213,7 @@ export default function Home() {
         {trendingMovies.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Trending Movies</h2>
+              <h2 className="text-2xl">Trending Movies</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
@@ -257,7 +257,7 @@ export default function Home() {
         {trendingTV.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Trending TV Shows</h2>
+              <h2 className="text-2xl">Trending TV Shows</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
@@ -301,7 +301,7 @@ export default function Home() {
         {popularMovies.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Popular Movies</h2>
+              <h2 className="text-2xl">Popular Movies</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
@@ -345,7 +345,7 @@ export default function Home() {
         {popularTV.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Popular TV Shows</h2>
+              <h2 className="text-2xl">Popular TV Shows</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
@@ -389,7 +389,7 @@ export default function Home() {
         {topRatedMovies.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Top Rated Movies</h2>
+              <h2 className="text-2xl">Top Rated Movies</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
@@ -433,7 +433,7 @@ export default function Home() {
         {topRatedTV.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold">Top Rated TV Shows</h2>
+              <h2 className="text-2xl">Top Rated TV Shows</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
@@ -475,7 +475,7 @@ export default function Home() {
 
         {/* Popular Lists Section (Placeholder) */}
         <section className="mb-8">
-          <h2 className="text-2xl font-bold mb-4">Popular Lists</h2>
+          <h2 className="text-2xl mb-4">Popular Lists</h2>
           <div className="space-y-3">
             <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
               <h3 className="font-semibold mb-1">Best Sci-Fi of All Time</h3>

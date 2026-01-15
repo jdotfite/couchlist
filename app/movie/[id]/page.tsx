@@ -53,7 +53,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">Movie not found</h1>
+          <h1 className="text-2xl text-red-500 mb-4">Movie not found</h1>
           <Link href="/search" className="text-blue-500 hover:underline">
             Back to search
           </Link>
@@ -121,7 +121,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl font-bold leading-tight">{movie.title}</h1>
+          <h1 className="text-3xl leading-tight">{movie.title}</h1>
 
           {/* Genres */}
           {movie.genres.length > 0 && (

@@ -96,7 +96,7 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       <header className="px-4 pt-8 pb-6">
-        <h1 className="text-3xl font-bold mb-2">Search</h1>
+        <h1 className="text-3xl mb-2">Search</h1>
         <p className="text-gray-400 text-sm">Find your next watch</p>
       </header>
 
@@ -130,13 +130,13 @@ export default function SearchPage() {
         {/* Browse Categories */}
         {!hasSearched && (
   <section className="mb-8">
-    <h2 className="text-xl font-bold mb-4">Browse by Category</h2>
+    <h2 className="text-xl mb-4">Browse by Category</h2>
     <div className="grid grid-cols-2 gap-2">
       <button 
         onClick={() => handleCategoryClick('popular_movies')}
         className="relative h-24 rounded-lg overflow-hidden bg-gradient-to-br from-pink-600 to-pink-800 hover:from-pink-500 hover:to-pink-700 transition"
       >
-        <h3 className="absolute top-3 left-3 font-bold text-lg z-10">Movies</h3>
+        <h3 className="absolute top-3 left-3 text-lg z-10">Movies</h3>
         {categoryImages['popular_movies'] && (
           <div className="absolute bottom-0 right-0 w-20 h-20">
             <Image
@@ -154,7 +154,7 @@ export default function SearchPage() {
         onClick={() => handleCategoryClick('popular_tv')}
         className="relative h-24 rounded-lg overflow-hidden bg-gradient-to-br from-teal-600 to-teal-800 hover:from-teal-500 hover:to-teal-700 transition"
       >
-        <h3 className="absolute top-3 left-3 font-bold text-lg z-10">TV Shows</h3>
+        <h3 className="absolute top-3 left-3 text-lg z-10">TV Shows</h3>
         {categoryImages['popular_tv'] && (
           <div className="absolute bottom-0 right-0 w-20 h-20">
             <Image
@@ -172,7 +172,7 @@ export default function SearchPage() {
         onClick={() => handleCategoryClick('trending_movies')}
         className="relative h-24 rounded-lg overflow-hidden bg-gradient-to-br from-blue-700 to-blue-900 hover:from-blue-600 hover:to-blue-800 transition"
       >
-        <h3 className="absolute top-3 left-3 font-bold text-lg z-10">Trending</h3>
+        <h3 className="absolute top-3 left-3 text-lg z-10">Trending</h3>
         {categoryImages['trending_movies'] && (
           <div className="absolute bottom-0 right-0 w-20 h-20">
             <Image
@@ -190,7 +190,7 @@ export default function SearchPage() {
         onClick={() => handleCategoryClick('top_rated_movies')}
         className="relative h-24 rounded-lg overflow-hidden bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 transition"
       >
-        <h3 className="absolute top-3 left-3 font-bold text-lg z-10">Top Rated</h3>
+        <h3 className="absolute top-3 left-3 text-lg z-10">Top Rated</h3>
         {categoryImages['top_rated_movies'] && (
           <div className="absolute bottom-0 right-0 w-20 h-20">
             <Image
@@ -218,7 +218,7 @@ export default function SearchPage() {
 {/* Popular Searches */}
 {!hasSearched && (
   <section className="mb-8">
-    <h2 className="text-xl font-bold mb-4">Popular Searches</h2>
+    <h2 className="text-xl mb-4">Popular Searches</h2>
     <div className="space-y-2">
       {['Breaking Bad', 'The Office', 'Inception', 'Stranger Things', 'The Dark Knight'].map((item) => (
         <button

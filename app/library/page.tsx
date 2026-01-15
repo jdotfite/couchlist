@@ -64,7 +64,7 @@ export default function LibraryPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       <header className="px-4 pt-8 pb-6">
-        <h1 className="text-3xl font-bold mb-2">Your Library</h1>
+        <h1 className="text-3xl mb-2">Your Library</h1>
         <p className="text-gray-400 text-sm">
           Manage your watchlists and tracked content
         </p>
@@ -94,7 +94,7 @@ export default function LibraryPage() {
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
                 <Clock className="w-6 h-6" />
                 <div>
-                  <h3 className="font-bold text-lg mb-1">Recent</h3>
+                  <h3 className="text-lg mb-1">Recent</h3>
                   <p className="text-sm text-gray-200">
                     {recentItem ? recentItem.title : 'No items yet'}
                   </p>
@@ -122,7 +122,7 @@ export default function LibraryPage() {
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
                 <List className="w-6 h-6" />
                 <div>
-                  <h3 className="font-bold text-lg mb-1">Watchlist</h3>
+                  <h3 className="text-lg mb-1">Watchlist</h3>
                   <p className="text-sm text-gray-200">
                     {watchlistItem ? watchlistItem.title : 'No items yet'}
                   </p>
@@ -137,7 +137,7 @@ export default function LibraryPage() {
             >
               <CheckCircle2 className="w-6 h-6 mb-2" />
               <div>
-                <h3 className="font-bold text-lg">Watched</h3>
+                <h3 className="text-lg">Watched</h3>
                 <p className="text-sm text-gray-200">{watchedItems.length} items</p>
               </div>
             </Link>
@@ -149,7 +149,7 @@ export default function LibraryPage() {
             >
               <Heart className="w-6 h-6 mb-2" />
               <div>
-                <h3 className="font-bold text-lg">Favorites</h3>
+                <h3 className="text-lg">Favorites</h3>
                 <p className="text-sm text-gray-200">0 items</p>
               </div>
             </Link>
@@ -159,7 +159,7 @@ export default function LibraryPage() {
         {/* My Custom Lists */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">My Lists</h2>
+            <h2 className="text-xl">My Lists</h2>
             <button className="text-green-500 hover:text-green-400">
               <Plus className="w-6 h-6" />
             </button>
@@ -179,7 +179,7 @@ export default function LibraryPage() {
 
         {/* Stats */}
         <section className="mb-8">
-          <h2 className="text-xl font-bold mb-4">Your Stats</h2>
+          <h2 className="text-xl mb-4">Your Stats</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
