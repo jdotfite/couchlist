@@ -96,6 +96,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return true;
     },
     async jwt({ token, user, account }) {
+      // Skip DB work if Postgres is not configured
+      if (!process.env.POSTGRES_URL || process.env.POSTGRES_URL === 'your_postgres_connection_string_here') {
+        return token;
+      }
+
       if (user) {
         // Get user ID from database
         try {
