@@ -116,7 +116,7 @@ export default function SearchPage() {
                   onClick={() => handleCategoryClick(category.id)}
                   className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
                     selectedCategory === category.id
-                      ? 'bg-green-600 text-white'
+                      ? 'bg-[#8b5ef4] text-white'
                       : 'bg-zinc-800 text-white hover:bg-zinc-700'
                   }`}
                 >

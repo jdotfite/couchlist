@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Plus, Clock, Heart, CheckCircle2, List, Loader2 } from 'lucide-react';
+import { Plus, Heart, CheckCircle2, List, Loader2, Sparkles } from 'lucide-react';
 
 interface LibraryItem {
   id: number;
@@ -18,6 +18,7 @@ export default function LibraryPage() {
   const { data: session, status } = useSession();
   const [watchlistItems, setWatchlistItems] = useState<LibraryItem[]>([]);
   const [watchedItems, setWatchedItems] = useState<LibraryItem[]>([]);
+  const [favoritesItems, setFavoritesItems] = useState<LibraryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -30,9 +31,10 @@ export default function LibraryPage() {
 
   const fetchData = async () => {
     try {
-      const [watchlistRes, watchedRes] = await Promise.all([
+      const [watchlistRes, watchedRes, favoritesRes] = await Promise.all([
         fetch('/api/watchlist'),
-        fetch('/api/watched')
+        fetch('/api/watched'),
+        fetch('/api/favorites')
       ]);
 
       if (watchlistRes.ok) {
@@ -43,6 +45,11 @@ export default function LibraryPage() {
       if (watchedRes.ok) {
         const data = await watchedRes.json();
         setWatchedItems(data.items || []);
+      }
+
+      if (favoritesRes.ok) {
+        const data = await favoritesRes.json();
+        setFavoritesItems(data.favorites || []);
       }
     } catch (error) {
       console.error('Failed to fetch library data:', error);
@@ -59,8 +66,10 @@ export default function LibraryPage() {
     );
   }
 
-  const recentItem = watchedItems[0];
+  const watchedItem = watchedItems[0];
   const watchlistItem = watchlistItems[0];
+  const favoritesItem = favoritesItems[0];
+
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       <header className="px-4 pt-8 pb-6">
@@ -74,16 +83,16 @@ export default function LibraryPage() {
         {/* Quick Actions Grid */}
         <section className="mb-8">
           <div className="grid grid-cols-2 gap-3">
-            {/* Recent - Show latest watched */}
+            {/* Watched - Top Left */}
             <Link
               href="/library/watched"
-              className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-purple-600 to-purple-900"
+              className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-[#8b5ef4] to-[#5a30c0]"
             >
-              {recentItem ? (
+              {watchedItem ? (
                 <>
                   <Image
-                    src={recentItem.poster_path}
-                    alt={recentItem.title}
+                    src={watchedItem.poster_path}
+                    alt={watchedItem.title}
                     fill
                     className="object-cover opacity-60"
                     sizes="50vw"
@@ -92,17 +101,17 @@ export default function LibraryPage() {
                 </>
               ) : null}
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                <Clock className="w-6 h-6" />
+                <CheckCircle2 className="w-6 h-6" />
                 <div>
-                  <h3 className="text-lg mb-1">Recent</h3>
+                  <h3 className="text-lg mb-1">Watched</h3>
                   <p className="text-sm text-gray-200">
-                    {recentItem ? recentItem.title : 'No items yet'}
+                    {watchedItem ? watchedItem.title : `${watchedItems.length} items`}
                   </p>
                 </div>
               </div>
             </Link>
 
-            {/* Watchlist - Show latest added */}
+            {/* Watchlist - Top Right */}
             <Link
               href="/library/watchlist"
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-blue-600 to-blue-900"
@@ -130,27 +139,45 @@ export default function LibraryPage() {
               </div>
             </Link>
 
-            {/* Watched - Total count */}
+            {/* Recommended - Bottom Left */}
             <Link
-              href="/library/watched"
-              className="bg-gradient-to-br from-green-600 to-green-900 rounded-lg p-4 flex flex-col justify-between min-h-[120px]"
+              href="/library/recommended"
+              className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-purple-600 to-purple-900"
             >
-              <CheckCircle2 className="w-6 h-6 mb-2" />
-              <div>
-                <h3 className="text-lg">Watched</h3>
-                <p className="text-sm text-gray-200">{watchedItems.length} items</p>
+              <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                <Sparkles className="w-6 h-6" />
+                <div>
+                  <h3 className="text-lg mb-1">Recommended</h3>
+                  <p className="text-sm text-gray-200">Coming soon</p>
+                </div>
               </div>
             </Link>
 
-            {/* Favorites - Placeholder */}
+            {/* Favorites - Bottom Right */}
             <Link
               href="/library/favorites"
-              className="bg-gradient-to-br from-pink-600 to-pink-900 rounded-lg p-4 flex flex-col justify-between min-h-[120px]"
+              className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-pink-600 to-pink-900"
             >
-              <Heart className="w-6 h-6 mb-2" />
-              <div>
-                <h3 className="text-lg">Favorites</h3>
-                <p className="text-sm text-gray-200">0 items</p>
+              {favoritesItem ? (
+                <>
+                  <Image
+                    src={favoritesItem.poster_path}
+                    alt={favoritesItem.title}
+                    fill
+                    className="object-cover opacity-60"
+                    sizes="50vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                </>
+              ) : null}
+              <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                <Heart className="w-6 h-6" />
+                <div>
+                  <h3 className="text-lg mb-1">Favorites</h3>
+                  <p className="text-sm text-gray-200">
+                    {favoritesItem ? favoritesItem.title : `${favoritesItems.length} items`}
+                  </p>
+                </div>
               </div>
             </Link>
           </div>
@@ -160,7 +187,7 @@ export default function LibraryPage() {
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl">My Lists</h2>
-            <button className="text-green-500 hover:text-green-400">
+            <button className="text-[#8b5ef4] hover:text-[#a07ef6]">
               <Plus className="w-6 h-6" />
             </button>
           </div>
@@ -183,7 +210,7 @@ export default function LibraryPage() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-2xl font-bold text-green-500">0</p>
+                <p className="text-2xl font-bold text-[#8b5ef4]">0</p>
                 <p className="text-xs text-gray-400 mt-1">Movies Watched</p>
               </div>
               <div>

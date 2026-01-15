@@ -69,11 +69,11 @@ export default function AddPage() {
               <h2 className="text-xl mb-4">Quick Add</h2>
           
           <div className="space-y-3">
-            <button className="w-full bg-gradient-to-r from-green-600 to-green-700 rounded-lg p-4 flex items-center gap-3 hover:from-green-700 hover:to-green-800 transition">
+            <button className="w-full bg-gradient-to-r from-[#8b5ef4] to-[#7040e0] rounded-lg p-4 flex items-center gap-3 hover:from-[#7040e0] hover:to-[#5a30c0] transition">
               <TrendingUp className="w-6 h-6" />
               <div className="text-left">
                 <h3 className="font-semibold">What's Trending</h3>
-                <p className="text-sm text-green-100">Browse popular content</p>
+                <p className="text-sm text-purple-100">Browse popular content</p>
               </div>
             </button>
 

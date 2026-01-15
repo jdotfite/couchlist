@@ -17,7 +17,15 @@ export default function ProfileMenu() {
     );
   }
 
-  const userInitial = session.user.name?.charAt(0).toUpperCase() || session.user.email?.charAt(0).toUpperCase() || 'U';
+  const getInitials = () => {
+    const name = session.user.name || session.user.email?.split('@')[0] || 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+    return name.charAt(0).toUpperCase();
+  };
+  const userInitials = getInitials();
   const userName = session.user.name || session.user.email?.split('@')[0] || 'User';
 
   const getGreeting = () => {
@@ -34,8 +42,8 @@ export default function ProfileMenu() {
         onClick={() => setIsOpen(true)}
         className="flex-shrink-0"
       >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-semibold text-sm hover:scale-110 transition-transform">
-          {userInitial}
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-semibold text-xs hover:scale-110 transition-transform">
+          {userInitials}
         </div>
       </button>
 
@@ -65,7 +73,7 @@ export default function ProfileMenu() {
             
             <div className="flex items-center gap-3 mb-2">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold text-lg">
-                {userInitial}
+                {userInitials}
               </div>
               <div>
                 <h2 className="text-lg">{userName}</h2>

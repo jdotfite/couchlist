@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { CheckCircle2, List, Heart, Sparkles, Loader2 } from 'lucide-react';
@@ -17,6 +18,7 @@ interface LibraryItem {
 
 export default function Home() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [watchlistItems, setWatchlistItems] = useState<LibraryItem[]>([]);
   const [watchedItems, setWatchedItems] = useState<LibraryItem[]>([]);
   const [favoritesItems, setFavoritesItems] = useState<LibraryItem[]>([]);
@@ -31,11 +33,11 @@ export default function Home() {
   useEffect(() => {
     if (status === 'authenticated') {
       fetchData();
+      fetchTrending();
     } else if (status === 'unauthenticated') {
-      setIsLoading(false);
+      router.push('/login');
     }
-    fetchTrending();
-  }, [status]);
+  }, [status, router]);
 
   const fetchData = async () => {
     try {
@@ -87,6 +89,15 @@ export default function Home() {
   const watchlistItem = watchlistItems[0];
   const favoritesItem = favoritesItems[0];
 
+  // Show loading while checking auth or redirecting
+  if (status === 'loading' || status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#8b5ef4]" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header with User Profile and Filter Pills */}
@@ -96,21 +107,36 @@ export default function Home() {
           <ProfileMenu />
           
           {/* Filter Pills */}
-          <button className="flex-shrink-0 bg-green-600 text-white rounded-full px-4 py-2 text-sm font-semibold">
+          <Link
+            href="/"
+            className="flex-shrink-0 bg-[#8b5ef4] text-white rounded-full px-4 py-2 text-sm font-semibold"
+          >
             All
-          </button>
-          <button className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition">
-            Watching
-          </button>
-          <button className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition">
+          </Link>
+          <Link
+            href="/library/watchlist"
+            className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition"
+          >
             Watchlist
-          </button>
-          <button className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition">
-            Completed
-          </button>
-          <button className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition">
-            Popular Lists
-          </button>
+          </Link>
+          <Link
+            href="/library/watched"
+            className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition"
+          >
+            Watched
+          </Link>
+          <Link
+            href="/library/favorites"
+            className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition"
+          >
+            Favorites
+          </Link>
+          <Link
+            href="/library"
+            className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition"
+          >
+            Library
+          </Link>
         </div>
       </header>
 
@@ -140,7 +166,7 @@ export default function Home() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <CheckCircle2 className="w-6 h-6 text-green-500" />
+                      <CheckCircle2 className="w-6 h-6 text-[#8b5ef4]" />
                     </div>
                   )}
                 </div>

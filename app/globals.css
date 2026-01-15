@@ -3,6 +3,10 @@
 :root {
   --background: #000000;
   --foreground: #ffffff;
+  --primary: #8b5ef4;
+  --primary-light: #a07ef6;
+  --primary-dark: #7040e0;
+  --primary-darker: #5a30c0;
   --font-montserrat: 'Montserrat', sans-serif;
   --font-open-sans: 'Open Sans', sans-serif;
 }

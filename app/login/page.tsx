@@ -40,8 +40,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
-      {/* Spotify-style gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-green-900 via-black to-black opacity-40" />
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#8b5ef4]/40 via-black to-black" />
       
       <div className="relative flex flex-col flex-1 px-6 py-8">
         {/* Logo/Brand */}
@@ -125,7 +125,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-8 py-4 bg-green-500 hover:bg-green-400 hover:scale-105 active:scale-100 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:hover:scale-100 rounded-full font-bold text-black transition-all"
+              className="w-full mt-8 py-4 bg-[#8b5ef4] hover:bg-[#a07ef6] hover:scale-105 active:scale-100 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:hover:scale-100 rounded-full font-bold text-white transition-all"
             >
               {isLoading ? 'Logging in...' : 'Log In'}
             </button>
