@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Loader2, X } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -10,55 +10,54 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSearch, isLoading = false }: SearchBarProps) {
   const [query, setQuery] = useState('');
+  const onSearchRef = useRef(onSearch);
+  
+  useEffect(() => {
+    onSearchRef.current = onSearch;
+  }, [onSearch]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      onSearch(query.trim());
-    }
-  };
+  useEffect(() => {
+    // Debounce search - wait 500ms after user stops typing
+    const timer = setTimeout(() => {
+      // Always call search handler, even with empty query
+      onSearchRef.current(query.trim());
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const handleClear = () => {
     setQuery('');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl">
-      <div className="relative">
-        {/* Search Icon */}
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-        
-        {/* Input Field */}
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search movies and TV shows..."
-          disabled={isLoading}
-          className="w-full h-14 pl-12 pr-24 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        />
-        
-        {/* Clear Button */}
-        {query && (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="absolute right-24 top-1/2 -translate-y-1/2 z-10 p-1 text-gray-400 hover:text-white transition-colors"
-            aria-label="Clear search"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-        
-        {/* Submit Button */}
+    <div className="relative">
+      {/* Search Icon or Loading Spinner */}
+      {isLoading ? (
+        <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />
+      ) : (
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+      )}
+      
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search for movies or TV shows..."
+        className="w-full h-12 pl-11 pr-12 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-500 transition-all"
+      />
+      
+      {/* Clear Button */}
+      {query && (
         <button
-          type="submit"
-          disabled={!query.trim() || isLoading}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors"
+          type="button"
+          onClick={handleClear}
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white transition-colors"
+          aria-label="Clear search"
         >
-          {isLoading ? 'Searching...' : 'Search'}
+          <X className="w-5 h-5" />
         </button>
-      </div>
-    </form>
+      )}
+    </div>
   );
 }

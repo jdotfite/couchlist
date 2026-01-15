@@ -21,6 +21,9 @@ export const tmdbApi = axios.create({
 export const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
 export const getImageUrl = (path: string | null, size: string = 'w500') => {
-  if (!path) return '/placeholder-poster.png';
+  if (!path) {
+    // Return a gray placeholder data URI instead of a file path
+    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="500" height="750" viewBox="0 0 500 750"%3E%3Crect fill="%23262626" width="500" height="750"/%3E%3Ctext fill="%23666" font-family="sans-serif" font-size="24" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+  }
   return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
 };

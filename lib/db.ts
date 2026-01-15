@@ -14,6 +14,20 @@ export async function initDb() {
     `;
 
     await sql`
+      CREATE TABLE IF NOT EXISTS watchlist (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        media_id INTEGER NOT NULL,
+        media_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        poster_path TEXT,
+        added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(user_id, media_id, media_type)
+      );
+    `;
+
+    await sql`
       CREATE TABLE IF NOT EXISTS watched (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL,
@@ -23,6 +37,20 @@ export async function initDb() {
         poster_path TEXT,
         watched_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         rating INTEGER,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(user_id, media_id, media_type)
+      );
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS favorites (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        media_id INTEGER NOT NULL,
+        media_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        poster_path TEXT,
+        added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id),
         UNIQUE(user_id, media_id, media_type)
       );

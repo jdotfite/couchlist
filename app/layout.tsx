@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import BottomNav from "@/components/BottomNav";
+import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "CouchList - Track TV Shows & Movies",
@@ -13,7 +15,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <AuthProvider>
+          {children}
+          <BottomNav />
+        </AuthProvider>
+      </body>
     </html>
   );
 }
