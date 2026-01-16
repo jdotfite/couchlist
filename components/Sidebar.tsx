@@ -4,12 +4,20 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { X, Plus, Sparkles, TrendingUp, Clock, Settings, LogOut } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
+import { useEffect, useState } from 'react';
 
 export default function Sidebar() {
   const { isOpen, setIsOpen } = useSidebar();
   const { data: session } = useSession();
+  const [mounted, setMounted] = useState(false);
 
-  if (!session?.user) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Always render the sidebar container for hydration consistency
+  // but only show content after mount and if user is logged in
+  const showContent = mounted && session?.user;
 
   const getInitials = () => {
     const name = session?.user?.name || session?.user?.email?.split('@')[0] || 'U';
@@ -30,12 +38,16 @@ export default function Sidebar() {
     return 'Good evening';
   };
 
+  // Use consistent classes for SSR - only apply transform after mount
+  const shouldShow = mounted && isOpen;
+
   return (
     <div
       className={`fixed top-0 left-0 bottom-0 w-[280px] bg-zinc-900 z-50 transform transition-transform duration-300 ease-out ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
+        shouldShow ? 'translate-x-0' : '-translate-x-full'
       }`}
     >
+      {showContent && (
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="p-6 pb-4">
@@ -125,6 +137,7 @@ export default function Sidebar() {
           </button>
         </nav>
       </div>
+      )}
     </div>
   );
 }

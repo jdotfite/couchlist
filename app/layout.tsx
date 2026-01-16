@@ -43,8 +43,8 @@ export default function RootLayout({
           <SidebarProvider>
             <AppLayout>
               {children}
-              <BottomNav />
             </AppLayout>
+            <BottomNav />
           </SidebarProvider>
         </AuthProvider>
       </body>
