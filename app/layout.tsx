@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Montserrat, Open_Sans } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
@@ -22,6 +22,13 @@ const openSans = Open_Sans({
 export const metadata: Metadata = {
   title: "CouchList - Track TV Shows & Movies",
   description: "Your cozy companion for tracking all the TV shows and movies you've watched",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
