@@ -3,6 +3,8 @@ import { Montserrat, Open_Sans } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import AuthProvider from "@/components/AuthProvider";
+import { SidebarProvider } from "@/components/SidebarContext";
+import AppLayout from "@/components/AppLayout";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -29,10 +31,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${montserrat.variable} ${openSans.variable}`}>
-      <body className="antialiased font-sans">
+      <body className="antialiased font-sans overflow-x-hidden">
         <AuthProvider>
-          {children}
-          <BottomNav />
+          <SidebarProvider>
+            <AppLayout>
+              {children}
+              <BottomNav />
+            </AppLayout>
+          </SidebarProvider>
         </AuthProvider>
       </body>
     </html>
