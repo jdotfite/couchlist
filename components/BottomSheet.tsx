@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface BottomSheetProps {
@@ -23,7 +24,10 @@ export default function BottomSheet({ isOpen, onClose, children }: BottomSheetPr
 
   if (!isOpen) return null;
 
-  return (
+  // Use portal to render at body level, escaping any stacking context
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -43,6 +47,7 @@ export default function BottomSheet({ isOpen, onClose, children }: BottomSheetPr
           {children}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
