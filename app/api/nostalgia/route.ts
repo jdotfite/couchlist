@@ -2,18 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@vercel/postgres';
 
-// Add to watched
+// Add to nostalgia
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { media_id, media_type, title, poster_path, rating } = await request.json();
+    const { media_id, media_type, title, poster_path } = await request.json();
 
-    // Get user ID
     const userResult = await sql`
       SELECT id FROM users WHERE email = ${session.user.email}
     `;
@@ -24,28 +23,20 @@ export async function POST(request: NextRequest) {
 
     const userId = userResult.rows[0].id;
 
-    // Insert into watched
     await sql`
-      INSERT INTO watched (user_id, media_id, media_type, title, poster_path, rating)
-      VALUES (${userId}, ${media_id}, ${media_type}, ${title}, ${poster_path}, ${rating || null})
-      ON CONFLICT (user_id, media_id, media_type) DO UPDATE
-      SET watched_date = CURRENT_TIMESTAMP, rating = ${rating || null}
-    `;
-
-    // Remove from watchlist if it exists
-    await sql`
-      DELETE FROM watchlist 
-      WHERE user_id = ${userId} AND media_id = ${media_id} AND media_type = ${media_type}
+      INSERT INTO nostalgia (user_id, media_id, media_type, title, poster_path)
+      VALUES (${userId}, ${media_id}, ${media_type}, ${title}, ${poster_path})
+      ON CONFLICT (user_id, media_id, media_type) DO NOTHING
     `;
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error adding to watched:', error);
-    return NextResponse.json({ error: 'Failed to add to watched' }, { status: 500 });
+    console.error('Error adding to nostalgia:', error);
+    return NextResponse.json({ error: 'Failed to add to nostalgia' }, { status: 500 });
   }
 }
 
-// Remove from watched
+// Remove from nostalgia
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
@@ -69,27 +60,26 @@ export async function DELETE(request: NextRequest) {
     const userId = userResult.rows[0].id;
 
     await sql`
-      DELETE FROM watched
+      DELETE FROM nostalgia
       WHERE user_id = ${userId} AND media_id = ${media_id} AND media_type = ${media_type}
     `;
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error removing from watched:', error);
-    return NextResponse.json({ error: 'Failed to remove from watched' }, { status: 500 });
+    console.error('Error removing from nostalgia:', error);
+    return NextResponse.json({ error: 'Failed to remove from nostalgia' }, { status: 500 });
   }
 }
 
-// Get watched
+// Get nostalgia
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user ID
     const userResult = await sql`
       SELECT id FROM users WHERE email = ${session.user.email}
     `;
@@ -101,14 +91,14 @@ export async function GET(request: NextRequest) {
     const userId = userResult.rows[0].id;
 
     const result = await sql`
-      SELECT * FROM watched 
+      SELECT * FROM nostalgia
       WHERE user_id = ${userId}
-      ORDER BY watched_date DESC
+      ORDER BY added_date DESC
     `;
 
     return NextResponse.json({ items: result.rows });
   } catch (error) {
-    console.error('Error fetching watched:', error);
-    return NextResponse.json({ error: 'Failed to fetch watched' }, { status: 500 });
+    console.error('Error fetching nostalgia:', error);
+    return NextResponse.json({ error: 'Failed to fetch nostalgia' }, { status: 500 });
   }
 }

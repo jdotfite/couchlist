@@ -106,12 +106,12 @@ export default function Sidebar() {
           </Link>
 
           <Link
-            href="/library/watched"
+            href="/library/finished"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
           >
             <Clock className="w-5 h-5" />
-            <span className="font-medium">Recently Watched</span>
+            <span className="font-medium">Recently Finished</span>
           </Link>
 
           <div className="border-t border-zinc-800 my-2" />

@@ -4,8 +4,9 @@ import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, MoreVertical, Grid3X3, List, ArrowLeft, CheckCircle2, Heart, Clock } from 'lucide-react';
+import { Loader2, MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles } from 'lucide-react';
 import ItemOptionsSheet from '@/components/ItemOptionsSheet';
+import ProfileMenu from '@/components/ProfileMenu';
 
 interface ListItem {
   id: number;
@@ -21,13 +22,29 @@ interface ListItem {
 type LayoutType = 'list' | 'grid';
 
 const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint: string; icon: React.ReactNode; emptyMessage: string; emptySubMessage: string }> = {
-  watched: {
-    title: 'Watched',
+  finished: {
+    title: 'Finished',
     subtitle: 'Movies and shows you\'ve completed',
     apiEndpoint: '/api/watched',
     icon: <CheckCircle2 className="w-6 h-6 text-[#8b5ef4]" />,
-    emptyMessage: 'Nothing watched yet',
-    emptySubMessage: 'Mark movies and shows as watched to track them here',
+    emptyMessage: 'Nothing finished yet',
+    emptySubMessage: 'Mark movies and shows as finished to track them here',
+  },
+  watched: {
+    title: 'Finished',
+    subtitle: 'Movies and shows you\'ve completed',
+    apiEndpoint: '/api/watched',
+    icon: <CheckCircle2 className="w-6 h-6 text-[#8b5ef4]" />,
+    emptyMessage: 'Nothing finished yet',
+    emptySubMessage: 'Mark movies and shows as finished to track them here',
+  },
+  watching: {
+    title: 'Watching',
+    subtitle: 'In progress right now',
+    apiEndpoint: '/api/watching',
+    icon: <Play className="w-6 h-6 text-green-500" />,
+    emptyMessage: 'Nothing in progress yet',
+    emptySubMessage: 'Add movies and shows you are watching',
   },
   watchlist: {
     title: 'Watchlist',
@@ -36,6 +53,38 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     icon: <Clock className="w-6 h-6 text-blue-500" />,
     emptyMessage: 'Your watchlist is empty',
     emptySubMessage: 'Add movies and shows you want to watch',
+  },
+  onhold: {
+    title: 'On Hold',
+    subtitle: 'Paused for later',
+    apiEndpoint: '/api/onhold',
+    icon: <PauseCircle className="w-6 h-6 text-yellow-500" />,
+    emptyMessage: 'Nothing on hold yet',
+    emptySubMessage: 'Add movies and shows you paused',
+  },
+  dropped: {
+    title: 'Dropped',
+    subtitle: 'Titles you stopped watching',
+    apiEndpoint: '/api/dropped',
+    icon: <XCircle className="w-6 h-6 text-red-500" />,
+    emptyMessage: 'Nothing dropped yet',
+    emptySubMessage: 'Add movies and shows you stopped',
+  },
+  rewatch: {
+    title: 'Rewatch',
+    subtitle: 'Worth another pass',
+    apiEndpoint: '/api/rewatch',
+    icon: <RotateCcw className="w-6 h-6 text-cyan-500" />,
+    emptyMessage: 'Nothing queued to rewatch',
+    emptySubMessage: 'Add movies and shows you want to revisit',
+  },
+  nostalgia: {
+    title: 'Nostalgia',
+    subtitle: 'Childhood favorites and throwbacks',
+    apiEndpoint: '/api/nostalgia',
+    icon: <Sparkles className="w-6 h-6 text-amber-500" />,
+    emptyMessage: 'No nostalgic titles yet',
+    emptySubMessage: 'Add movies and shows from your past',
   },
   favorites: {
     title: 'Favorites',
@@ -55,8 +104,17 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   const [layout, setLayout] = useState<LayoutType>('list');
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'movies' | 'tv'>('all');
 
   const config = listConfig[slug];
+
+  // Filter items based on selected filter
+  const filteredItems = items.filter(item => {
+    if (filter === 'all') return true;
+    if (filter === 'movies') return item.media_type === 'movie';
+    if (filter === 'tv') return item.media_type === 'tv';
+    return true;
+  });
 
   useEffect(() => {
     if (status === 'authenticated' && config) {
@@ -74,7 +132,18 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
       if (response.ok) {
         const data = await response.json();
         // Handle different response formats
-        setItems(data.items || data.favorites || data.watched || data.watchlist || []);
+        setItems(
+          data.items ||
+          data.favorites ||
+          data.watched ||
+          data.watchlist ||
+          data.watching ||
+          data.onhold ||
+          data.dropped ||
+          data.rewatch ||
+          data.nostalgia ||
+          []
+        );
       }
     } catch (error) {
       console.error(`Failed to fetch ${slug}:`, error);
@@ -159,24 +228,52 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
-      {/* Header */}
-      <header className="px-4 pt-4 pb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Link
-            href="/library"
-            className="w-10 h-10 bg-zinc-800 hover:bg-zinc-700 rounded-full flex items-center justify-center transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-        </div>
+      {/* Header with User Profile and Filter Pills */}
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
+        <div
+          className="overflow-x-auto scrollbar-hide -mx-4"
+          style={{ scrollPaddingLeft: '1rem' }}
+        >
+          <div className="flex items-center gap-2 px-4">
+            {/* User Profile Circle */}
+            <ProfileMenu />
 
+            {/* Filter Pills */}
+            <button
+              onClick={() => setFilter('all')}
+              className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                filter === 'all' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilter('movies')}
+              className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                filter === 'movies' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+              }`}
+            >
+              Movies
+            </button>
+            <button
+              onClick={() => setFilter('tv')}
+              className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                filter === 'tv' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+              }`}
+            >
+              TV Shows
+            </button>
+            <div className="flex-shrink-0 w-1" />
+          </div>
+        </div>
+      </header>
+
+      {/* Title Section */}
+      <div className="px-4 pt-4 pb-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {config.icon}
-            <div>
-              <h1 className="text-3xl">{config.title}</h1>
-              <p className="text-gray-400 text-sm">{items.length} {items.length === 1 ? 'item' : 'items'}</p>
-            </div>
+          <div>
+            <h1 className="text-3xl">{config.title}</h1>
+            <p className="text-gray-400 text-sm">{filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}</p>
           </div>
 
           {/* Layout Toggle */}
@@ -199,18 +296,18 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
       <main className="px-4">
-        {items.length === 0 ? (
+        {filteredItems.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-lg text-gray-400 mb-1">{config.emptyMessage}</p>
-            <p className="text-sm text-gray-500">{config.emptySubMessage}</p>
+            <p className="text-lg text-gray-400 mb-1">{items.length === 0 ? config.emptyMessage : `No ${filter === 'movies' ? 'movies' : 'TV shows'} in this list`}</p>
+            <p className="text-sm text-gray-500">{items.length === 0 ? config.emptySubMessage : 'Try changing the filter'}</p>
           </div>
         ) : layout === 'list' ? (
           /* Spotify-style List View */
           <div className="space-y-1">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <div
                 key={item.id}
                 className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition group"
@@ -254,7 +351,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
         ) : (
           /* Grid View */
           <div className="grid grid-cols-2 gap-3">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <div key={item.id} className="group relative">
                 <Link href={`/${item.media_type}/${item.media_id}`}>
                   <div className="relative aspect-[2/3] mb-2 overflow-hidden rounded-lg bg-zinc-800">

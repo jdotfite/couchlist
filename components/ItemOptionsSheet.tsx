@@ -32,6 +32,19 @@ export default function ItemOptionsSheet({
 }: ItemOptionsSheetProps) {
   if (!item) return null;
 
+  const listLabels: Record<string, string> = {
+    watchlist: 'Watchlist',
+    watched: 'Finished',
+    finished: 'Finished',
+    watching: 'Watching',
+    onhold: 'On Hold',
+    dropped: 'Dropped',
+    rewatch: 'Rewatch',
+    favorites: 'Favorites',
+  };
+
+  const removeLabel = listLabels[currentList] || 'List';
+
   const handleRemove = () => {
     if (onRemove) {
       onRemove(item.media_id, item.media_type);
@@ -98,7 +111,7 @@ export default function ItemOptionsSheet({
             </button>
           )}
 
-          {currentList !== 'watched' && onAddToWatched && (
+          {currentList !== 'watched' && currentList !== 'finished' && onAddToWatched && (
             <button
               onClick={() => {
                 onAddToWatched(item);
@@ -107,7 +120,7 @@ export default function ItemOptionsSheet({
               className="w-full flex items-center gap-4 px-6 py-4 hover:bg-zinc-800 transition"
             >
               <CheckCircle2 className="w-6 h-6 text-[#8b5ef4]" />
-              <span>Mark as Watched</span>
+              <span>Mark as Finished</span>
             </button>
           )}
 
@@ -146,7 +159,7 @@ export default function ItemOptionsSheet({
               className="w-full flex items-center gap-4 px-6 py-4 hover:bg-zinc-800 transition text-red-500"
             >
               <Trash2 className="w-6 h-6" />
-              <span>Remove from {currentList === 'watchlist' ? 'Watchlist' : currentList === 'watched' ? 'Watched' : 'Favorites'}</span>
+              <span>Remove from {removeLabel}</span>
             </button>
           )}
         </div>

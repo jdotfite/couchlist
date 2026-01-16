@@ -55,6 +55,76 @@ export async function initDb() {
         UNIQUE(user_id, media_id, media_type)
       );
     `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS watching (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        media_id INTEGER NOT NULL,
+        media_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        poster_path TEXT,
+        added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(user_id, media_id, media_type)
+      );
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS onhold (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        media_id INTEGER NOT NULL,
+        media_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        poster_path TEXT,
+        added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(user_id, media_id, media_type)
+      );
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS dropped (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        media_id INTEGER NOT NULL,
+        media_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        poster_path TEXT,
+        added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(user_id, media_id, media_type)
+      );
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS rewatch (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        media_id INTEGER NOT NULL,
+        media_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        poster_path TEXT,
+        added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(user_id, media_id, media_type)
+      );
+    `;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS nostalgia (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        media_id INTEGER NOT NULL,
+        media_type TEXT NOT NULL,
+        title TEXT NOT NULL,
+        poster_path TEXT,
+        added_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        UNIQUE(user_id, media_id, media_type)
+      );
+    `;
   } catch (error) {
     // Tables already exist, ignore
     console.log('Database tables already initialized');
