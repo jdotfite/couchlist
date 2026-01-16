@@ -130,7 +130,7 @@ export default function SearchPage() {
         {/* Browse Categories */}
         {!hasSearched && (
   <section className="mb-8">
-    <h2 className="text-xl mb-4">Browse by Category</h2>
+    <h2 className="text-xl mb-1">Browse by Category</h2>
     <div className="grid grid-cols-2 gap-2">
       <button 
         onClick={() => handleCategoryClick('popular_movies')}
@@ -218,7 +218,7 @@ export default function SearchPage() {
 {/* Popular Searches */}
 {!hasSearched && (
   <section className="mb-8">
-    <h2 className="text-xl mb-4">Popular Searches</h2>
+    <h2 className="text-xl mb-1">Popular Searches</h2>
     <div className="space-y-2">
       {['Breaking Bad', 'The Office', 'Inception', 'Stranger Things', 'The Dark Knight'].map((item) => (
         <button

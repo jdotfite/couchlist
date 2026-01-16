@@ -94,7 +94,7 @@ export default function LibraryPage() {
                     src={watchedItem.poster_path}
                     alt={watchedItem.title}
                     fill
-                    className="object-cover opacity-60"
+                    className="object-cover object-top opacity-60"
                     sizes="50vw"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
@@ -122,7 +122,7 @@ export default function LibraryPage() {
                     src={watchlistItem.poster_path}
                     alt={watchlistItem.title}
                     fill
-                    className="object-cover opacity-60"
+                    className="object-cover object-top opacity-60"
                     sizes="50vw"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
@@ -139,7 +139,7 @@ export default function LibraryPage() {
               </div>
             </Link>
 
-            {/* Recommended - Bottom Left */}
+            {/* Recommend - Bottom Left */}
             <Link
               href="/library/recommended"
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-purple-600 to-purple-900"
@@ -147,7 +147,7 @@ export default function LibraryPage() {
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
                 <Sparkles className="w-6 h-6" />
                 <div>
-                  <h3 className="text-lg mb-1">Recommended</h3>
+                  <h3 className="text-lg mb-1">Recommend</h3>
                   <p className="text-sm text-gray-200">Coming soon</p>
                 </div>
               </div>
@@ -164,7 +164,7 @@ export default function LibraryPage() {
                     src={favoritesItem.poster_path}
                     alt={favoritesItem.title}
                     fill
-                    className="object-cover opacity-60"
+                    className="object-cover object-top opacity-60"
                     sizes="50vw"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
@@ -185,7 +185,7 @@ export default function LibraryPage() {
 
         {/* My Custom Lists */}
         <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl">My Lists</h2>
             <button className="text-[#8b5ef4] hover:text-[#a07ef6]">
               <Plus className="w-6 h-6" />
@@ -206,7 +206,7 @@ export default function LibraryPage() {
 
         {/* Stats */}
         <section className="mb-8">
-          <h2 className="text-xl mb-4">Your Stats</h2>
+          <h2 className="text-xl mb-1">Your Stats</h2>
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>

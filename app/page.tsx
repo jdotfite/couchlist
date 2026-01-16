@@ -29,6 +29,7 @@ export default function Home() {
   const [popularTV, setPopularTV] = useState<any[]>([]);
   const [topRatedMovies, setTopRatedMovies] = useState<any[]>([]);
   const [topRatedTV, setTopRatedTV] = useState<any[]>([]);
+  const [filter, setFilter] = useState<'all' | 'movies' | 'tv'>('all');
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -102,48 +103,44 @@ export default function Home() {
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header with User Profile and Filter Pills */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-4">
+          <div className="flex-shrink-0 w-4" />
           {/* User Profile Circle */}
           <ProfileMenu />
-          
+
           {/* Filter Pills */}
-          <Link
-            href="/"
-            className="flex-shrink-0 bg-[#8b5ef4] text-white rounded-full px-4 py-2 text-sm font-semibold"
+          <button
+            onClick={() => setFilter('all')}
+            className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              filter === 'all' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+            }`}
           >
             All
-          </Link>
-          <Link
-            href="/library/watchlist"
-            className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition"
+          </button>
+          <button
+            onClick={() => setFilter('movies')}
+            className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              filter === 'movies' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+            }`}
           >
-            Watchlist
-          </Link>
-          <Link
-            href="/library/watched"
-            className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition"
+            Movies
+          </button>
+          <button
+            onClick={() => setFilter('tv')}
+            className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              filter === 'tv' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+            }`}
           >
-            Watched
-          </Link>
-          <Link
-            href="/library/favorites"
-            className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition"
-          >
-            Favorites
-          </Link>
-          <Link
-            href="/library"
-            className="flex-shrink-0 bg-zinc-800 text-white rounded-full px-4 py-2 text-sm font-semibold hover:bg-zinc-700 transition"
-          >
-            Library
-          </Link>
+            TV Shows
+          </button>
+          <div className="flex-shrink-0 w-4" />
         </div>
       </header>
 
       <main className="px-4 pt-4">
         {/* Your Lists Section */}
         <section className="mb-8">
-          <h2 className="text-2xl mb-4">Your Lists</h2>
+          <h2 className="text-xl mb-1">Your Lists</h2>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin" />
@@ -161,7 +158,7 @@ export default function Home() {
                       src={recentItem.poster_path}
                       alt={recentItem.title}
                       fill
-                      className="object-cover"
+                      className="object-cover object-top"
                       sizes="64px"
                     />
                   ) : (
@@ -184,7 +181,7 @@ export default function Home() {
                       src={watchlistItem.poster_path}
                       alt={watchlistItem.title}
                       fill
-                      className="object-cover"
+                      className="object-cover object-top"
                       sizes="64px"
                     />
                   ) : (
@@ -196,7 +193,7 @@ export default function Home() {
                 <h3 className="font-semibold text-sm pr-2">Watchlist</h3>
               </Link>
 
-              {/* Recommended */}
+              {/* Recommend */}
               <Link
                 href="/library/recommended"
                 className="flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
@@ -206,7 +203,7 @@ export default function Home() {
                     <Sparkles className="w-6 h-6 text-purple-500" />
                   </div>
                 </div>
-                <h3 className="font-semibold text-sm pr-2">Recommended</h3>
+                <h3 className="font-semibold text-sm pr-2">Recommend</h3>
               </Link>
 
               {/* Favorites */}
@@ -220,7 +217,7 @@ export default function Home() {
                       src={favoritesItem.poster_path}
                       alt={favoritesItem.title}
                       fill
-                      className="object-cover"
+                      className="object-cover object-top"
                       sizes="64px"
                     />
                   ) : (
@@ -236,15 +233,16 @@ export default function Home() {
         </section>
 
         {/* Trending Movies */}
-        {trendingMovies.length > 0 && (
+        {trendingMovies.length > 0 && (filter === 'all' || filter === 'movies') && (
           <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl">Trending Movies</h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-xl">Trending Movies</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pl-4">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4">
+              <div className="flex-shrink-0 w-4" />
               {trendingMovies.map((movie: any) => (
                 <Link
                   key={movie.id}
@@ -275,20 +273,22 @@ export default function Home() {
                   </p>
                 </Link>
               ))}
+              <div className="flex-shrink-0 w-4" />
             </div>
           </section>
         )}
 
         {/* Trending TV Shows */}
-        {trendingTV.length > 0 && (
+        {trendingTV.length > 0 && (filter === 'all' || filter === 'tv') && (
           <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl">Trending TV Shows</h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-xl">Trending TV Shows</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pl-4">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4">
+              <div className="flex-shrink-0 w-4" />
               {trendingTV.map((show: any) => (
                 <Link
                   key={show.id}
@@ -319,20 +319,22 @@ export default function Home() {
                   </p>
                 </Link>
               ))}
+              <div className="flex-shrink-0 w-4" />
             </div>
           </section>
         )}
 
         {/* Popular Movies */}
-        {popularMovies.length > 0 && (
+        {popularMovies.length > 0 && (filter === 'all' || filter === 'movies') && (
           <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl">Popular Movies</h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-xl">Popular Movies</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pl-4">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4">
+              <div className="flex-shrink-0 w-4" />
               {popularMovies.map((movie: any) => (
                 <Link
                   key={movie.id}
@@ -363,20 +365,22 @@ export default function Home() {
                   </p>
                 </Link>
               ))}
+              <div className="flex-shrink-0 w-4" />
             </div>
           </section>
         )}
 
         {/* Popular TV Shows */}
-        {popularTV.length > 0 && (
+        {popularTV.length > 0 && (filter === 'all' || filter === 'tv') && (
           <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl">Popular TV Shows</h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-xl">Popular TV Shows</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pl-4">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4">
+              <div className="flex-shrink-0 w-4" />
               {popularTV.map((show: any) => (
                 <Link
                   key={show.id}
@@ -407,20 +411,22 @@ export default function Home() {
                   </p>
                 </Link>
               ))}
+              <div className="flex-shrink-0 w-4" />
             </div>
           </section>
         )}
 
         {/* Top Rated Movies */}
-        {topRatedMovies.length > 0 && (
+        {topRatedMovies.length > 0 && (filter === 'all' || filter === 'movies') && (
           <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl">Top Rated Movies</h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-xl">Top Rated Movies</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pl-4">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4">
+              <div className="flex-shrink-0 w-4" />
               {topRatedMovies.map((movie: any) => (
                 <Link
                   key={movie.id}
@@ -451,20 +457,22 @@ export default function Home() {
                   </p>
                 </Link>
               ))}
+              <div className="flex-shrink-0 w-4" />
             </div>
           </section>
         )}
 
         {/* Top Rated TV Shows */}
-        {topRatedTV.length > 0 && (
+        {topRatedTV.length > 0 && (filter === 'all' || filter === 'tv') && (
           <section className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl">Top Rated TV Shows</h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-xl">Top Rated TV Shows</h2>
               <Link href="/search" className="text-sm text-gray-400 hover:text-white">
                 See all
               </Link>
             </div>
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pl-4">
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4">
+              <div className="flex-shrink-0 w-4" />
               {topRatedTV.map((show: any) => (
                 <Link
                   key={show.id}
@@ -495,13 +503,14 @@ export default function Home() {
                   </p>
                 </Link>
               ))}
+              <div className="flex-shrink-0 w-4" />
             </div>
           </section>
         )}
 
         {/* Popular Lists Section (Placeholder) */}
         <section className="mb-8">
-          <h2 className="text-2xl mb-4">Popular Lists</h2>
+          <h2 className="text-xl mb-1">Popular Lists</h2>
           <div className="space-y-3">
             <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
               <h3 className="font-semibold mb-1">Best Sci-Fi of All Time</h3>
