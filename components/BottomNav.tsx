@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, Library, Plus } from 'lucide-react';
+import { useSidebar } from './SidebarContext';
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { isOpen } = useSidebar();
 
   const navItems = [
     { href: '/', label: 'Home', icon: Home },
@@ -15,7 +17,9 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-zinc-800 z-50">
+    <nav className={`fixed bottom-0 left-0 right-0 bg-black border-t border-zinc-800 z-50 transition-transform duration-300 ease-out ${
+      isOpen ? 'translate-x-[280px]' : 'translate-x-0'
+    }`}>
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
