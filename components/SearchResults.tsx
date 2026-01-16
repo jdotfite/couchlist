@@ -81,21 +81,21 @@ export default function SearchResults({ results, isLoading }: SearchResultsProps
                     sizes="50vw"
                   />
                   
-                  {/* Plus Button - Top Left */}
-                  <button
-                    onClick={(e) => handleAddClick(e, item)}
-                    className="absolute top-2 left-2 w-8 h-8 bg-black/75 hover:bg-[#8b5ef4] backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
-                  >
-                    <Plus className="w-5 h-5" />
-                  </button>
-
-                  {/* Rating Badge - Top Right */}
+                  {/* Rating Badge - Top Left */}
                   {item.vote_average > 0 && (
-                    <div className="absolute top-2 right-2 bg-black/75 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1">
+                    <div className="absolute top-2 left-2 bg-black/75 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1">
                       <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
                       <span className="text-xs font-semibold">{item.vote_average.toFixed(1)}</span>
                     </div>
                   )}
+
+                  {/* Plus Button - Top Right */}
+                  <button
+                    onClick={(e) => handleAddClick(e, item)}
+                    className="absolute top-2 right-2 w-8 h-8 bg-black/75 hover:bg-[#8b5ef4] backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
                 </div>
 
                 {/* Info */}
