@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Loader2, MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles } from 'lucide-react';
-import ItemOptionsSheet from '@/components/ItemOptionsSheet';
+import ItemOptionsSheet, { MediaItem } from '@/components/ItemOptionsSheet';
 import ProfileMenu from '@/components/ProfileMenu';
 
 interface ListItem {
@@ -17,6 +17,13 @@ interface ListItem {
   added_date?: string;
   watched_date?: string;
   rating?: number;
+}
+
+// Track which tags an item has (keyed by `${media_id}-${media_type}`)
+interface ItemTags {
+  favorites: boolean;
+  rewatch: boolean;
+  nostalgia: boolean;
 }
 
 type LayoutType = 'list' | 'grid';
@@ -107,6 +114,13 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   const [filter, setFilter] = useState<'all' | 'movies' | 'tv'>('all');
 
   const config = listConfig[slug];
+  const [itemTags, setItemTags] = useState<Record<string, ItemTags>>({});
+
+  // Status lists are mutually exclusive
+  const STATUS_LISTS = ['watchlist', 'watching', 'onhold', 'dropped', 'finished', 'watched'];
+  // Tag lists can be combined with any status
+  const TAG_LISTS = ['favorites', 'rewatch', 'nostalgia'];
+  const isTagList = TAG_LISTS.includes(slug);
 
   // Filter items based on selected filter
   const filteredItems = items.filter(item => {
@@ -152,6 +166,42 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
     }
   };
 
+  // Fetch tags for a specific item when sheet opens
+  const fetchItemTags = async (item: ListItem) => {
+    const key = `${item.media_id}-${item.media_type}`;
+
+    try {
+      const [favRes, rewatchRes, nostalgiaRes] = await Promise.all([
+        fetch('/api/favorites'),
+        fetch('/api/rewatch'),
+        fetch('/api/nostalgia'),
+      ]);
+
+      const [favData, rewatchData, nostalgiaData] = await Promise.all([
+        favRes.ok ? favRes.json() : { items: [] },
+        rewatchRes.ok ? rewatchRes.json() : { items: [] },
+        nostalgiaRes.ok ? nostalgiaRes.json() : { items: [] },
+      ]);
+
+      const hasFavorite = (favData.items || favData.favorites || []).some(
+        (i: ListItem) => i.media_id === item.media_id && i.media_type === item.media_type
+      );
+      const hasRewatch = (rewatchData.items || rewatchData.rewatch || []).some(
+        (i: ListItem) => i.media_id === item.media_id && i.media_type === item.media_type
+      );
+      const hasNostalgia = (nostalgiaData.items || nostalgiaData.nostalgia || []).some(
+        (i: ListItem) => i.media_id === item.media_id && i.media_type === item.media_type
+      );
+
+      setItemTags(prev => ({
+        ...prev,
+        [key]: { favorites: hasFavorite, rewatch: hasRewatch, nostalgia: hasNostalgia }
+      }));
+    } catch (error) {
+      console.error('Failed to fetch item tags:', error);
+    }
+  };
+
   const handleRemove = async (mediaId: number, mediaType: string) => {
     try {
       const response = await fetch(`${config.apiEndpoint}?media_id=${mediaId}&media_type=${mediaType}`, {
@@ -166,15 +216,22 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
     }
   };
 
-  const handleAddToList = async (item: ListItem, listType: string) => {
+  const handleMoveToList = async (item: MediaItem, targetList: string) => {
     const endpoints: Record<string, string> = {
       watchlist: '/api/watchlist',
+      watching: '/api/watching',
+      onhold: '/api/onhold',
+      dropped: '/api/dropped',
+      finished: '/api/watched',
       watched: '/api/watched',
-      favorites: '/api/favorites',
     };
 
+    const endpoint = endpoints[targetList];
+    if (!endpoint) return;
+
     try {
-      await fetch(endpoints[listType], {
+      // Add to new list
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -184,15 +241,75 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
           poster_path: item.poster_path,
         }),
       });
+
+      if (response.ok) {
+        // If we're on a status list and moving to another status list, remove from current
+        if (STATUS_LISTS.includes(slug) && STATUS_LISTS.includes(targetList)) {
+          setItems(items.filter(i => !(i.media_id === item.media_id && i.media_type === item.media_type)));
+        }
+      }
     } catch (error) {
-      console.error(`Failed to add to ${listType}:`, error);
+      console.error(`Failed to move to ${targetList}:`, error);
+    }
+  };
+
+  const handleToggleTag = async (item: MediaItem, tag: string, add: boolean) => {
+    const endpoints: Record<string, string> = {
+      favorites: '/api/favorites',
+      rewatch: '/api/rewatch',
+      nostalgia: '/api/nostalgia',
+    };
+
+    const endpoint = endpoints[tag];
+    if (!endpoint) return;
+
+    const key = `${item.media_id}-${item.media_type}`;
+
+    try {
+      if (add) {
+        await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            media_id: item.media_id,
+            media_type: item.media_type,
+            title: item.title,
+            poster_path: item.poster_path,
+          }),
+        });
+      } else {
+        await fetch(`${endpoint}?media_id=${item.media_id}&media_type=${item.media_type}`, {
+          method: 'DELETE',
+        });
+
+        // If we're viewing this tag list and removed the tag, remove item from view
+        if (slug === tag) {
+          setItems(items.filter(i => !(i.media_id === item.media_id && i.media_type === item.media_type)));
+        }
+      }
+
+      // Update local tag state
+      setItemTags(prev => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          [tag]: add,
+        }
+      }));
+    } catch (error) {
+      console.error(`Failed to ${add ? 'add' : 'remove'} ${tag}:`, error);
     }
   };
 
   const openOptionsSheet = (item: ListItem) => {
     setSelectedItem(item);
     setIsSheetOpen(true);
+    fetchItemTags(item);
   };
+
+  // Get current tags for selected item
+  const selectedItemKey = selectedItem ? `${selectedItem.media_id}-${selectedItem.media_type}` : '';
+  const selectedItemTags = itemTags[selectedItemKey] || { favorites: false, rewatch: false, nostalgia: false };
 
   if (!config) {
     return (
@@ -391,10 +508,12 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
         onClose={() => setIsSheetOpen(false)}
         item={selectedItem}
         currentList={slug}
+        hasFavorite={selectedItemTags.favorites}
+        hasRewatch={selectedItemTags.rewatch}
+        hasNostalgia={selectedItemTags.nostalgia}
+        onMoveToList={handleMoveToList}
+        onToggleTag={handleToggleTag}
         onRemove={handleRemove}
-        onAddToWatchlist={(item) => handleAddToList(item, 'watchlist')}
-        onAddToWatched={(item) => handleAddToList(item, 'watched')}
-        onAddToFavorites={(item) => handleAddToList(item, 'favorites')}
       />
     </div>
   );

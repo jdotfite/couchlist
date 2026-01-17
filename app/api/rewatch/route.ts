@@ -1,33 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { sql } from '@vercel/postgres';
+import {
+  addTagToUserMedia,
+  ensureUserMedia,
+  getItemsByTag,
+  getMediaIdByTmdb,
+  getSystemTagId,
+  getUserMediaId,
+  getUserIdByEmail,
+  removeTagFromUserMedia,
+  upsertMedia,
+} from '@/lib/library';
 
 // Add to rewatch
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { media_id, media_type, title, poster_path } = await request.json();
-
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userId = userResult.rows[0].id;
+    const mediaId = await upsertMedia({
+      media_id,
+      media_type,
+      title,
+      poster_path,
+    });
 
-    await sql`
-      INSERT INTO rewatch (user_id, media_id, media_type, title, poster_path)
-      VALUES (${userId}, ${media_id}, ${media_type}, ${title}, ${poster_path})
-      ON CONFLICT (user_id, media_id, media_type) DO NOTHING
-    `;
+    const userMediaId = await ensureUserMedia(userId, mediaId);
+    const tagId = await getSystemTagId('rewatch', 'Rewatch');
+    if (tagId) {
+      await addTagToUserMedia(userMediaId, tagId);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -40,7 +50,6 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
-
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -49,20 +58,23 @@ export async function DELETE(request: NextRequest) {
     const media_id = searchParams.get('media_id');
     const media_type = searchParams.get('media_type');
 
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userId = userResult.rows[0].id;
+    if (!media_id || !media_type) {
+      return NextResponse.json({ success: true });
+    }
 
-    await sql`
-      DELETE FROM rewatch
-      WHERE user_id = ${userId} AND media_id = ${media_id} AND media_type = ${media_type}
-    `;
+    const mediaId = await getMediaIdByTmdb(Number(media_id), media_type);
+    const tagId = await getSystemTagId('rewatch', 'Rewatch');
+    if (mediaId && tagId) {
+      const userMediaId = await getUserMediaId(userId, mediaId);
+      if (userMediaId) {
+        await removeTagFromUserMedia(userMediaId, tagId);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -75,28 +87,17 @@ export async function DELETE(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ items: [] });
     }
 
-    const userId = userResult.rows[0].id;
-
-    const result = await sql`
-      SELECT * FROM rewatch
-      WHERE user_id = ${userId}
-      ORDER BY added_date DESC
-    `;
-
-    return NextResponse.json({ items: result.rows });
+    const items = await getItemsByTag(userId, 'rewatch');
+    return NextResponse.json({ items });
   } catch (error) {
     console.error('Error fetching rewatch:', error);
     return NextResponse.json({ error: 'Failed to fetch rewatch' }, { status: 500 });

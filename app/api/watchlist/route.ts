@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { sql } from '@vercel/postgres';
+import { getUserIdByEmail, getItemsByStatus, upsertMedia, upsertUserMediaStatus, clearUserMediaStatus, getMediaIdByTmdb } from '@/lib/library';
 
 // Add to watchlist
 export async function POST(request: NextRequest) {
@@ -13,23 +13,19 @@ export async function POST(request: NextRequest) {
 
     const { media_id, media_type, title, poster_path } = await request.json();
 
-    // Get user ID
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userId = userResult.rows[0].id;
+    const mediaId = await upsertMedia({
+      media_id,
+      media_type,
+      title,
+      poster_path,
+    });
 
-    // Insert into watchlist
-    await sql`
-      INSERT INTO watchlist (user_id, media_id, media_type, title, poster_path)
-      VALUES (${userId}, ${media_id}, ${media_type}, ${title}, ${poster_path})
-      ON CONFLICT (user_id, media_id, media_type) DO NOTHING
-    `;
+    await upsertUserMediaStatus(userId, mediaId, 'watchlist');
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -51,21 +47,19 @@ export async function DELETE(request: NextRequest) {
     const media_id = searchParams.get('media_id');
     const media_type = searchParams.get('media_type');
 
-    // Get user ID
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userId = userResult.rows[0].id;
+    if (!media_id || !media_type) {
+      return NextResponse.json({ success: true });
+    }
 
-    await sql`
-      DELETE FROM watchlist 
-      WHERE user_id = ${userId} AND media_id = ${media_id} AND media_type = ${media_type}
-    `;
+    const mediaId = await getMediaIdByTmdb(Number(media_id), media_type);
+    if (mediaId) {
+      await clearUserMediaStatus(userId, mediaId, 'watchlist');
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -83,24 +77,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user ID
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ items: [] });
     }
 
-    const userId = userResult.rows[0].id;
-
-    const result = await sql`
-      SELECT * FROM watchlist 
-      WHERE user_id = ${userId}
-      ORDER BY added_date DESC
-    `;
-
-    return NextResponse.json({ items: result.rows });
+    const items = await getItemsByStatus(userId, 'watchlist');
+    return NextResponse.json({ items });
   } catch (error) {
     console.error('Error fetching watchlist:', error);
     return NextResponse.json({ error: 'Failed to fetch watchlist' }, { status: 500 });

@@ -1,34 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { sql } from '@vercel/postgres';
+import {
+  addTagToUserMedia,
+  ensureUserMedia,
+  getItemsByTag,
+  getMediaIdByTmdb,
+  getSystemTagId,
+  getUserMediaId,
+  getUserIdByEmail,
+  removeTagFromUserMedia,
+  upsertMedia,
+} from '@/lib/library';
 
+// Add to favorites
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { media_id, media_type, title, poster_path } = await request.json();
-
-    // Get user ID
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userId = userResult.rows[0].id;
+    const mediaId = await upsertMedia({
+      media_id,
+      media_type,
+      title,
+      poster_path,
+    });
 
-    // Add to favorites
-    await sql`
-      INSERT INTO favorites (user_id, media_id, media_type, title, poster_path)
-      VALUES (${userId}, ${media_id}, ${media_type}, ${title}, ${poster_path})
-      ON CONFLICT (user_id, media_id, media_type) DO NOTHING
-    `;
+    const userMediaId = await ensureUserMedia(userId, mediaId);
+    const tagId = await getSystemTagId('favorites', 'Favorites');
+    if (tagId) {
+      await addTagToUserMedia(userMediaId, tagId);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -37,69 +46,56 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Get favorites
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = userResult.rows[0].id;
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
+      return NextResponse.json({ favorites: [], items: [] });
+    }
 
-    const result = await sql`
-      SELECT * FROM favorites 
-      WHERE user_id = ${userId}
-      ORDER BY added_date DESC
-    `;
-
-    return NextResponse.json({ favorites: result.rows });
+    const items = await getItemsByTag(userId, 'favorites');
+    return NextResponse.json({ favorites: items, items });
   } catch (error) {
     console.error('Failed to fetch favorites:', error);
     return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 });
   }
 }
 
+// Remove from favorites
 export async function DELETE(request: NextRequest) {
-  const session = await auth();
-  
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
-    const { searchParams } = new URL(request.url);
-    const mediaId = searchParams.get('media_id');
-    const mediaType = searchParams.get('media_type');
-
-    if (!mediaId || !mediaType) {
-      return NextResponse.json({ error: 'Missing parameters' }, { status: 400 });
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
+    const { searchParams } = new URL(request.url);
+    const media_id = searchParams.get('media_id');
+    const media_type = searchParams.get('media_type');
 
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userId = userResult.rows[0].id;
+    if (!media_id || !media_type) {
+      return NextResponse.json({ success: true });
+    }
 
-    await sql`
-      DELETE FROM favorites 
-      WHERE user_id = ${userId} 
-      AND media_id = ${mediaId} 
-      AND media_type = ${mediaType}
-    `;
+    const mediaId = await getMediaIdByTmdb(Number(media_id), media_type);
+    const tagId = await getSystemTagId('favorites', 'Favorites');
+    if (mediaId && tagId) {
+      const userMediaId = await getUserMediaId(userId, mediaId);
+      if (userMediaId) {
+        await removeTagFromUserMedia(userMediaId, tagId);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

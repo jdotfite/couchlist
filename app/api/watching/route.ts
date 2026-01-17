@@ -1,34 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { sql } from '@vercel/postgres';
+import {
+  clearUserMediaStatus,
+  getItemsByStatus,
+  getMediaIdByTmdb,
+  getUserIdByEmail,
+  upsertMedia,
+  upsertUserMediaStatus,
+} from '@/lib/library';
 
 // Add to watching
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
-
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { media_id, media_type, title, poster_path } = await request.json();
-
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userId = userResult.rows[0].id;
+    const mediaId = await upsertMedia({
+      media_id,
+      media_type,
+      title,
+      poster_path,
+    });
 
-    await sql`
-      INSERT INTO watching (user_id, media_id, media_type, title, poster_path)
-      VALUES (${userId}, ${media_id}, ${media_type}, ${title}, ${poster_path})
-      ON CONFLICT (user_id, media_id, media_type) DO NOTHING
-    `;
-
+    await upsertUserMediaStatus(userId, mediaId, 'watching');
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error adding to watching:', error);
@@ -40,7 +42,6 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await auth();
-
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -49,20 +50,19 @@ export async function DELETE(request: NextRequest) {
     const media_id = searchParams.get('media_id');
     const media_type = searchParams.get('media_type');
 
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const userId = userResult.rows[0].id;
+    if (!media_id || !media_type) {
+      return NextResponse.json({ success: true });
+    }
 
-    await sql`
-      DELETE FROM watching
-      WHERE user_id = ${userId} AND media_id = ${media_id} AND media_type = ${media_type}
-    `;
+    const mediaId = await getMediaIdByTmdb(Number(media_id), media_type);
+    if (mediaId) {
+      await clearUserMediaStatus(userId, mediaId, 'watching');
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -75,28 +75,17 @@ export async function DELETE(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userResult = await sql`
-      SELECT id FROM users WHERE email = ${session.user.email}
-    `;
-
-    if (userResult.rows.length === 0) {
+    const userId = await getUserIdByEmail(session.user.email);
+    if (!userId) {
       return NextResponse.json({ items: [] });
     }
 
-    const userId = userResult.rows[0].id;
-
-    const result = await sql`
-      SELECT * FROM watching
-      WHERE user_id = ${userId}
-      ORDER BY added_date DESC
-    `;
-
-    return NextResponse.json({ items: result.rows });
+    const items = await getItemsByStatus(userId, 'watching');
+    return NextResponse.json({ items });
   } catch (error) {
     console.error('Error fetching watching:', error);
     return NextResponse.json({ error: 'Failed to fetch watching' }, { status: 500 });
