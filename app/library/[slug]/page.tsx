@@ -4,8 +4,8 @@ import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles } from 'lucide-react';
-import ItemOptionsSheet, { MediaItem } from '@/components/ItemOptionsSheet';
+import { Loader2, MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star } from 'lucide-react';
+import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import ProfileMenu from '@/components/ProfileMenu';
 
 interface ListItem {
@@ -19,12 +19,6 @@ interface ListItem {
   rating?: number;
 }
 
-// Track which tags an item has (keyed by `${media_id}-${media_type}`)
-interface ItemTags {
-  favorites: boolean;
-  rewatch: boolean;
-  nostalgia: boolean;
-}
 
 type LayoutType = 'list' | 'grid';
 
@@ -114,7 +108,6 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   const [filter, setFilter] = useState<'all' | 'movies' | 'tv'>('all');
 
   const config = listConfig[slug];
-  const [itemTags, setItemTags] = useState<Record<string, ItemTags>>({});
 
   // Status lists are mutually exclusive
   const STATUS_LISTS = ['watchlist', 'watching', 'onhold', 'dropped', 'finished', 'watched'];
@@ -166,150 +159,40 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
     }
   };
 
-  // Fetch tags for a specific item when sheet opens
-  const fetchItemTags = async (item: ListItem) => {
-    const key = `${item.media_id}-${item.media_type}`;
+  // Callback when item is removed from current list via the sheet
+  const handleRemove = () => {
+    if (!selectedItem) return;
+    setItems(items.filter(item =>
+      !(item.media_id === selectedItem.media_id && item.media_type === selectedItem.media_type)
+    ));
+  };
 
-    try {
-      const [favRes, rewatchRes, nostalgiaRes] = await Promise.all([
-        fetch('/api/favorites'),
-        fetch('/api/rewatch'),
-        fetch('/api/nostalgia'),
-      ]);
-
-      const [favData, rewatchData, nostalgiaData] = await Promise.all([
-        favRes.ok ? favRes.json() : { items: [] },
-        rewatchRes.ok ? rewatchRes.json() : { items: [] },
-        nostalgiaRes.ok ? nostalgiaRes.json() : { items: [] },
-      ]);
-
-      const hasFavorite = (favData.items || favData.favorites || []).some(
-        (i: ListItem) => i.media_id === item.media_id && i.media_type === item.media_type
-      );
-      const hasRewatch = (rewatchData.items || rewatchData.rewatch || []).some(
-        (i: ListItem) => i.media_id === item.media_id && i.media_type === item.media_type
-      );
-      const hasNostalgia = (nostalgiaData.items || nostalgiaData.nostalgia || []).some(
-        (i: ListItem) => i.media_id === item.media_id && i.media_type === item.media_type
-      );
-
-      setItemTags(prev => ({
-        ...prev,
-        [key]: { favorites: hasFavorite, rewatch: hasRewatch, nostalgia: hasNostalgia }
-      }));
-    } catch (error) {
-      console.error('Failed to fetch item tags:', error);
+  // Callback when item status changes (moved to different list)
+  const handleStatusChange = (newStatus: string) => {
+    if (!selectedItem) return;
+    // If we're on a status list and item moved to a different status, remove from view
+    if (STATUS_LISTS.includes(slug) && STATUS_LISTS.includes(newStatus) && slug !== newStatus) {
+      setItems(items.filter(i =>
+        !(i.media_id === selectedItem.media_id && i.media_type === selectedItem.media_type)
+      ));
     }
   };
 
-  const handleRemove = async (mediaId: number, mediaType: string) => {
-    try {
-      const response = await fetch(`${config.apiEndpoint}?media_id=${mediaId}&media_type=${mediaType}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        setItems(items.filter(item => !(item.media_id === mediaId && item.media_type === mediaType)));
-      }
-    } catch (error) {
-      console.error(`Failed to remove from ${slug}:`, error);
-    }
-  };
-
-  const handleMoveToList = async (item: MediaItem, targetList: string) => {
-    const endpoints: Record<string, string> = {
-      watchlist: '/api/watchlist',
-      watching: '/api/watching',
-      onhold: '/api/onhold',
-      dropped: '/api/dropped',
-      finished: '/api/watched',
-      watched: '/api/watched',
-    };
-
-    const endpoint = endpoints[targetList];
-    if (!endpoint) return;
-
-    try {
-      // Add to new list
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          media_id: item.media_id,
-          media_type: item.media_type,
-          title: item.title,
-          poster_path: item.poster_path,
-        }),
-      });
-
-      if (response.ok) {
-        // If we're on a status list and moving to another status list, remove from current
-        if (STATUS_LISTS.includes(slug) && STATUS_LISTS.includes(targetList)) {
-          setItems(items.filter(i => !(i.media_id === item.media_id && i.media_type === item.media_type)));
-        }
-      }
-    } catch (error) {
-      console.error(`Failed to move to ${targetList}:`, error);
-    }
-  };
-
-  const handleToggleTag = async (item: MediaItem, tag: string, add: boolean) => {
-    const endpoints: Record<string, string> = {
-      favorites: '/api/favorites',
-      rewatch: '/api/rewatch',
-      nostalgia: '/api/nostalgia',
-    };
-
-    const endpoint = endpoints[tag];
-    if (!endpoint) return;
-
-    const key = `${item.media_id}-${item.media_type}`;
-
-    try {
-      if (add) {
-        await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            media_id: item.media_id,
-            media_type: item.media_type,
-            title: item.title,
-            poster_path: item.poster_path,
-          }),
-        });
-      } else {
-        await fetch(`${endpoint}?media_id=${item.media_id}&media_type=${item.media_type}`, {
-          method: 'DELETE',
-        });
-
-        // If we're viewing this tag list and removed the tag, remove item from view
-        if (slug === tag) {
-          setItems(items.filter(i => !(i.media_id === item.media_id && i.media_type === item.media_type)));
-        }
-      }
-
-      // Update local tag state
-      setItemTags(prev => ({
-        ...prev,
-        [key]: {
-          ...prev[key],
-          [tag]: add,
-        }
-      }));
-    } catch (error) {
-      console.error(`Failed to ${add ? 'add' : 'remove'} ${tag}:`, error);
+  // Callback when a tag is toggled
+  const handleTagToggle = (tag: string, added: boolean) => {
+    if (!selectedItem) return;
+    // If we're viewing a tag list and the tag was removed, remove item from view
+    if (isTagList && slug === tag && !added) {
+      setItems(items.filter(i =>
+        !(i.media_id === selectedItem.media_id && i.media_type === selectedItem.media_type)
+      ));
     }
   };
 
   const openOptionsSheet = (item: ListItem) => {
     setSelectedItem(item);
     setIsSheetOpen(true);
-    fetchItemTags(item);
   };
-
-  // Get current tags for selected item
-  const selectedItemKey = selectedItem ? `${selectedItem.media_id}-${selectedItem.media_type}` : '';
-  const selectedItemTags = itemTags[selectedItemKey] || { favorites: false, rewatch: false, nostalgia: false };
 
   if (!config) {
     return (
@@ -449,10 +332,15 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                   className="flex-1 min-w-0"
                 >
                   <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
-                  <p className="text-xs text-gray-400 capitalize">{item.media_type}</p>
-                  {item.rating && (
-                    <p className="text-xs text-yellow-500">{'★'.repeat(item.rating)}</p>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-gray-400 capitalize">{item.media_type}</p>
+                    {item.rating && (
+                      <div className="flex items-center gap-0.5">
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs text-yellow-400">{item.rating}</span>
+                      </div>
+                    )}
+                  </div>
                 </Link>
 
                 {/* Options Button */}
@@ -485,7 +373,15 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                     <h3 className="font-semibold text-sm line-clamp-2 leading-tight">
                       {item.title}
                     </h3>
-                    <p className="text-xs text-gray-400 capitalize">{item.media_type}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-gray-400 capitalize">{item.media_type}</p>
+                      {item.rating && (
+                        <div className="flex items-center gap-0.5">
+                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-xs text-yellow-400">{item.rating}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </Link>
 
@@ -503,18 +399,20 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
       </main>
 
       {/* Options Sheet */}
-      <ItemOptionsSheet
-        isOpen={isSheetOpen}
-        onClose={() => setIsSheetOpen(false)}
-        item={selectedItem}
-        currentList={slug}
-        hasFavorite={selectedItemTags.favorites}
-        hasRewatch={selectedItemTags.rewatch}
-        hasNostalgia={selectedItemTags.nostalgia}
-        onMoveToList={handleMoveToList}
-        onToggleTag={handleToggleTag}
-        onRemove={handleRemove}
-      />
+      {selectedItem && (
+        <MediaOptionsSheet
+          isOpen={isSheetOpen}
+          onClose={() => setIsSheetOpen(false)}
+          mediaId={selectedItem.media_id}
+          mediaType={selectedItem.media_type as 'movie' | 'tv'}
+          title={selectedItem.title}
+          posterPath={selectedItem.poster_path}
+          currentStatus={slug}
+          onStatusChange={handleStatusChange}
+          onTagToggle={handleTagToggle}
+          onRemove={handleRemove}
+        />
+      )}
     </div>
   );
 }

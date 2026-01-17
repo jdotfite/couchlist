@@ -1,18 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { TVShowDetails } from '@/types';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
-import { Calendar, Tv, Star, ArrowLeft, Plus } from 'lucide-react';
+import { Calendar, Tv, ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
-import AddToListSheet from '@/components/AddToListSheet';
+import MediaOptionsSheet from '@/components/MediaOptionsSheet';
+import StarRatingPopup from '@/components/StarRatingPopup';
 
 export default function TVShowPage({ params }: { params: Promise<{ id: string }> }) {
+  const { data: session } = useSession();
   const [show, setShow] = useState<TVShowDetails | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [id, setId] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [userRating, setUserRating] = useState<number | null>(null);
 
   useEffect(() => {
     params.then(async (p) => {
@@ -31,14 +35,42 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
     });
   }, [params]);
 
-  const handleAddToWatchlist = () => {
-    console.log('Added to watchlist:', show?.name);
-    // TODO: Implement database action
-  };
+  // Fetch user's rating when logged in and show is loaded
+  useEffect(() => {
+    if (session?.user && show?.id) {
+      fetch(`/api/rating?tmdb_id=${show.id}&media_type=tv`)
+        .then(res => res.json())
+        .then(data => setUserRating(data.rating))
+        .catch(err => console.error('Failed to fetch rating:', err));
+    }
+  }, [session, show?.id]);
 
-  const handleMarkAsWatched = () => {
-    console.log('Marked as watched:', show?.name);
-    // TODO: Implement database action
+  const handleRatingChange = async (rating: number) => {
+    if (!show) return;
+
+    const previousRating = userRating;
+    setUserRating(rating === 0 ? null : rating);
+
+    try {
+      const response = await fetch('/api/rating', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tmdb_id: show.id,
+          media_type: 'tv',
+          title: show.name,
+          poster_path: show.poster_path,
+          rating,
+        }),
+      });
+
+      if (!response.ok) {
+        setUserRating(previousRating);
+      }
+    } catch (error) {
+      console.error('Failed to update rating:', error);
+      setUserRating(previousRating);
+    }
   };
 
   if (loading) {
@@ -64,13 +96,12 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
 
   const creator = show.credits?.crew.find((person) => person.job === 'Executive Producer');
   const mainCast = show.credits?.cast.slice(0, 6) || [];
-  const imdbRating = show.vote_average.toFixed(1);
-  const reviewCount = show.vote_count;
+  const tmdbRating = show.vote_average.toFixed(1);
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
-      {/* Hero Poster Section */}
-      <div className="relative w-full aspect-[2/3] max-h-[85vh]">
+      {/* Hero Poster */}
+      <div className="relative w-full aspect-[2/3] max-h-[70vh]">
         <Image
           src={getImageUrl(show.poster_path)}
           alt={show.name}
@@ -78,9 +109,11 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
           className="object-cover"
           priority
         />
-        
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/50" />
-        
+
+        {/* Gradient fade at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/50" />
+
+        {/* Top Navigation */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-10">
           <Link
             href="/search"
@@ -88,88 +121,86 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          
-          <button 
+
+          <button
             onClick={() => setIsSheetOpen(true)}
             className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-full flex items-center justify-center transition"
           >
             <Plus className="w-5 h-5" />
           </button>
         </div>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
-          <div className="flex items-center gap-3">
-            {show.vote_average > 0 && (
-              <>
-                <div className="bg-yellow-400 text-black px-2 py-1 rounded font-bold text-xs">
-                  IMDb {imdbRating}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="font-semibold">{imdbRating}</span>
-                  <span className="text-gray-400 text-sm">({reviewCount.toLocaleString()} reviews)</span>
-                </div>
-              </>
-            )}
-          </div>
-
-          <h1 className="text-3xl leading-tight">{show.name}</h1>
-
-          {show.genres.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {show.genres.slice(0, 3).map((genre) => (
-                <span
-                  key={genre.id}
-                  className="px-3 py-1 bg-zinc-800/80 backdrop-blur-sm rounded-full text-sm"
-                >
-                  {genre.name}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed">
-            {show.overview || 'No overview available.'}
-          </p>
-        </div>
       </div>
 
-      <div className="px-4 pt-6 space-y-6">
-        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
+      {/* Content Below Poster */}
+      <div className="px-4 pt-2 space-y-3">
+        {/* Ratings Row */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {show.vote_average > 0 && (
+            <div className="bg-yellow-400 text-black px-2 py-0.5 rounded font-bold text-xs">
+              IMDb {tmdbRating}
+            </div>
+          )}
+          {session?.user && (
+            <>
+              <div className="w-px h-4 bg-zinc-700" />
+              <StarRatingPopup
+                rating={userRating}
+                onRate={handleRatingChange}
+              />
+            </>
+          )}
+        </div>
+
+        {/* Title */}
+        <h1 className="text-2xl font-bold">{show.name}</h1>
+
+        {/* Genres */}
+        {show.genres.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {show.genres.slice(0, 4).map((genre) => (
+              <span
+                key={genre.id}
+                className="px-3 py-1 bg-zinc-800 rounded-full text-sm"
+              >
+                {genre.name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Synopsis */}
+        <p className="text-gray-300 text-sm leading-relaxed">
+          {show.overview || 'No overview available.'}
+        </p>
+
+        {/* Meta Info */}
+        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 pt-2">
           {show.first_air_date && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <Calendar className="w-4 h-4" />
               <span>{new Date(show.first_air_date).getFullYear()}</span>
             </div>
           )}
-
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Tv className="w-4 h-4" />
             <span>{show.number_of_seasons} Season{show.number_of_seasons !== 1 ? 's' : ''}</span>
           </div>
+          {creator && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-gray-500">Creator</span>
+              <span>{creator.name}</span>
+            </div>
+          )}
         </div>
 
-        <div>
-          <h2 className="text-xl font-semibold mb-3">Synopsis</h2>
-          <p className="text-gray-300 leading-relaxed">
-            {show.overview || 'No overview available.'}
-          </p>
-        </div>
-
-        {creator && (
-          <div>
-            <h3 className="text-sm text-gray-400 mb-1">Creator</h3>
-            <p className="font-semibold">{creator.name}</p>
-          </div>
-        )}
-
+        {/* Cast */}
         {mainCast.length > 0 && (
-          <div>
-            <h2 className="text-xl font-semibold mb-3">Cast</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="pt-4">
+            <h2 className="text-lg font-semibold mb-3">Cast</h2>
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
               {mainCast.map((actor) => (
                 <div key={actor.id} className="text-center">
-                  <div className="relative w-full aspect-[2/3] mb-2 rounded-lg overflow-hidden bg-zinc-900">
+                  <div className="relative w-full aspect-[2/3] mb-1.5 rounded-lg overflow-hidden bg-zinc-900">
                     <Image
                       src={getImageUrl(actor.profile_path, 'w185')}
                       alt={actor.name}
@@ -177,8 +208,8 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
                       className="object-cover"
                     />
                   </div>
-                  <p className="font-medium text-sm">{actor.name}</p>
-                  <p className="text-xs text-gray-400">{actor.character}</p>
+                  <p className="font-medium text-xs line-clamp-1">{actor.name}</p>
+                  <p className="text-xs text-gray-500 line-clamp-1">{actor.character}</p>
                 </div>
               ))}
             </div>
@@ -186,7 +217,8 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
         )}
       </div>
 
-      <AddToListSheet
+      {/* Bottom Sheet */}
+      <MediaOptionsSheet
         isOpen={isSheetOpen}
         onClose={() => setIsSheetOpen(false)}
         title={show.name}

@@ -143,7 +143,8 @@ export async function getItemsByStatus(userId: number, status: string) {
       media.media_type,
       media.title,
       media.poster_path,
-      user_media.status_updated_at AS added_date
+      user_media.status_updated_at AS added_date,
+      user_media.rating
     FROM user_media
     JOIN media ON media.id = user_media.media_id
     WHERE user_media.user_id = ${userId} AND user_media.status = ${status}
@@ -160,7 +161,8 @@ export async function getItemsByTag(userId: number, tagSlug: string) {
       media.media_type,
       media.title,
       media.poster_path,
-      user_media_tags.added_at AS added_date
+      user_media_tags.added_at AS added_date,
+      user_media.rating
     FROM user_media_tags
     JOIN user_media ON user_media.id = user_media_tags.user_media_id
     JOIN media ON media.id = user_media.media_id
@@ -171,4 +173,81 @@ export async function getItemsByTag(userId: number, tagSlug: string) {
     ORDER BY user_media_tags.added_at DESC
   `;
   return result.rows;
+}
+
+export async function updateRating(userId: number, mediaId: number, rating: number | null) {
+  await sql`
+    UPDATE user_media
+    SET rating = ${rating},
+        updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = ${userId} AND media_id = ${mediaId}
+  `;
+}
+
+export async function getRating(userId: number, tmdbId: number, mediaType: string) {
+  const result = await sql`
+    SELECT user_media.rating
+    FROM user_media
+    JOIN media ON media.id = user_media.media_id
+    WHERE user_media.user_id = ${userId}
+      AND media.tmdb_id = ${tmdbId}
+      AND media.media_type = ${mediaType}
+  `;
+  return result.rows[0]?.rating as number | null;
+}
+
+export interface MediaStatus {
+  status: string | null;
+  tags: {
+    favorites: boolean;
+    rewatch: boolean;
+    nostalgia: boolean;
+  };
+  rating: number | null;
+}
+
+export async function getMediaStatus(userId: number, tmdbId: number, mediaType: string): Promise<MediaStatus> {
+  await ensureDb();
+
+  // Get the user_media record with status and rating
+  const userMediaResult = await sql`
+    SELECT user_media.id, user_media.status, user_media.rating
+    FROM user_media
+    JOIN media ON media.id = user_media.media_id
+    WHERE user_media.user_id = ${userId}
+      AND media.tmdb_id = ${tmdbId}
+      AND media.media_type = ${mediaType}
+  `;
+
+  const userMedia = userMediaResult.rows[0];
+
+  if (!userMedia) {
+    return {
+      status: null,
+      tags: { favorites: false, rewatch: false, nostalgia: false },
+      rating: null,
+    };
+  }
+
+  // Get tags for this user_media
+  const tagsResult = await sql`
+    SELECT tags.slug
+    FROM user_media_tags
+    JOIN tags ON tags.id = user_media_tags.tag_id
+    WHERE user_media_tags.user_media_id = ${userMedia.id}
+      AND tags.user_id IS NULL
+      AND tags.slug IN ('favorites', 'rewatch', 'nostalgia')
+  `;
+
+  const tagSlugs = tagsResult.rows.map(r => r.slug);
+
+  return {
+    status: userMedia.status,
+    tags: {
+      favorites: tagSlugs.includes('favorites'),
+      rewatch: tagSlugs.includes('rewatch'),
+      nostalgia: tagSlugs.includes('nostalgia'),
+    },
+    rating: userMedia.rating,
+  };
 }

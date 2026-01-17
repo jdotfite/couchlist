@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
 import { Movie, TVShow } from '@/types';
 import { Star, Plus } from 'lucide-react';
-import AddToListSheet from './AddToListSheet';
+import MediaOptionsSheet from './MediaOptionsSheet';
 
 interface SearchResultsProps {
   results: (Movie | TVShow)[];
@@ -22,16 +22,6 @@ export default function SearchResults({ results, isLoading }: SearchResultsProps
     e.stopPropagation();
     setSelectedItem(item);
     setIsSheetOpen(true);
-  };
-
-  const handleAddToWatchlist = () => {
-    console.log('Added to watchlist:', selectedItem);
-    // TODO: Implement database action
-  };
-
-  const handleMarkAsWatched = () => {
-    console.log('Marked as watched:', selectedItem);
-    // TODO: Implement database action
   };
 
   if (isLoading) {
@@ -120,7 +110,7 @@ export default function SearchResults({ results, isLoading }: SearchResultsProps
 
       {/* Bottom Sheet */}
       {selectedItem && (
-        <AddToListSheet
+        <MediaOptionsSheet
           isOpen={isSheetOpen}
           onClose={() => setIsSheetOpen(false)}
           title={'title' in selectedItem ? selectedItem.title : selectedItem.name}
