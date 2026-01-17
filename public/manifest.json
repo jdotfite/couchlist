@@ -1,0 +1,27 @@
+{
+  "name": "CouchList - Track TV Shows & Movies",
+  "short_name": "CouchList",
+  "description": "Your cozy companion for tracking all the TV shows and movies you've watched",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#8b5ef4",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["entertainment", "lifestyle"],
+  "prefer_related_applications": false
+}
