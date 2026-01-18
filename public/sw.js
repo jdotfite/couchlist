@@ -1,4 +1,4 @@
-const CACHE_NAME = 'flicklog-v2';
+const CACHE_NAME = 'flicklog-v3';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately
