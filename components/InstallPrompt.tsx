@@ -24,22 +24,22 @@ export default function InstallPrompt() {
       return;
     }
 
+    // Check if dismissed recently (within 7 days)
+    const dismissed = localStorage.getItem('pwa-install-dismissed');
+    if (dismissed) {
+      const dismissedDate = new Date(dismissed);
+      const daysSinceDismissed = (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceDismissed < 7) {
+        return;
+      }
+    }
+
     // Check for iOS
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(isIOSDevice);
 
     // For iOS, show banner after a delay
     if (isIOSDevice) {
-      // Check if dismissed recently (within 7 days)
-      const dismissed = localStorage.getItem('pwa-install-dismissed');
-      if (dismissed) {
-        const dismissedDate = new Date(dismissed);
-        const daysSinceDismissed = (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSinceDismissed < 7) {
-          return;
-        }
-      }
-
       setTimeout(() => setShowBanner(true), 3000);
       return;
     }
@@ -48,15 +48,13 @@ export default function InstallPrompt() {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowBanner(true);
+      setTimeout(() => setShowBanner(true), 3000);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
-    const fallbackTimer = window.setTimeout(() => setShowBanner(true), 3000);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
-      window.clearTimeout(fallbackTimer);
     };
   }, []);
 
@@ -121,12 +119,6 @@ export default function InstallPrompt() {
               >
                 Install App
               </button>
-            )}
-
-            {!isIOS && !deferredPrompt && (
-              <p className="text-sm text-gray-400">
-                Install from Chrome menu: tap the three dots, then &quot;Install app&quot;.
-              </p>
             )}
           </div>
         </div>
