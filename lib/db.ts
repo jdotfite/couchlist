@@ -207,7 +207,7 @@ export async function initDb() {
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },
       { slug: 'rewatch', label: 'Rewatch' },
-      { slug: 'nostalgia', label: 'Nostalgia' },
+      { slug: 'nostalgia', label: 'Classics' },
     ];
 
     for (const tag of systemTags) {

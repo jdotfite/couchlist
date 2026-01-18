@@ -63,3 +63,27 @@ h1, h2, h3, h4, h5, h6 {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out forwards;
 }
+
+@keyframes film-reel-unravel {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  90% {
+    stroke-dashoffset: -1000;
+    opacity: 1;
+  }
+  90.01% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.film-reel-spiral {
+  stroke-dasharray: 1000;
+  animation: film-reel-unravel 10.8s ease-in infinite;
+}

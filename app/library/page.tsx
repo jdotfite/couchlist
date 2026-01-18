@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Heart, CheckCircle2, List, Loader2, Play, PauseCircle, XCircle, RotateCcw, Sparkles } from 'lucide-react';
+import { getImageUrl } from '@/lib/tmdb';
 
 interface LibraryItem {
   id: number;
@@ -22,7 +23,7 @@ export default function LibraryPage() {
   const [onHoldItems, setOnHoldItems] = useState<LibraryItem[]>([]);
   const [droppedItems, setDroppedItems] = useState<LibraryItem[]>([]);
   const [rewatchItems, setRewatchItems] = useState<LibraryItem[]>([]);
-  const [nostalgiaItems, setNostalgiaItems] = useState<LibraryItem[]>([]);
+  const [nostalgiaItems, setClassicsItems] = useState<LibraryItem[]>([]);
   const [favoritesItems, setFavoritesItems] = useState<LibraryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -88,7 +89,7 @@ export default function LibraryPage() {
 
       if (nostalgiaRes.ok) {
         const data = await nostalgiaRes.json();
-        setNostalgiaItems(data.items || data.nostalgia || []);
+        setClassicsItems(data.items || data.nostalgia || []);
       }
 
       if (favoritesRes.ok) {
@@ -138,7 +139,7 @@ export default function LibraryPage() {
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-emerald-500 to-emerald-900"
             >
               <Image
-                src={watchingItem?.poster_path || '/placeholders/place-holder-1.jpg'}
+                src={watchingItem?.poster_path ? getImageUrl(watchingItem.poster_path) : '/placeholders/place-holder-1.jpg'}
                 alt={watchingItem?.title || 'Watching'}
                 fill
                 className="object-cover object-top opacity-60"
@@ -162,7 +163,7 @@ export default function LibraryPage() {
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-blue-600 to-blue-900"
             >
               <Image
-                src={watchlistItem?.poster_path || '/placeholders/place-holder-2.jpg'}
+                src={watchlistItem?.poster_path ? getImageUrl(watchlistItem.poster_path) : '/placeholders/place-holder-2.jpg'}
                 alt={watchlistItem?.title || 'Watchlist'}
                 fill
                 className="object-cover object-top opacity-60"
@@ -186,7 +187,7 @@ export default function LibraryPage() {
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-[#8b5ef4] to-[#5a30c0]"
             >
               <Image
-                src={finishedItem?.poster_path || '/placeholders/place-holder-3.jpg'}
+                src={finishedItem?.poster_path ? getImageUrl(finishedItem.poster_path) : '/placeholders/place-holder-3.jpg'}
                 alt={finishedItem?.title || 'Finished'}
                 fill
                 className="object-cover object-top opacity-60"
@@ -210,7 +211,7 @@ export default function LibraryPage() {
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-yellow-500 to-yellow-900"
             >
               <Image
-                src={onHoldItem?.poster_path || '/placeholders/place-holder-4.jpg'}
+                src={onHoldItem?.poster_path ? getImageUrl(onHoldItem.poster_path) : '/placeholders/place-holder-4.jpg'}
                 alt={onHoldItem?.title || 'On Hold'}
                 fill
                 className="object-cover object-top opacity-60"
@@ -234,7 +235,7 @@ export default function LibraryPage() {
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-red-600 to-red-900"
             >
               <Image
-                src={droppedItem?.poster_path || '/placeholders/place-holder-5.jpg'}
+                src={droppedItem?.poster_path ? getImageUrl(droppedItem.poster_path) : '/placeholders/place-holder-5.jpg'}
                 alt={droppedItem?.title || 'Dropped'}
                 fill
                 className="object-cover object-top opacity-60"
@@ -258,7 +259,7 @@ export default function LibraryPage() {
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-cyan-500 to-cyan-900"
             >
               <Image
-                src={rewatchItem?.poster_path || '/placeholders/place-holder-6.jpg'}
+                src={rewatchItem?.poster_path ? getImageUrl(rewatchItem.poster_path) : '/placeholders/place-holder-6.jpg'}
                 alt={rewatchItem?.title || 'Rewatch'}
                 fill
                 className="object-cover object-top opacity-60"
@@ -276,14 +277,14 @@ export default function LibraryPage() {
               </div>
             </Link>
 
-            {/* Nostalgia */}
+            {/* Classics */}
             <Link
               href="/library/nostalgia"
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-amber-500 to-amber-900"
             >
               <Image
-                src={nostalgiaItem?.poster_path || '/placeholders/place-holder-7.jpg'}
-                alt={nostalgiaItem?.title || 'Nostalgia'}
+                src={nostalgiaItem?.poster_path ? getImageUrl(nostalgiaItem.poster_path) : '/placeholders/place-holder-7.jpg'}
+                alt={nostalgiaItem?.title || 'Classics'}
                 fill
                 className="object-cover object-top opacity-60"
                 sizes="50vw"
@@ -292,7 +293,7 @@ export default function LibraryPage() {
               <div className="absolute inset-0 p-4 flex flex-col justify-between">
                 <Sparkles className="w-6 h-6" />
                 <div>
-                  <h3 className="text-lg mb-1">Nostalgia</h3>
+                  <h3 className="text-lg mb-1">Classics</h3>
                   <p className="text-sm text-gray-200">
                     {nostalgiaItem ? nostalgiaItem.title : `${nostalgiaItems.length} items`}
                   </p>
@@ -306,7 +307,7 @@ export default function LibraryPage() {
               className="relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br from-pink-600 to-pink-900"
             >
               <Image
-                src={favoritesItem?.poster_path || '/placeholders/place-holder-8.jpg'}
+                src={favoritesItem?.poster_path ? getImageUrl(favoritesItem.poster_path) : '/placeholders/place-holder-8.jpg'}
                 alt={favoritesItem?.title || 'Favorites'}
                 fill
                 className="object-cover object-top opacity-60"
@@ -330,13 +331,9 @@ export default function LibraryPage() {
         <section className="mb-8">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-xl">My Lists</h2>
-            <button className="text-[#8b5ef4] hover:text-[#a07ef6]">
-              <Plus className="w-6 h-6" />
-            </button>
           </div>
 
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8 text-center">
-            <Plus className="w-12 h-12 text-gray-600 mx-auto mb-3" />
             <h3 className="font-semibold mb-1">Create your first custom list</h3>
             <p className="text-sm text-gray-400 mb-4">
               Organize your movies and shows into custom collections

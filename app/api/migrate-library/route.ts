@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     const favoritesTagId = await getSystemTagId('favorites', 'Favorites');
     const rewatchTagId = await getSystemTagId('rewatch', 'Rewatch');
-    const nostalgiaTagId = await getSystemTagId('nostalgia', 'Nostalgia');
+    const nostalgiaTagId = await getSystemTagId('nostalgia', 'Classics');
 
     if (favoritesTagId) {
       await sql`

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     });
 
     const userMediaId = await ensureUserMedia(userId, mediaId);
-    const tagId = await getSystemTagId('nostalgia', 'Nostalgia');
+    const tagId = await getSystemTagId('nostalgia', 'Classics');
     if (tagId) {
       await addTagToUserMedia(userMediaId, tagId);
     }
@@ -68,7 +68,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const mediaId = await getMediaIdByTmdb(Number(media_id), media_type);
-    const tagId = await getSystemTagId('nostalgia', 'Nostalgia');
+    const tagId = await getSystemTagId('nostalgia', 'Classics');
     if (mediaId && tagId) {
       const userMediaId = await getUserMediaId(userId, mediaId);
       if (userMediaId) {

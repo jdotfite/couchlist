@@ -9,6 +9,7 @@ import { Calendar, Tv, ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import StarRatingPopup from '@/components/StarRatingPopup';
+import FilmReelSpinner from '@/components/FilmReelSpinner';
 
 export default function TVShowPage({ params }: { params: Promise<{ id: string }> }) {
   const { data: session } = useSession();
@@ -75,9 +76,7 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
+      <FilmReelSpinner fullScreen />
     );
   }
 

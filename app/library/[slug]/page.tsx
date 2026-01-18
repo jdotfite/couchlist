@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Loader2, MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import ProfileMenu from '@/components/ProfileMenu';
+import { getImageUrl } from '@/lib/tmdb';
 
 interface ListItem {
   id: number;
@@ -17,6 +18,7 @@ interface ListItem {
   added_date?: string;
   watched_date?: string;
   rating?: number;
+  is_favorite?: boolean;
 }
 
 
@@ -80,7 +82,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     emptySubMessage: 'Add movies and shows you want to revisit',
   },
   nostalgia: {
-    title: 'Nostalgia',
+    title: 'Classics',
     subtitle: 'Childhood favorites and throwbacks',
     apiEndpoint: '/api/nostalgia',
     icon: <Sparkles className="w-6 h-6 text-amber-500" />,
@@ -318,7 +320,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                   className="relative w-14 h-20 flex-shrink-0 rounded-md overflow-hidden bg-zinc-800"
                 >
                   <Image
-                    src={item.poster_path}
+                    src={getImageUrl(item.poster_path)}
                     alt={item.title}
                     fill
                     className="object-cover"
@@ -332,16 +334,13 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                   className="flex-1 min-w-0"
                 >
                   <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs text-gray-400 capitalize">{item.media_type}</p>
-                    {item.rating && (
-                      <div className="flex items-center gap-0.5">
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs text-yellow-400">{item.rating}</span>
-                      </div>
-                    )}
-                  </div>
+                  <p className="text-xs text-gray-400 capitalize">{item.media_type}</p>
                 </Link>
+
+                {/* Saved Indicator (Spotify-style position) */}
+                {item.is_favorite && (
+                  <Heart className="w-5 h-5 text-pink-500 flex-shrink-0" />
+                )}
 
                 {/* Options Button */}
                 <button
@@ -361,7 +360,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                 <Link href={`/${item.media_type}/${item.media_id}`}>
                   <div className="relative aspect-[2/3] mb-2 overflow-hidden rounded-lg bg-zinc-800">
                     <Image
-                      src={item.poster_path}
+                      src={getImageUrl(item.poster_path)}
                       alt={item.title}
                       fill
                       className="object-cover group-hover:opacity-75 transition"
@@ -385,6 +384,12 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                   </div>
                 </Link>
 
+                {item.is_favorite && (
+                  <div className="absolute top-2 left-2 w-8 h-8 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center z-10">
+                    <Heart className="w-4 h-4 text-pink-500" />
+                  </div>
+                )}
+
                 {/* Options Button */}
                 <button
                   onClick={() => openOptionsSheet(item)}
@@ -407,7 +412,6 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
           mediaType={selectedItem.media_type as 'movie' | 'tv'}
           title={selectedItem.title}
           posterPath={selectedItem.poster_path}
-          currentStatus={slug}
           onStatusChange={handleStatusChange}
           onTagToggle={handleTagToggle}
           onRemove={handleRemove}

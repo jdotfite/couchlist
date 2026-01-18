@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import BottomSheet from './BottomSheet';
 import { useMediaStatus, type MediaInfo, type MediaStatus } from '@/hooks/useMediaStatus';
+import { getImageUrl } from '@/lib/tmdb';
 
 // Status lists are mutually exclusive
 const STATUS_LISTS = ['watchlist', 'watching', 'onhold', 'dropped', 'finished', 'watched'];
@@ -64,7 +65,7 @@ const LIST_LABELS: Record<string, string> = {
   watched: 'Finished',
   favorites: 'Favorites',
   rewatch: 'Rewatch',
-  nostalgia: 'Nostalgia',
+  nostalgia: 'Classics',
 };
 
 export default function MediaOptionsSheet({
@@ -185,20 +186,20 @@ export default function MediaOptionsSheet({
       options.push(
         { key: 'watching', label: 'Start Watching', icon: <Play className="w-5 h-5" />, color: 'text-green-500' },
         { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-[#8b5ef4]' },
-        { key: 'dropped', label: 'Drop', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
+        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
       );
     } else if (currentList === 'watching') {
       options.push(
         { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-[#8b5ef4]' },
         { key: 'onhold', label: 'Put On Hold', icon: <PauseCircle className="w-5 h-5" />, color: 'text-yellow-500' },
-        { key: 'dropped', label: 'Drop', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
+        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
         { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-blue-500' },
       );
     } else if (currentList === 'onhold') {
       options.push(
         { key: 'watching', label: 'Resume Watching', icon: <Play className="w-5 h-5" />, color: 'text-green-500' },
         { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-[#8b5ef4]' },
-        { key: 'dropped', label: 'Drop', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
+        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
         { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-blue-500' },
       );
     } else if (currentList === 'dropped') {
@@ -226,7 +227,7 @@ export default function MediaOptionsSheet({
   const statusOptions = getStatusOptions();
   const hasFavorite = effectiveStatus?.tags?.favorites ?? false;
   const hasRewatch = effectiveStatus?.tags?.rewatch ?? false;
-  const hasNostalgia = effectiveStatus?.tags?.nostalgia ?? false;
+  const hasClassics = effectiveStatus?.tags?.nostalgia ?? false;
   const removeLabel = currentList ? LIST_LABELS[currentList] || 'List' : '';
 
   return (
@@ -235,7 +236,7 @@ export default function MediaOptionsSheet({
       <div className="flex items-center gap-4 px-4 pb-4 border-b border-zinc-800">
         <div className="relative w-12 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-800">
           <Image
-            src={posterPath}
+            src={getImageUrl(posterPath)}
             alt={title}
             fill
             className="object-cover"
@@ -295,9 +296,8 @@ export default function MediaOptionsSheet({
               disabled={isUpdating}
               className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
             >
-              <Heart className={`w-5 h-5 ${hasFavorite ? 'text-pink-500 fill-pink-500' : 'text-pink-500'}`} />
+              <Heart className="w-5 h-5 text-pink-500" />
               <span className="flex-1 text-left text-white">{hasFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</span>
-              {hasFavorite && <Check className="w-5 h-5 text-pink-500" />}
             </button>
 
             <button
@@ -311,13 +311,13 @@ export default function MediaOptionsSheet({
             </button>
 
             <button
-              onClick={() => handleToggleTag('nostalgia', hasNostalgia)}
+              onClick={() => handleToggleTag('nostalgia', hasClassics)}
               disabled={isUpdating}
               className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
             >
               <Sparkles className={`w-5 h-5 text-amber-500`} />
-              <span className="flex-1 text-left text-white">{hasNostalgia ? 'Remove from Nostalgia' : 'Add to Nostalgia'}</span>
-              {hasNostalgia && <Check className="w-5 h-5 text-amber-500" />}
+              <span className="flex-1 text-left text-white">{hasClassics ? 'Remove from Classics' : 'Add to Classics'}</span>
+              {hasClassics && <Check className="w-5 h-5 text-amber-500" />}
             </button>
           </div>
 
