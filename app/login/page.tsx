@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,15 +44,14 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#8b5ef4]/40 via-black to-black" />
       
       <div className="relative flex flex-col flex-1 px-6 py-8">
-        {/* Logo/Brand */}
-        <div className="mb-12">
-          <Link href="/" className="inline-block">
-            <h1 className="text-3xl">CouchList</h1>
-          </Link>
-        </div>
-
         {/* Login Card */}
         <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+          {/* Logo */}
+          <img
+            src="/logo-flicklog.svg"
+            alt="FlickLog"
+            className="h-8 w-auto mb-6"
+          />
           <h2 className="text-5xl mb-8">Welcome!</h2>
 
           {/* Error Message */}
@@ -147,7 +146,7 @@ export default function LoginPage() {
               href="/register"
               className="inline-block w-full py-4 border-2 border-gray-500 hover:border-white rounded-full font-bold text-white transition-all hover:scale-105 active:scale-100"
             >
-              Sign up for CouchList
+              Sign up for FlickLog
             </Link>
           </div>
         </div>

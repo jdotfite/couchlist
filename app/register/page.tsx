@@ -54,15 +54,14 @@ export default function RegisterPage() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#8b5ef4]/40 via-black to-black" />
       
       <div className="relative flex flex-col flex-1 px-6 py-8">
-        {/* Logo/Brand */}
-        <div className="mb-12">
-          <Link href="/" className="inline-block">
-            <h1 className="text-3xl">CouchList</h1>
-          </Link>
-        </div>
-
         {/* Register Card */}
         <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+          {/* Logo */}
+          <img
+            src="/logo-flicklog.svg"
+            alt="FlickLog"
+            className="h-8 w-auto mb-6"
+          />
           <h2 className="text-5xl mb-2">Sign up to start tracking</h2>
           <p className="text-lg text-gray-400 mb-8">Create your free account</p>
 

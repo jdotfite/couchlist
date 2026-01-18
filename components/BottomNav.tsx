@@ -15,6 +15,11 @@ export default function BottomNav() {
     setMounted(true);
   }, []);
 
+  // Hide nav on login and register pages
+  if (pathname === '/login' || pathname === '/register') {
+    return null;
+  }
+
   // Use consistent classes for SSR - only apply transform after mount
   const shouldTransform = mounted && isOpen;
 
