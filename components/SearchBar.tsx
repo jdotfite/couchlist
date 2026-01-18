@@ -44,7 +44,7 @@ export default function SearchBar({ onSearch, isLoading = false }: SearchBarProp
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search for movies or TV shows..."
-        className="w-full h-12 pl-11 pr-12 bg-surface-2 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all"
+        className="w-full h-12 pl-11 pr-12 bg-zinc-900 bg-surface-2 rounded-lg text-white placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary transition-all"
       />
       
       {/* Clear Button */}
