@@ -22,13 +22,13 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "CouchList - Track TV Shows & Movies",
+  title: "FlickLog - Track TV Shows & Movies",
   description: "Your cozy companion for tracking all the TV shows and movies you've watched",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "CouchList",
+    title: "FlickLog",
     startupImage: [
       {
         url: "/splash/apple-splash-2048-2732.png",

@@ -93,7 +93,7 @@ export default function InstallPrompt() {
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-white mb-1">Add CouchList to Home Screen</h3>
+            <h3 className="font-semibold text-white mb-1">Add FlickLog to Home Screen</h3>
             {isIOS ? (
               <div className="text-sm text-gray-400">
                 <p className="mb-2">Tap the share button in Safari:</p>

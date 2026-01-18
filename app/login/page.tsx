@@ -49,13 +49,13 @@ export default function LoginPage() {
           <img
             src="/logo-flicklog.svg"
             alt="FlickLog"
-            className="h-12 w-auto"
+            className="h-13 w-auto"
           />
         </div>
 
         {/* Login Card */}
         <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-          <h2 className="text-4xl mb-8">Welcome!</h2>
+          <h2 className="text-3xl text-center mb-8">Welcome back</h2>
 
           {/* Error Message */}
           {error && (
@@ -149,7 +149,7 @@ export default function LoginPage() {
               href="/register"
               className="inline-block w-full py-4 border-2 border-gray-500 hover:border-white rounded-full font-bold text-white transition-all hover:scale-105 active:scale-100"
             >
-              Sign up
+              Sign Up
             </Link>
           </div>
         </div>

@@ -1,13 +1,13 @@
 # Google OAuth Setup Guide
 
-This guide will walk you through setting up Google OAuth authentication for CouchList.
+This guide will walk you through setting up Google OAuth authentication for FlickLog.
 
 ## Step 1: Create a Google Cloud Project
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Click **Select a project** at the top
 3. Click **New Project**
-4. Enter project name: `CouchList` (or whatever you prefer)
+4. Enter project name: `FlickLog` (or whatever you prefer)
 5. Click **Create**
 
 ## Step 2: Enable Google+ API
@@ -24,7 +24,7 @@ This guide will walk you through setting up Google OAuth authentication for Couc
 
 ### Fill in the required fields:
 
-- **App name**: `CouchList`
+- **App name**: `FlickLog`
 - **User support email**: Your email
 - **App logo**: (optional)
 - **Application home page**: `http://localhost:3000`
@@ -46,7 +46,7 @@ This guide will walk you through setting up Google OAuth authentication for Couc
 ### Configure OAuth client:
 
 - **Application type**: Select **Web application**
-- **Name**: `CouchList Web Client`
+- **Name**: `FlickLog Web Client`
 
 ### Authorized JavaScript origins:
 ```

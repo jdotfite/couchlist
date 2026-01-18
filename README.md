@@ -1,4 +1,4 @@
-# CouchList - TV Show & Movie Tracker
+# FlickLog - TV Show & Movie Tracker
 
 A Spotify-inspired web application to track TV shows and movies you've watched, built with Next.js 16, TypeScript, and Tailwind CSS.
 
@@ -25,7 +25,7 @@ A Spotify-inspired web application to track TV shows and movies you've watched, 
 ## Project Structure
 
 ```
-couchlist/
+flicklog/
 ├── app/                    # Next.js App Router pages
 │   ├── api/               # API routes
 │   │   ├── auth/          # NextAuth routes
@@ -65,7 +65,7 @@ couchlist/
 
 1. **Clone the repository** (if applicable) or navigate to the project directory:
    ```bash
-   cd couchlist
+   cd flicklog
    ```
 
 2. **Install dependencies**:

@@ -144,7 +144,15 @@ export async function getItemsByStatus(userId: number, status: string) {
       media.title,
       media.poster_path,
       user_media.status_updated_at AS added_date,
-      user_media.rating
+      user_media.rating,
+      EXISTS (
+        SELECT 1
+        FROM user_media_tags
+        JOIN tags ON tags.id = user_media_tags.tag_id
+        WHERE user_media_tags.user_media_id = user_media.id
+          AND tags.slug = 'favorites'
+          AND tags.user_id IS NULL
+      ) AS is_favorite
     FROM user_media
     JOIN media ON media.id = user_media.media_id
     WHERE user_media.user_id = ${userId} AND user_media.status = ${status}
@@ -162,7 +170,15 @@ export async function getItemsByTag(userId: number, tagSlug: string) {
       media.title,
       media.poster_path,
       user_media_tags.added_at AS added_date,
-      user_media.rating
+      user_media.rating,
+      EXISTS (
+        SELECT 1
+        FROM user_media_tags AS favorites_tags
+        JOIN tags AS favorites_tag ON favorites_tag.id = favorites_tags.tag_id
+        WHERE favorites_tags.user_media_id = user_media.id
+          AND favorites_tag.slug = 'favorites'
+          AND favorites_tag.user_id IS NULL
+      ) AS is_favorite
     FROM user_media_tags
     JOIN user_media ON user_media.id = user_media_tags.user_media_id
     JOIN media ON media.id = user_media.media_id
