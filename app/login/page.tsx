@@ -44,15 +44,18 @@ export default function LoginPage() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#8b5ef4]/40 via-black to-black" />
       
       <div className="relative flex flex-col flex-1 px-6 py-8">
-        {/* Login Card */}
-        <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-          {/* Logo */}
+        {/* Logo - positioned between top and content */}
+        <div className="flex justify-center pt-8 pb-4">
           <img
             src="/logo-flicklog.svg"
             alt="FlickLog"
-            className="h-8 w-auto mb-6"
+            className="h-12 w-auto"
           />
-          <h2 className="text-5xl mb-8">Welcome!</h2>
+        </div>
+
+        {/* Login Card */}
+        <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+          <h2 className="text-4xl mb-8">Welcome!</h2>
 
           {/* Error Message */}
           {error && (
@@ -146,7 +149,7 @@ export default function LoginPage() {
               href="/register"
               className="inline-block w-full py-4 border-2 border-gray-500 hover:border-white rounded-full font-bold text-white transition-all hover:scale-105 active:scale-100"
             >
-              Sign up for FlickLog
+              Sign up
             </Link>
           </div>
         </div>
