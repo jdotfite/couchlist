@@ -15,10 +15,10 @@ const config: Config = {
 
         // Brand
         brand: {
-          primary: "var(--brand-primary)",
-          "primary-light": "var(--brand-primary-light)",
-          "primary-dark": "var(--brand-primary-dark)",
-          "primary-darker": "var(--brand-primary-darker)",
+          primary: "rgb(var(--brand-primary) / <alpha-value>)",
+          "primary-light": "rgb(var(--brand-primary-light) / <alpha-value>)",
+          "primary-dark": "rgb(var(--brand-primary-dark) / <alpha-value>)",
+          "primary-darker": "rgb(var(--brand-primary-darker) / <alpha-value>)",
         },
 
         // Surfaces

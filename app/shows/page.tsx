@@ -7,7 +7,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ProfileMenu from '@/components/ProfileMenu';
 import { getImageUrl } from '@/lib/tmdb';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
+import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 
 interface LibraryItem {
   id: number;
@@ -58,6 +59,8 @@ export default function ShowsPage() {
   const [popularTV, setPopularTV] = useState<any[]>(() => initialCache?.popularTV || []);
   const [topRatedTV, setTopRatedTV] = useState<any[]>(() => initialCache?.topRatedTV || []);
   const [isLoading, setIsLoading] = useState(() => !initialCache);
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -172,6 +175,13 @@ export default function ShowsPage() {
     if (libraryData && trendingData) {
       writeCache({ ...libraryData, ...trendingData });
     }
+  };
+
+  const handleAddClick = (e: React.MouseEvent, item: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedItem(item);
+    setIsSheetOpen(true);
   };
 
   // Get first item for each list thumbnail
@@ -357,6 +367,18 @@ export default function ShowsPage() {
                           No Image
                         </div>
                       )}
+
+                      <button
+                        onClick={(e) => handleAddClick(e, {
+                          id: show.id,
+                          media_type: 'tv',
+                          title: show.name,
+                          poster_path: show.poster_path,
+                        })}
+                        className="absolute top-2 right-2 w-8 h-8 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
                     </div>
                     <h3 className="font-semibold text-sm line-clamp-2 mb-1">{show.name}</h3>
                     <p className="text-xs text-gray-400">{show.first_air_date?.split('-')[0]}</p>
@@ -400,6 +422,18 @@ export default function ShowsPage() {
                           No Image
                         </div>
                       )}
+
+                      <button
+                        onClick={(e) => handleAddClick(e, {
+                          id: show.id,
+                          media_type: 'tv',
+                          title: show.name,
+                          poster_path: show.poster_path,
+                        })}
+                        className="absolute top-2 right-2 w-8 h-8 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
                     </div>
                     <h3 className="font-semibold text-sm line-clamp-2 mb-1">{show.name}</h3>
                     <p className="text-xs text-gray-400">{show.first_air_date?.split('-')[0]}</p>
@@ -443,6 +477,18 @@ export default function ShowsPage() {
                           No Image
                         </div>
                       )}
+
+                      <button
+                        onClick={(e) => handleAddClick(e, {
+                          id: show.id,
+                          media_type: 'tv',
+                          title: show.name,
+                          poster_path: show.poster_path,
+                        })}
+                        className="absolute top-2 right-2 w-8 h-8 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
                     </div>
                     <h3 className="font-semibold text-sm line-clamp-2 mb-1">{show.name}</h3>
                     <p className="text-xs text-gray-400">{show.first_air_date?.split('-')[0]}</p>
@@ -454,6 +500,17 @@ export default function ShowsPage() {
           </section>
         )}
       </main>
+
+      {selectedItem && (
+        <MediaOptionsSheet
+          isOpen={isSheetOpen}
+          onClose={() => setIsSheetOpen(false)}
+          mediaId={selectedItem.id}
+          mediaType="tv"
+          title={selectedItem.title}
+          posterPath={selectedItem.poster_path}
+        />
+      )}
     </div>
   );
 }

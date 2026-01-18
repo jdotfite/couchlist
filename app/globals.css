@@ -5,11 +5,11 @@
      FlickLog Design System
      =========================================== */
 
-  /* Brand Colors - Primary Purple */
-  --brand-primary: #8b5ef4;
-  --brand-primary-light: #a07ef6;
-  --brand-primary-dark: #7040e0;
-  --brand-primary-darker: #5a30c0;
+  /* Brand Colors - Primary Purple (RGB for alpha support) */
+  --brand-primary: 139 94 244;
+  --brand-primary-light: 160 126 246;
+  --brand-primary-dark: 112 64 224;
+  --brand-primary-darker: 90 48 192;
 
   /* Background & Surface Colors */
   --background: #000000;
@@ -62,10 +62,10 @@
   --radius-xl: 1rem;           /* 16px */
 
   /* Legacy aliases (for backwards compatibility) */
-  --primary: var(--brand-primary);
-  --primary-light: var(--brand-primary-light);
-  --primary-dark: var(--brand-primary-dark);
-  --primary-darker: var(--brand-primary-darker);
+  --primary: rgb(var(--brand-primary) / 1);
+  --primary-light: rgb(var(--brand-primary-light) / 1);
+  --primary-dark: rgb(var(--brand-primary-dark) / 1);
+  --primary-darker: rgb(var(--brand-primary-darker) / 1);
 }
 
 body {
@@ -148,4 +148,13 @@ h1, h2, h3, h4, h5, h6 {
 .film-reel-spiral {
   stroke-dasharray: 1000;
   animation: film-reel-unravel 10.8s ease-in infinite;
+}
+
+.auth-gradient {
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--brand-primary) / 0.4),
+    rgb(0 0 0),
+    rgb(0 0 0)
+  );
 }
