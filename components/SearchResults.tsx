@@ -82,7 +82,7 @@ export default function SearchResults({ results, isLoading }: SearchResultsProps
                   {/* Plus Button - Top Right */}
                   <button
                     onClick={(e) => handleAddClick(e, item)}
-                    className="absolute top-2 right-2 w-8 h-8 bg-black/75 hover:bg-[#8b5ef4] backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                    className="absolute top-2 right-2 w-8 h-8 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
                   >
                     <Plus className="w-5 h-5" />
                   </button>

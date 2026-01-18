@@ -85,8 +85,8 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl text-red-500 mb-4">TV show not found</h1>
-          <Link href="/search" className="text-blue-500 hover:underline">
-            Back to search
+          <Link href="/discover" className="text-blue-500 hover:underline">
+            Back to discover
           </Link>
         </div>
       </div>
@@ -115,7 +115,7 @@ export default function TVShowPage({ params }: { params: Promise<{ id: string }>
         {/* Top Navigation */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-10">
           <Link
-            href="/search"
+            href="/shows"
             className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-full flex items-center justify-center transition"
           >
             <ArrowLeft className="w-5 h-5" />

@@ -1,14 +1,71 @@
 @import "tailwindcss";
 
 :root {
+  /* ===========================================
+     FlickLog Design System
+     =========================================== */
+
+  /* Brand Colors - Primary Purple */
+  --brand-primary: #8b5ef4;
+  --brand-primary-light: #a07ef6;
+  --brand-primary-dark: #7040e0;
+  --brand-primary-darker: #5a30c0;
+
+  /* Background & Surface Colors */
   --background: #000000;
+  --surface-1: #09090b;        /* zinc-950 */
+  --surface-2: #18181b;        /* zinc-900 */
+  --surface-3: #27272a;        /* zinc-800 */
+  --surface-4: #3f3f46;        /* zinc-700 */
+
+  /* Text Colors */
   --foreground: #ffffff;
-  --primary: #8b5ef4;
-  --primary-light: #a07ef6;
-  --primary-dark: #7040e0;
-  --primary-darker: #5a30c0;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;   /* zinc-400 */
+  --text-muted: #71717a;       /* zinc-500 */
+  --text-disabled: #52525b;    /* zinc-600 */
+
+  /* Border Colors */
+  --border-default: #27272a;   /* zinc-800 */
+  --border-subtle: #3f3f46;    /* zinc-700 */
+
+  /* Status Colors - Media tracking states */
+  --status-watchlist: #3b82f6; /* Blue */
+  --status-watching: #22c55e;  /* Green */
+  --status-finished: #8b5ef4;  /* Purple - brand primary */
+  --status-onhold: #eab308;    /* Yellow */
+  --status-dropped: #ef4444;   /* Red */
+
+  /* Tag Colors */
+  --tag-favorites: #ec4899;    /* Pink */
+  --tag-rewatch: #06b6d4;      /* Cyan */
+  --tag-classics: #f59e0b;     /* Amber */
+
+  /* Feedback Colors */
+  --feedback-success: #22c55e;
+  --feedback-warning: #f59e0b;
+  --feedback-error: #ef4444;
+  --feedback-info: #3b82f6;
+
+  /* Rating - Stars */
+  --rating-active: #facc15;    /* Yellow-400 */
+  --rating-inactive: #71717a;  /* zinc-500 */
+
+  /* Typography */
   --font-montserrat: 'Montserrat', sans-serif;
   --font-open-sans: 'Open Sans', sans-serif;
+
+  /* Spacing (reference) */
+  --radius-sm: 0.375rem;       /* 6px */
+  --radius-md: 0.5rem;         /* 8px */
+  --radius-lg: 0.75rem;        /* 12px */
+  --radius-xl: 1rem;           /* 16px */
+
+  /* Legacy aliases (for backwards compatibility) */
+  --primary: var(--brand-primary);
+  --primary-light: var(--brand-primary-light);
+  --primary-dark: var(--brand-primary-dark);
+  --primary-darker: var(--brand-primary-darker);
 }
 
 body {

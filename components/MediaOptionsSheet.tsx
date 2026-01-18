@@ -173,51 +173,51 @@ export default function MediaOptionsSheet({
     // If no current status (item not in any list), show all "Add to" options
     if (!currentList) {
       return [
-        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-blue-500' },
-        { key: 'watching', label: 'Add to Watching', icon: <Play className="w-5 h-5" />, color: 'text-green-500' },
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-[#8b5ef4]' },
-        { key: 'onhold', label: 'Add to On Hold', icon: <PauseCircle className="w-5 h-5" />, color: 'text-yellow-500' },
-        { key: 'dropped', label: 'Add to Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
+        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
+        { key: 'watching', label: 'Add to Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
+        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
+        { key: 'onhold', label: 'Add to On Hold', icon: <PauseCircle className="w-5 h-5" />, color: 'text-status-onhold' },
+        { key: 'dropped', label: 'Add to Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-status-dropped' },
       ];
     }
 
     // Context-aware options based on current list
     if (currentList === 'watchlist') {
       options.push(
-        { key: 'watching', label: 'Start Watching', icon: <Play className="w-5 h-5" />, color: 'text-green-500' },
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-[#8b5ef4]' },
-        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
+        { key: 'watching', label: 'Start Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
+        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
+        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-status-dropped' },
       );
     } else if (currentList === 'watching') {
       options.push(
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-[#8b5ef4]' },
-        { key: 'onhold', label: 'Put On Hold', icon: <PauseCircle className="w-5 h-5" />, color: 'text-yellow-500' },
-        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
-        { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-blue-500' },
+        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
+        { key: 'onhold', label: 'Put On Hold', icon: <PauseCircle className="w-5 h-5" />, color: 'text-status-onhold' },
+        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-status-dropped' },
+        { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
       );
     } else if (currentList === 'onhold') {
       options.push(
-        { key: 'watching', label: 'Resume Watching', icon: <Play className="w-5 h-5" />, color: 'text-green-500' },
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-[#8b5ef4]' },
-        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-red-500' },
-        { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-blue-500' },
+        { key: 'watching', label: 'Resume Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
+        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
+        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-status-dropped' },
+        { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
       );
     } else if (currentList === 'dropped') {
       options.push(
-        { key: 'watching', label: 'Try Again', icon: <Play className="w-5 h-5" />, color: 'text-green-500' },
-        { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-blue-500' },
+        { key: 'watching', label: 'Try Again', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
+        { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
       );
     } else if (currentList === 'finished' || currentList === 'watched') {
       options.push(
-        { key: 'watching', label: 'Watch Again', icon: <Play className="w-5 h-5" />, color: 'text-green-500' },
-        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-blue-500' },
+        { key: 'watching', label: 'Watch Again', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
+        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
       );
     } else if (isTagList) {
       // From tag lists, show all status options
       options.push(
-        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-blue-500' },
-        { key: 'watching', label: 'Start Watching', icon: <Play className="w-5 h-5" />, color: 'text-green-500' },
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-[#8b5ef4]' },
+        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
+        { key: 'watching', label: 'Start Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
+        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
       );
     }
 
@@ -296,7 +296,7 @@ export default function MediaOptionsSheet({
               disabled={isUpdating}
               className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
             >
-              <Heart className="w-5 h-5 text-pink-500" />
+              <Heart className="w-5 h-5 text-tag-favorites" />
               <span className="flex-1 text-left text-white">{hasFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</span>
             </button>
 
@@ -305,9 +305,9 @@ export default function MediaOptionsSheet({
               disabled={isUpdating}
               className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
             >
-              <RotateCcw className={`w-5 h-5 text-cyan-500`} />
+              <RotateCcw className={`w-5 h-5 text-tag-rewatch`} />
               <span className="flex-1 text-left text-white">{hasRewatch ? 'Remove from Rewatch' : 'Add to Rewatch'}</span>
-              {hasRewatch && <Check className="w-5 h-5 text-cyan-500" />}
+              {hasRewatch && <Check className="w-5 h-5 text-tag-rewatch" />}
             </button>
 
             <button
@@ -315,9 +315,9 @@ export default function MediaOptionsSheet({
               disabled={isUpdating}
               className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
             >
-              <Sparkles className={`w-5 h-5 text-amber-500`} />
+              <Sparkles className={`w-5 h-5 text-tag-classics`} />
               <span className="flex-1 text-left text-white">{hasClassics ? 'Remove from Classics' : 'Add to Classics'}</span>
-              {hasClassics && <Check className="w-5 h-5 text-amber-500" />}
+              {hasClassics && <Check className="w-5 h-5 text-tag-classics" />}
             </button>
           </div>
 
@@ -344,7 +344,7 @@ export default function MediaOptionsSheet({
               <button
                 onClick={handleRemove}
                 disabled={isUpdating}
-                className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition text-red-500 disabled:opacity-50"
+                className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition text-status-dropped disabled:opacity-50"
               >
                 <Trash2 className="w-5 h-5" />
                 <span>Remove from {removeLabel}</span>

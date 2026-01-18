@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { X, Plus, Sparkles, TrendingUp, Clock, Settings, LogOut } from 'lucide-react';
+import { X, Tv, Film, Compass, Users, Settings, LogOut } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 import { useEffect, useState } from 'react';
 
@@ -79,39 +79,39 @@ export default function Sidebar() {
         {/* Menu Items */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           <Link
-            href="/library"
+            href="/shows"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
           >
-            <Plus className="w-5 h-5" />
-            <span className="font-medium">Your Library</span>
+            <Tv className="w-5 h-5" />
+            <span className="font-medium">TV Shows</span>
           </Link>
 
           <Link
-            href="/add"
+            href="/movies"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
           >
-            <Sparkles className="w-5 h-5" />
-            <span className="font-medium">Quick Add</span>
+            <Film className="w-5 h-5" />
+            <span className="font-medium">Movies</span>
           </Link>
 
           <Link
-            href="/browse/trending"
+            href="/discover"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
           >
-            <TrendingUp className="w-5 h-5" />
-            <span className="font-medium">What's Trending</span>
+            <Compass className="w-5 h-5" />
+            <span className="font-medium">Discover</span>
           </Link>
 
           <Link
-            href="/library/finished"
+            href="/community"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
           >
-            <Clock className="w-5 h-5" />
-            <span className="font-medium">Recently Finished</span>
+            <Users className="w-5 h-5" />
+            <span className="font-medium">Community</span>
           </Link>
 
           <div className="border-t border-zinc-800 my-2" />
@@ -124,18 +124,21 @@ export default function Sidebar() {
             <Settings className="w-5 h-5" />
             <span className="font-medium">Settings</span>
           </Link>
+        </nav>
 
+        {/* Pinned Footer */}
+        <div className="px-4 py-4 border-t border-zinc-800">
           <button
             onClick={() => {
               setIsOpen(false);
               signOut({ callbackUrl: '/' });
             }}
-            className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition text-left"
+            className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition text-left text-gray-400 hover:text-white"
           >
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Log out</span>
           </button>
-        </nav>
+        </div>
       </div>
       )}
     </div>
