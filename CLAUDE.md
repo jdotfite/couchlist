@@ -21,17 +21,23 @@ app/
 ├── api/
 │   ├── auth/[...nextauth]/     # NextAuth endpoints
 │   ├── browse/                  # Category browsing
-│   ├── library/                 # User's media library CRUD
+│   ├── collaborators/           # Collaboration management
+│   ├── list-preferences/        # Custom list names
 │   ├── search/                  # TMDb search
 │   ├── trending/                # Trending content
 │   ├── movie/[id]/              # Movie details from TMDb
 │   └── tv/[id]/                 # TV show details from TMDb
 ├── community/                   # Placeholder - not implemented
 ├── discover/page.tsx            # Search & browse page
+├── invite/[code]/page.tsx       # Accept collaboration invite
 ├── movie/[id]/page.tsx          # Movie detail page
 ├── tv/[id]/page.tsx             # TV show detail page
 ├── movies/page.tsx              # User's movie library
 ├── shows/page.tsx               # User's TV show library
+├── settings/
+│   ├── page.tsx                 # Settings hub
+│   ├── collaborators/page.tsx   # Manage shared lists
+│   └── lists/page.tsx           # Rename list names
 ├── add/page.tsx                 # Quick add page
 ├── library/page.tsx             # Redirects to /shows
 └── page.tsx                     # Home (redirects to /shows)
@@ -48,13 +54,17 @@ components/
 └── InstallPrompt.tsx            # PWA install prompt
 
 lib/
-├── db.ts                        # Database connection & queries
+├── db.ts                        # Database connection & schema
 ├── tmdb.ts                      # TMDb API helpers
-└── auth.ts                      # NextAuth configuration
+├── auth.ts                      # NextAuth configuration
+├── collaborators.ts             # Collaboration logic
+└── list-preferences.ts          # Custom list name logic
 
 hooks/
 ├── useAuth.ts                   # Authentication hook
-└── useLibrary.ts                # Library data fetching hook
+├── useLibrary.ts                # Library data fetching hook
+├── useMediaStatus.ts            # Media status management
+└── useListPreferences.ts        # Custom list names hook
 ```
 
 ## Database Schema
@@ -82,6 +92,17 @@ hooks/
 - favorites (heart icon)
 - rewatch (rotation icon)
 - classics (star icon - nostalgia/throwback)
+
+### Collaboration Tables
+
+**collaborators** (links users who share lists)
+- id, owner_id, collaborator_id, invite_code, invite_expires_at, status, created_at, accepted_at
+
+**shared_lists** (which lists are shared)
+- id, collaborator_id, list_type, is_active, created_at
+
+**user_list_preferences** (custom list names)
+- id, user_id, list_type, display_name, created_at, updated_at
 
 ### Legacy Tables (still exist, may be redundant)
 - watchlist, watched, watching, onhold, dropped, rewatch, nostalgia, favorites
@@ -124,6 +145,21 @@ hooks/
 - Service worker for offline support
 - App manifest with icons
 
+### Collaborative Lists
+- Generate invite links (7-day expiry)
+- Share specific lists (watchlist, watching, finished, etc.)
+- Both users see shared items with "added by" attribution
+- Edit which lists are shared after connecting
+- Remove collaboration (items stay with original owner)
+- "Shared" badge on collaborative list headers
+
+### Custom List Names
+- Rename any of the 8 system lists (Settings → List Names)
+- Custom names appear on dashboards, list headers, all lists pages
+- 50 character limit per name
+- Reset to default option
+- Per-user preferences (doesn't affect collaborators)
+
 ## API Endpoints
 
 | Endpoint | Method | Description |
@@ -137,6 +173,12 @@ hooks/
 | /api/tv/[id] | GET | Get TV show details |
 | /api/trending | GET | Get trending content |
 | /api/browse | GET | Get category content |
+| /api/collaborators | GET/POST | List/create collaborations |
+| /api/collaborators/[id] | PATCH/DELETE | Update/remove collaboration |
+| /api/collaborators/invite/[code] | GET | Get invite details |
+| /api/collaborators/accept/[code] | POST | Accept invite |
+| /api/collaborators/shared-lists | GET | Get shared list types |
+| /api/list-preferences | GET/PATCH | Get/update custom list names |
 
 ## Styling Conventions
 
@@ -162,10 +204,9 @@ TMDB_ACCESS_TOKEN=
 
 1. **No episode tracking** - TV shows tracked as whole, not by episode
 2. **No text reviews** - Rating only, notes field unused
-3. **No custom tags** - Only system tags available
-4. **No social features** - Community page is placeholder
-5. **No sorting** - Library lists can't be sorted
-6. **No stats** - No watch time or analytics
+3. **No custom tags** - Only system tags available (can rename but not create new)
+4. **No sorting** - Library lists can't be sorted
+5. **No stats** - No watch time or analytics
 
 ## Code Patterns
 
