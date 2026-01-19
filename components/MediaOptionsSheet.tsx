@@ -17,10 +17,12 @@ import {
   Info,
   Trash2,
   Loader2,
+  ListPlus,
 } from 'lucide-react';
 import BottomSheet from './BottomSheet';
 import { useMediaStatus, type MediaInfo, type MediaStatus } from '@/hooks/useMediaStatus';
 import { getImageUrl } from '@/lib/tmdb';
+import CustomListSelector from './custom-lists/CustomListSelector';
 
 // Status lists are mutually exclusive
 const STATUS_LISTS = ['watchlist', 'watching', 'onhold', 'dropped', 'finished', 'watched'];
@@ -319,6 +321,20 @@ export default function MediaOptionsSheet({
               <span className="flex-1 text-left text-white">{hasClassics ? 'Remove from Classics' : 'Add to Classics'}</span>
               {hasClassics && <Check className="w-5 h-5 text-tag-classics" />}
             </button>
+          </div>
+
+          {/* Custom Lists */}
+          <div className="border-t border-zinc-800 mt-2">
+            <div className="px-4 py-2 flex items-center gap-2">
+              <ListPlus className="w-4 h-4 text-gray-500" />
+              <p className="text-xs text-gray-500 uppercase tracking-wider">Custom Lists</p>
+            </div>
+            <CustomListSelector
+              tmdbId={mediaId}
+              mediaType={mediaType}
+              title={title}
+              posterPath={posterPath}
+            />
           </div>
 
           {/* Other Actions */}
