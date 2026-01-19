@@ -150,6 +150,53 @@ export async function initDb() {
       ON user_list_preferences(user_id);
     `;
 
+    // Custom lists - user-created lists beyond system defaults
+    await sql`
+      CREATE TABLE IF NOT EXISTS custom_lists (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        slug VARCHAR(50) NOT NULL,
+        name VARCHAR(50) NOT NULL,
+        description VARCHAR(200),
+        icon VARCHAR(30) DEFAULT 'list',
+        color VARCHAR(20) DEFAULT 'gray',
+        is_shared BOOLEAN DEFAULT false,
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, slug)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_custom_lists_user
+      ON custom_lists(user_id);
+    `;
+
+    // Custom list items - junction table linking media to custom lists
+    await sql`
+      CREATE TABLE IF NOT EXISTS custom_list_items (
+        id SERIAL PRIMARY KEY,
+        custom_list_id INTEGER NOT NULL REFERENCES custom_lists(id) ON DELETE CASCADE,
+        media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+        added_by INTEGER REFERENCES users(id),
+        notes VARCHAR(500),
+        position INTEGER DEFAULT 0,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(custom_list_id, media_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_custom_list_items_list
+      ON custom_list_items(custom_list_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_custom_list_items_media
+      ON custom_list_items(media_id);
+    `;
+
     // Add added_by column to user_media if it doesn't exist
     try {
       await sql`
