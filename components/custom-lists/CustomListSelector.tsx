@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { Check, Loader2, Plus } from 'lucide-react';
 import { getIconComponent } from './IconPicker';
-import { getColorValue } from './ColorPicker';
 
 interface CustomList {
   id: number;
@@ -127,7 +126,7 @@ export default function CustomListSelector({
       <div className="py-2">
         <button
           onClick={onCreateList}
-          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-800 rounded-lg transition text-gray-400"
+          className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition text-gray-400"
         >
           <Plus className="w-5 h-5" />
           <span>Create your first list</span>
@@ -140,7 +139,6 @@ export default function CustomListSelector({
     <div className="py-2">
       {lists.map((list) => {
         const IconComponent = getIconComponent(list.icon);
-        const colorValue = getColorValue(list.color);
         const isSelected = selectedSlugs.has(list.slug);
         const isToggling = togglingSlug === list.slug;
 
@@ -149,24 +147,17 @@ export default function CustomListSelector({
             key={list.slug}
             onClick={() => toggleList(list.slug)}
             disabled={isToggling}
-            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-800 rounded-lg transition disabled:opacity-50"
+            className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
           >
-            <div
-              className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: `${colorValue}20` }}
-            >
-              <IconComponent className="w-4 h-4" style={{ color: colorValue }} />
-            </div>
-            <span className="flex-1 text-left font-medium">{list.name}</span>
+            <IconComponent className="w-5 h-5 text-gray-400" />
+            <span className="flex-1 text-left text-white">
+              {isSelected ? `Remove from ${list.name}` : `Add to ${list.name}`}
+            </span>
             {isToggling ? (
               <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
             ) : isSelected ? (
-              <div className="w-6 h-6 rounded-md bg-brand-primary flex items-center justify-center">
-                <Check className="w-4 h-4 text-white" />
-              </div>
-            ) : (
-              <div className="w-6 h-6 rounded-md border-2 border-zinc-600" />
-            )}
+              <Check className="w-5 h-5 text-brand-primary" />
+            ) : null}
           </button>
         );
       })}
@@ -174,11 +165,9 @@ export default function CustomListSelector({
       {onCreateList && (
         <button
           onClick={onCreateList}
-          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-800 rounded-lg transition text-gray-400 mt-1"
+          className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition text-gray-400 mt-1"
         >
-          <div className="w-8 h-8 rounded-md flex items-center justify-center border border-dashed border-zinc-600">
-            <Plus className="w-4 h-4" />
-          </div>
+          <Plus className="w-5 h-5" />
           <span>Create new list</span>
         </button>
       )}

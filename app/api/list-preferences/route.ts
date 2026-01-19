@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getListPreferences, setListPreference, getAllListsWithNames } from '@/lib/list-preferences';
+import { setListPreference, setListHidden, getAllListsWithNames } from '@/lib/list-preferences';
 
 // GET /api/list-preferences - Get all list preferences for current user
 export async function GET() {
@@ -23,7 +23,7 @@ export async function GET() {
   }
 }
 
-// PATCH /api/list-preferences - Update a list preference
+// PATCH /api/list-preferences - Update a list preference (name or hidden state)
 export async function PATCH(request: Request) {
   try {
     const session = await auth();
@@ -33,7 +33,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { listType, displayName } = body;
+    const { listType, displayName, isHidden } = body;
 
     if (!listType) {
       return NextResponse.json(
@@ -42,6 +42,22 @@ export async function PATCH(request: Request) {
       );
     }
 
+    // Handle hidden state update
+    if (typeof isHidden === 'boolean') {
+      const result = await setListHidden(
+        Number(session.user.id),
+        listType,
+        isHidden
+      );
+
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    // Handle display name update
     const result = await setListPreference(
       Number(session.user.id),
       listType,

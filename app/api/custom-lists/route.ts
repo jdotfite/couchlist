@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getCustomLists, createCustomList, AVAILABLE_ICONS, AVAILABLE_COLORS } from '@/lib/custom-lists';
+import { getCustomLists, getCustomListsWithMediaType, createCustomList, AVAILABLE_ICONS, AVAILABLE_COLORS } from '@/lib/custom-lists';
 
 // GET /api/custom-lists - Get all custom lists for current user
-export async function GET() {
+// Optional query param: mediaType=movie|tv - filters lists to only include items of that type
+export async function GET(request: Request) {
   try {
     const session = await auth();
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const mediaType = searchParams.get('mediaType') as 'movie' | 'tv' | null;
+
+    if (mediaType && (mediaType === 'movie' || mediaType === 'tv')) {
+      // Return lists with items filtered by media type
+      const lists = await getCustomListsWithMediaType(Number(session.user.id), mediaType);
+      return NextResponse.json({ lists });
     }
 
     const lists = await getCustomLists(Number(session.user.id));

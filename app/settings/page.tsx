@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Share2, ChevronRight, Pencil } from 'lucide-react';
+import { ChevronLeft, Share2, ChevronRight } from 'lucide-react';
 
 export default function SettingsPage() {
   const { status } = useSession();
@@ -48,20 +48,6 @@ export default function SettingsPage() {
             <div className="flex-1">
               <h3 className="font-semibold">Shared Lists</h3>
               <p className="text-sm text-gray-400">Collaborate with others on your lists</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-500" />
-          </Link>
-
-          <Link
-            href="/settings/lists"
-            className="flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
-          >
-            <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center">
-              <Pencil className="w-5 h-5 text-amber-500" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">List Names</h3>
-              <p className="text-sm text-gray-400">Personalize your list names</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-500" />
           </Link>

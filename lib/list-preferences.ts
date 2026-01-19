@@ -27,9 +27,10 @@ export interface ListPreference {
   listType: string;
   displayName: string;
   defaultName: string;
+  isHidden: boolean;
 }
 
-// Get all list preferences for a user
+// Get all list preferences for a user (names only - backwards compatible)
 export async function getListPreferences(userId: number): Promise<Record<string, string>> {
   await ensureDb();
 
@@ -41,7 +42,30 @@ export async function getListPreferences(userId: number): Promise<Record<string,
 
   const preferences: Record<string, string> = {};
   for (const row of result.rows) {
-    preferences[row.list_type] = row.display_name;
+    if (row.display_name) {
+      preferences[row.list_type] = row.display_name;
+    }
+  }
+
+  return preferences;
+}
+
+// Get full list preferences including hidden state
+export async function getFullListPreferences(userId: number): Promise<Record<string, { displayName: string | null; isHidden: boolean }>> {
+  await ensureDb();
+
+  const result = await sql`
+    SELECT list_type, display_name, is_hidden
+    FROM user_list_preferences
+    WHERE user_id = ${userId}
+  `;
+
+  const preferences: Record<string, { displayName: string | null; isHidden: boolean }> = {};
+  for (const row of result.rows) {
+    preferences[row.list_type] = {
+      displayName: row.display_name,
+      isHidden: row.is_hidden || false,
+    };
   }
 
   return preferences;
@@ -123,11 +147,55 @@ export async function getListDisplayName(userId: number, listType: string): Prom
 
 // Get all lists with their display names for a user
 export async function getAllListsWithNames(userId: number): Promise<ListPreference[]> {
-  const preferences = await getListPreferences(userId);
+  const preferences = await getFullListPreferences(userId);
 
   return SYSTEM_LISTS.map(list => ({
     listType: list.type,
-    displayName: preferences[list.type] || list.defaultName,
+    displayName: preferences[list.type]?.displayName || list.defaultName,
     defaultName: list.defaultName,
+    isHidden: preferences[list.type]?.isHidden || false,
   }));
+}
+
+// Set list hidden state
+export async function setListHidden(
+  userId: number,
+  listType: string,
+  isHidden: boolean
+): Promise<{ success: boolean; error?: string }> {
+  await ensureDb();
+
+  // Validate list type
+  const validTypes = SYSTEM_LISTS.map(l => l.type);
+  if (!validTypes.includes(listType as SystemListType)) {
+    return { success: false, error: 'Invalid list type' };
+  }
+
+  try {
+    // Check if preference exists
+    const existing = await sql`
+      SELECT id, display_name FROM user_list_preferences
+      WHERE user_id = ${userId} AND list_type = ${listType}
+    `;
+
+    if (existing.rows.length > 0) {
+      // Update existing
+      await sql`
+        UPDATE user_list_preferences
+        SET is_hidden = ${isHidden}, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ${userId} AND list_type = ${listType}
+      `;
+    } else {
+      // Insert new preference with just the hidden state
+      await sql`
+        INSERT INTO user_list_preferences (user_id, list_type, display_name, is_hidden)
+        VALUES (${userId}, ${listType}, NULL, ${isHidden})
+      `;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error setting list hidden state:', error);
+    return { success: false, error: 'Failed to update preference' };
+  }
 }

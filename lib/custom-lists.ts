@@ -430,3 +430,52 @@ export async function getCustomListsCount(userId: number): Promise<number> {
 
   return result.rows[0].count;
 }
+
+// Get custom lists with items filtered by media type (for /movies/all and /shows/all pages)
+export async function getCustomListsWithMediaType(
+  userId: number,
+  mediaType: 'movie' | 'tv'
+): Promise<(CustomList & { items: CustomListItem[] })[]> {
+  await ensureDb();
+
+  // Get all custom lists for the user
+  const listsResult = await sql`
+    SELECT * FROM custom_lists
+    WHERE user_id = ${userId}
+    ORDER BY position ASC, created_at DESC
+  `;
+
+  const lists = listsResult.rows as CustomList[];
+
+  // For each list, get items of the specified media type
+  const listsWithItems: (CustomList & { items: CustomListItem[] })[] = [];
+
+  for (const list of lists) {
+    const itemsResult = await sql`
+      SELECT
+        cli.*,
+        m.title,
+        m.poster_path,
+        m.media_type,
+        m.tmdb_id
+      FROM custom_list_items cli
+      JOIN media m ON cli.media_id = m.id
+      WHERE cli.custom_list_id = ${list.id}
+        AND m.media_type = ${mediaType}
+      ORDER BY cli.position ASC, cli.added_at DESC
+    `;
+
+    const items = itemsResult.rows as CustomListItem[];
+
+    // Only show lists that have at least 1 item of the specified media type
+    if (items.length > 0) {
+      listsWithItems.push({
+        ...list,
+        item_count: items.length,
+        items,
+      });
+    }
+  }
+
+  return listsWithItems;
+}

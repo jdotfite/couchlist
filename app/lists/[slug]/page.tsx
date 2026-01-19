@@ -144,9 +144,9 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
-          <Link href="/lists" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
+          <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
-          </Link>
+          </button>
           <div
             className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: `${colorValue}20` }}

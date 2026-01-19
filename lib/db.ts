@@ -138,12 +138,33 @@ export async function initDb() {
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         list_type VARCHAR(30) NOT NULL,
-        display_name VARCHAR(50) NOT NULL,
+        display_name VARCHAR(50),
+        is_hidden BOOLEAN DEFAULT false,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, list_type)
       );
     `;
+
+    // Add is_hidden column if it doesn't exist (migration for existing tables)
+    try {
+      await sql`
+        ALTER TABLE user_list_preferences
+        ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT false;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    // Allow display_name to be null (for hide-only preferences)
+    try {
+      await sql`
+        ALTER TABLE user_list_preferences
+        ALTER COLUMN display_name DROP NOT NULL;
+      `;
+    } catch (e) {
+      // Might already be nullable
+    }
 
     await sql`
       CREATE INDEX IF NOT EXISTS idx_user_list_preferences_user

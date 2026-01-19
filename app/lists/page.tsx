@@ -76,7 +76,7 @@ export default function ListsPage() {
   const canCreateMore = lists.length < MAX_LISTS;
 
   return (
-    <div className="min-h-screen bg-black text-white pb-24">
+    <div className="min-h-screen bg-black text-white">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
         <div className="flex items-center justify-between">
@@ -92,7 +92,7 @@ export default function ListsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-6">
+      <main className="px-4 pt-6 pb-24">
         {/* Info box */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
           <p className="text-sm text-gray-400">
