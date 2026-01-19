@@ -263,22 +263,7 @@ export default function CollaboratorsSettingsPage() {
                       </div>
                     </div>
 
-                    {removingId === collaboration.id ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => removeCollaboration(collaboration.id)}
-                          className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium transition"
-                        >
-                          Confirm
-                        </button>
-                        <button
-                          onClick={() => setRemovingId(null)}
-                          className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm font-medium transition"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
+                    {removingId !== collaboration.id && (
                       <button
                         onClick={() => setRemovingId(collaboration.id)}
                         className="p-2 hover:bg-zinc-800 rounded-lg transition text-gray-400 hover:text-red-400"
@@ -300,6 +285,34 @@ export default function CollaboratorsSettingsPage() {
                       </span>
                     ))}
                   </div>
+
+                  {/* Remove confirmation */}
+                  {removingId === collaboration.id && (
+                    <div className="mt-4 pt-4 border-t border-zinc-700">
+                      <p className="text-sm text-gray-300 mb-3">
+                        Stop sharing lists with {partnerName}?
+                      </p>
+                      <ul className="text-xs text-gray-500 mb-4 space-y-1">
+                        <li>• You'll stop seeing each other's items</li>
+                        <li>• Items already in your lists will stay</li>
+                        <li>• Nothing gets deleted</li>
+                      </ul>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => removeCollaboration(collaboration.id)}
+                          className="flex-1 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium transition"
+                        >
+                          Stop Sharing
+                        </button>
+                        <button
+                          onClick={() => setRemovingId(null)}
+                          className="flex-1 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm font-medium transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
