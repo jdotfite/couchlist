@@ -9,6 +9,7 @@ import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import MediaCard, { MediaCardItem } from '@/components/MediaCard';
 import EmptyState from '@/components/EmptyState';
 import MediaListSkeleton from '@/components/MediaListSkeleton';
+import { useListPreferences } from '@/hooks/useListPreferences';
 
 type ListItem = MediaCardItem;
 
@@ -110,6 +111,7 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isShared, setIsShared] = useState(false);
+  const { getListName } = useListPreferences();
 
   const config = listConfig[slug];
 
@@ -126,6 +128,9 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
     nostalgia: 'nostalgia',
   };
   const listType = listTypeMap[slug] || slug;
+
+  // Get custom list name if set, otherwise use default
+  const displayTitle = getListName(listType) || config?.title || 'List';
 
   const STATUS_LISTS = ['watchlist', 'watching', 'onhold', 'dropped', 'finished', 'watched'];
   const TAG_LISTS = ['favorites', 'rewatch', 'nostalgia'];
@@ -239,7 +244,7 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
           </Link>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">{config.title}</h1>
+              <h1 className="text-xl font-bold">{displayTitle}</h1>
               {isShared && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/20 text-brand-primary text-xs font-medium rounded-full">
                   <Users className="w-3 h-3" />

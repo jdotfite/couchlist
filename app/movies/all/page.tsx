@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft } from 'lucide-react';
 import AllListsSkeleton from '@/components/AllListsSkeleton';
 import { getImageUrl } from '@/lib/tmdb';
+import { useListPreferences } from '@/hooks/useListPreferences';
 
 interface LibraryItem {
   id: number;
@@ -29,6 +30,7 @@ export default function AllMoviesListsPage() {
   const [nostalgiaItems, setNostalgiaItems] = useState<LibraryItem[]>([]);
   const [favoritesItems, setFavoritesItems] = useState<LibraryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { getListName } = useListPreferences();
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -84,14 +86,14 @@ export default function AllMoviesListsPage() {
   }
 
   const lists = [
-    { slug: 'watching', title: 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900' },
-    { slug: 'watchlist', title: 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900' },
-    { slug: 'finished', title: 'Finished', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker' },
-    { slug: 'onhold', title: 'On Hold', items: onHoldItems, icon: PauseCircle, color: 'from-yellow-500 to-yellow-900' },
-    { slug: 'dropped', title: 'Dropped', items: droppedItems, icon: XCircle, color: 'from-red-600 to-red-900' },
-    { slug: 'rewatch', title: 'Rewatch', items: rewatchItems, icon: RotateCcw, color: 'from-cyan-500 to-cyan-900' },
-    { slug: 'nostalgia', title: 'Classics', items: nostalgiaItems, icon: Sparkles, color: 'from-amber-500 to-amber-900' },
-    { slug: 'favorites', title: 'Favorites', items: favoritesItems, icon: Heart, color: 'from-pink-600 to-pink-900' },
+    { slug: 'watching', title: getListName('watching') || 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900' },
+    { slug: 'watchlist', title: getListName('watchlist') || 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900' },
+    { slug: 'finished', title: getListName('finished') || 'Finished', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker' },
+    { slug: 'onhold', title: getListName('onhold') || 'On Hold', items: onHoldItems, icon: PauseCircle, color: 'from-yellow-500 to-yellow-900' },
+    { slug: 'dropped', title: getListName('dropped') || 'Dropped', items: droppedItems, icon: XCircle, color: 'from-red-600 to-red-900' },
+    { slug: 'rewatch', title: getListName('rewatch') || 'Rewatch', items: rewatchItems, icon: RotateCcw, color: 'from-cyan-500 to-cyan-900' },
+    { slug: 'nostalgia', title: getListName('nostalgia') || 'Classics', items: nostalgiaItems, icon: Sparkles, color: 'from-amber-500 to-amber-900' },
+    { slug: 'favorites', title: getListName('favorites') || 'Favorites', items: favoritesItems, icon: Heart, color: 'from-pink-600 to-pink-900' },
   ];
 
   return (

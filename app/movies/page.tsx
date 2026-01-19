@@ -10,6 +10,7 @@ import { getImageUrl } from '@/lib/tmdb';
 import { Plus } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import LibraryDashboardSkeleton from '@/components/LibraryDashboardSkeleton';
+import { useListPreferences } from '@/hooks/useListPreferences';
 
 interface LibraryItem {
   id: number;
@@ -62,6 +63,7 @@ export default function MoviesPage() {
   const [isLoading, setIsLoading] = useState(() => !initialCache);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { getListName } = useListPreferences();
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -224,7 +226,7 @@ export default function MoviesPage() {
                 />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Watching</h3>
+                <h3 className="font-semibold text-sm">{getListName('watching') || 'Watching'}</h3>
                 <p className="text-xs text-gray-400">{watchingItems.length} movies</p>
               </div>
             </Link>
@@ -243,7 +245,7 @@ export default function MoviesPage() {
                 />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Watchlist</h3>
+                <h3 className="font-semibold text-sm">{getListName('watchlist') || 'Watchlist'}</h3>
                 <p className="text-xs text-gray-400">{watchlistItems.length} movies</p>
               </div>
             </Link>
@@ -262,7 +264,7 @@ export default function MoviesPage() {
                 />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Finished</h3>
+                <h3 className="font-semibold text-sm">{getListName('finished') || 'Finished'}</h3>
                 <p className="text-xs text-gray-400">{watchedItems.length} movies</p>
               </div>
             </Link>

@@ -132,6 +132,24 @@ export async function initDb() {
       );
     `;
 
+    // User list preferences - custom names for system lists
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_list_preferences (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        list_type VARCHAR(30) NOT NULL,
+        display_name VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, list_type)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_list_preferences_user
+      ON user_list_preferences(user_id);
+    `;
+
     // Add added_by column to user_media if it doesn't exist
     try {
       await sql`
