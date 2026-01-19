@@ -103,7 +103,7 @@ export async function acceptInvite(
   userId: number,
   selectedLists: string[],
   mergeItems: boolean = true
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; duplicatesCount?: number }> {
   // Get the invite
   const invite = await getInviteByCode(inviteCode);
 
@@ -167,11 +167,56 @@ export async function acceptInvite(
     `;
   }
 
-  // If merging items, we need to handle potential duplicates
-  // For now, items remain with their original owner but will be visible to both
-  // The added_by field tracks who originally added each item
+  // Count duplicates - media that both users have in the selected lists
+  let duplicatesCount = 0;
 
-  return { success: true };
+  if (selectedLists.length > 0) {
+    // Build list of status types and tag types
+    const statusLists = selectedLists.filter(l =>
+      ['watchlist', 'watching', 'finished', 'onhold', 'dropped'].includes(l)
+    );
+    const tagLists = selectedLists.filter(l =>
+      ['favorites', 'rewatch', 'nostalgia'].includes(l)
+    );
+
+    // Count duplicates in status-based lists
+    if (statusLists.length > 0) {
+      const statusListStr = statusLists.join(',');
+      const statusDuplicates = await sql`
+        SELECT COUNT(DISTINCT owner_media.media_id) as count
+        FROM user_media owner_media
+        JOIN user_media collab_media ON owner_media.media_id = collab_media.media_id
+        WHERE owner_media.user_id = ${collaboration.owner_id}
+        AND collab_media.user_id = ${userId}
+        AND owner_media.status = ANY(string_to_array(${statusListStr}, ','))
+        AND collab_media.status = ANY(string_to_array(${statusListStr}, ','))
+      `;
+      duplicatesCount += parseInt(statusDuplicates.rows[0]?.count || '0', 10);
+    }
+
+    // Count duplicates in tag-based lists
+    if (tagLists.length > 0) {
+      const tagListStr = tagLists.join(',');
+      const tagDuplicates = await sql`
+        SELECT COUNT(DISTINCT owner_um.media_id) as count
+        FROM user_media owner_um
+        JOIN user_media_tags owner_umt ON owner_um.id = owner_umt.user_media_id
+        JOIN tags owner_tag ON owner_umt.tag_id = owner_tag.id
+        JOIN user_media collab_um ON owner_um.media_id = collab_um.media_id
+        JOIN user_media_tags collab_umt ON collab_um.id = collab_umt.user_media_id
+        JOIN tags collab_tag ON collab_umt.tag_id = collab_tag.id
+        WHERE owner_um.user_id = ${collaboration.owner_id}
+        AND collab_um.user_id = ${userId}
+        AND owner_tag.slug = ANY(string_to_array(${tagListStr}, ','))
+        AND collab_tag.slug = ANY(string_to_array(${tagListStr}, ','))
+        AND owner_tag.user_id IS NULL
+        AND collab_tag.user_id IS NULL
+      `;
+      duplicatesCount += parseInt(tagDuplicates.rows[0]?.count || '0', 10);
+    }
+  }
+
+  return { success: true, duplicatesCount };
 }
 
 // Get all collaborations for a user
@@ -303,4 +348,17 @@ export async function updateSharedLists(
 export async function hasSharedList(userId: number, listType: string): Promise<boolean> {
   const collaboratorIds = await getCollaboratorIds(userId, listType);
   return collaboratorIds.length > 0;
+}
+
+// Get all list types that are shared for a user
+export async function getSharedListTypes(userId: number): Promise<string[]> {
+  const result = await sql`
+    SELECT DISTINCT sl.list_type
+    FROM shared_lists sl
+    JOIN collaborators c ON c.id = sl.collaborator_id
+    WHERE (c.owner_id = ${userId} OR c.collaborator_id = ${userId})
+    AND c.status = 'accepted'
+    AND sl.is_active = true
+  `;
+  return result.rows.map(r => r.list_type);
 }

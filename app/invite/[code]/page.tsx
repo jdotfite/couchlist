@@ -88,6 +88,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
   const [selectedLists, setSelectedLists] = useState<string[]>([]);
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [duplicatesCount, setDuplicatesCount] = useState(0);
 
   useEffect(() => {
     fetchInviteDetails();
@@ -152,6 +153,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
         return;
       }
 
+      setDuplicatesCount(data.duplicatesCount || 0);
       setAccepted(true);
 
       // Redirect after a short delay
@@ -296,6 +298,11 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
         <p className="text-gray-400 mb-4 text-center">
           You and {invite?.inviter.name} are now sharing lists.
         </p>
+        {duplicatesCount > 0 && (
+          <p className="text-sm text-brand-primary mb-4 text-center">
+            {duplicatesCount} item{duplicatesCount !== 1 ? 's' : ''} you both had will appear once in your shared lists.
+          </p>
+        )}
         <p className="text-sm text-gray-500">Redirecting to your library...</p>
       </div>
     );

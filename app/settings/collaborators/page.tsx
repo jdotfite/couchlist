@@ -22,6 +22,7 @@ import {
   RotateCcw,
   Sparkles,
   Share2,
+  Settings,
 } from 'lucide-react';
 
 interface Collaboration {
@@ -76,6 +77,11 @@ export default function CollaboratorsSettingsPage() {
 
   // Remove confirmation
   const [removingId, setRemovingId] = useState<number | null>(null);
+
+  // Edit shared lists modal
+  const [editingCollaboration, setEditingCollaboration] = useState<Collaboration | null>(null);
+  const [editLists, setEditLists] = useState<string[]>([]);
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -162,6 +168,57 @@ export default function CollaboratorsSettingsPage() {
         ? prev.filter(l => l !== listType)
         : [...prev, listType]
     );
+  };
+
+  const openEditModal = (collab: Collaboration) => {
+    setEditingCollaboration(collab);
+    setEditLists(collab.sharedLists);
+  };
+
+  const toggleEditList = (listType: string) => {
+    setEditLists(prev =>
+      prev.includes(listType)
+        ? prev.filter(l => l !== listType)
+        : [...prev, listType]
+    );
+  };
+
+  const saveEditedLists = async () => {
+    if (!editingCollaboration || editLists.length === 0) {
+      setError('Please select at least one list to share');
+      return;
+    }
+
+    setEditLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/collaborators/${editingCollaboration.collaboration.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lists: editLists }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to update shared lists');
+        return;
+      }
+
+      // Update local state
+      setCollaborations(prev =>
+        prev.map(c =>
+          c.collaboration.id === editingCollaboration.collaboration.id
+            ? { ...c, sharedLists: editLists }
+            : c
+        )
+      );
+      setEditingCollaboration(null);
+    } catch (err) {
+      setError('Failed to update shared lists');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   if (status === 'loading' || loading) {
@@ -264,12 +321,22 @@ export default function CollaboratorsSettingsPage() {
                     </div>
 
                     {removingId !== collaboration.id && (
-                      <button
-                        onClick={() => setRemovingId(collaboration.id)}
-                        className="p-2 hover:bg-zinc-800 rounded-lg transition text-gray-400 hover:text-red-400"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEditModal({ collaboration, sharedLists, isOwner })}
+                          className="p-2 hover:bg-zinc-800 rounded-lg transition text-gray-400 hover:text-brand-primary"
+                          title="Edit shared lists"
+                        >
+                          <Settings className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setRemovingId(collaboration.id)}
+                          className="p-2 hover:bg-zinc-800 rounded-lg transition text-gray-400 hover:text-red-400"
+                          title="Stop sharing"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -422,6 +489,72 @@ export default function CollaboratorsSettingsPage() {
               className="w-full mt-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-semibold transition"
             >
               {inviteUrl ? 'Done' : 'Cancel'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Shared Lists Modal */}
+      {editingCollaboration && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setEditingCollaboration(null)}
+          />
+
+          <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-2">Edit Shared Lists</h2>
+            <p className="text-gray-400 text-sm mb-6">
+              Choose which lists to share with{' '}
+              {editingCollaboration.isOwner
+                ? editingCollaboration.collaboration.collaborator_name
+                : editingCollaboration.collaboration.owner_name}
+            </p>
+
+            <div className="grid grid-cols-2 gap-2 mb-6">
+              {Object.entries(listLabels).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => toggleEditList(key)}
+                  className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition ${
+                    editLists.includes(key)
+                      ? 'bg-brand-primary/10 border-brand-primary'
+                      : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                    editLists.includes(key)
+                      ? 'bg-brand-primary border-brand-primary'
+                      : 'border-zinc-600'
+                  }`}>
+                    {editLists.includes(key) && <Check className="w-3 h-3" />}
+                  </div>
+                  {listIcons[key]}
+                  <span className="flex-1 text-left">{label}</span>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={saveEditedLists}
+              disabled={editLoading || editLists.length === 0}
+              className="w-full py-3 bg-brand-primary hover:bg-brand-primary-light disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+            >
+              {editLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </button>
+
+            <button
+              onClick={() => setEditingCollaboration(null)}
+              className="w-full mt-3 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-semibold transition"
+            >
+              Cancel
             </button>
           </div>
         </div>

@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, ChevronLeft } from 'lucide-react';
+import { Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, ChevronLeft, Users } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import MediaCard, { MediaCardItem } from '@/components/MediaCard';
 import EmptyState from '@/components/EmptyState';
@@ -109,8 +109,23 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
   const [layout, setLayout] = useState<LayoutType>('list');
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isShared, setIsShared] = useState(false);
 
   const config = listConfig[slug];
+
+  // Map slug to list type for sharing check
+  const listTypeMap: Record<string, string> = {
+    finished: 'finished',
+    watched: 'finished',
+    watching: 'watching',
+    watchlist: 'watchlist',
+    onhold: 'onhold',
+    dropped: 'dropped',
+    favorites: 'favorites',
+    rewatch: 'rewatch',
+    nostalgia: 'nostalgia',
+  };
+  const listType = listTypeMap[slug] || slug;
 
   const STATUS_LISTS = ['watchlist', 'watching', 'onhold', 'dropped', 'finished', 'watched'];
   const TAG_LISTS = ['favorites', 'rewatch', 'nostalgia'];
@@ -122,10 +137,23 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
   useEffect(() => {
     if (status === 'authenticated' && config) {
       fetchItems();
+      fetchSharedStatus();
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }
   }, [status, slug]);
+
+  const fetchSharedStatus = async () => {
+    try {
+      const response = await fetch('/api/collaborators/shared-lists');
+      if (response.ok) {
+        const data = await response.json();
+        setIsShared(data.sharedLists?.includes(listType) || false);
+      }
+    } catch (error) {
+      console.error('Failed to fetch shared status:', error);
+    }
+  };
 
   const fetchItems = async () => {
     if (!config) return;
@@ -210,7 +238,15 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
             <ChevronLeft className="w-6 h-6" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-xl font-bold">{config.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold">{config.title}</h1>
+              {isShared && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/20 text-brand-primary text-xs font-medium rounded-full">
+                  <Users className="w-3 h-3" />
+                  Shared
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-400">{filteredItems.length} movies</p>
           </div>
           <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">

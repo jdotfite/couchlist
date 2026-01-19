@@ -36,7 +36,10 @@ export async function POST(
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      duplicatesCount: result.duplicatesCount || 0,
+    });
   } catch (error) {
     console.error('Error accepting invite:', error);
     return NextResponse.json(
