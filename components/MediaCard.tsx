@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { MoreVertical, Heart, Star } from 'lucide-react';
+import { MoreVertical, Heart, Star, Users } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
 
 export interface MediaCardItem {
@@ -15,16 +15,23 @@ export interface MediaCardItem {
   watched_date?: string;
   rating?: number;
   is_favorite?: boolean;
+  owner_id?: number;
+  added_by?: number;
+  added_by_name?: string;
 }
 
 interface MediaCardProps {
   item: MediaCardItem;
   onOptionsClick?: () => void;
   variant?: 'grid' | 'list';
+  currentUserId?: number;
 }
 
-export default function MediaCard({ item, onOptionsClick, variant = 'grid' }: MediaCardProps) {
+export default function MediaCard({ item, onOptionsClick, variant = 'grid', currentUserId }: MediaCardProps) {
   const href = `/${item.media_type}/${item.media_id}`;
+
+  // Show "Added by" when item was added by someone other than current user
+  const showAddedBy = currentUserId && item.added_by && item.added_by !== currentUserId && item.added_by_name;
 
   if (variant === 'list') {
     return (
@@ -44,12 +51,20 @@ export default function MediaCard({ item, onOptionsClick, variant = 'grid' }: Me
 
         <Link href={href} className="flex-1 min-w-0">
           <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
-          {item.rating && (
-            <div className="flex items-center gap-1 text-xs text-yellow-400">
-              <Star className="w-3 h-3 fill-yellow-400" />
-              {item.rating}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {item.rating && (
+              <div className="flex items-center gap-1 text-xs text-yellow-400">
+                <Star className="w-3 h-3 fill-yellow-400" />
+                {item.rating}
+              </div>
+            )}
+            {showAddedBy && (
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <Users className="w-3 h-3" />
+                <span>{item.added_by_name}</span>
+              </div>
+            )}
+          </div>
         </Link>
 
         {item.is_favorite && (
@@ -95,6 +110,12 @@ export default function MediaCard({ item, onOptionsClick, variant = 'grid' }: Me
                 <div className="flex items-center gap-0.5">
                   <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                   <span className="text-xs text-yellow-400 font-medium">{item.rating}</span>
+                </div>
+              )}
+              {showAddedBy && (
+                <div className="flex items-center gap-0.5 text-gray-400">
+                  <Users className="w-3 h-3" />
+                  <span className="text-xs">{item.added_by_name}</span>
                 </div>
               )}
               {item.is_favorite && (

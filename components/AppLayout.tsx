@@ -26,6 +26,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Overlay for closing sidebar on mobile */}
       <div
+        suppressHydrationWarning
         className={`fixed inset-0 z-40 bg-black/20 transition-opacity duration-300 ${
           shouldTransform ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
@@ -34,6 +35,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main Content - pushes right when sidebar opens */}
       <div
+        suppressHydrationWarning
         className={`min-h-screen transition-transform duration-300 ease-out ${
           shouldTransform ? 'translate-x-[280px]' : 'translate-x-0'
         }`}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { X, Tv, Film, Compass, Users, Settings, LogOut } from 'lucide-react';
+import { X, Tv, Film, Compass, Users, Settings, LogOut, Share2 } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 import { useEffect, useState } from 'react';
 
@@ -112,6 +112,15 @@ export default function Sidebar() {
           >
             <Users className="w-5 h-5" />
             <span className="font-medium">Community</span>
+          </Link>
+
+          <Link
+            href="/settings/collaborators"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
+          >
+            <Share2 className="w-5 h-5" />
+            <span className="font-medium">Shared Lists</span>
           </Link>
 
           <div className="border-t border-zinc-800 my-2" />

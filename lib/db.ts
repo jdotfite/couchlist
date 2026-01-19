@@ -90,6 +90,68 @@ export async function initDb() {
       ON user_media_tags (tag_id, added_at DESC);
     `;
 
+    // Collaborators table - links users who share lists
+    await sql`
+      CREATE TABLE IF NOT EXISTS collaborators (
+        id SERIAL PRIMARY KEY,
+        owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        collaborator_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        invite_code VARCHAR(32) UNIQUE NOT NULL,
+        invite_expires_at TIMESTAMP NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        accepted_at TIMESTAMP,
+        UNIQUE(owner_id, collaborator_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_collaborators_invite_code
+      ON collaborators(invite_code);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_collaborators_owner
+      ON collaborators(owner_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_collaborators_collaborator
+      ON collaborators(collaborator_id);
+    `;
+
+    // Shared lists config - which lists are shared between collaborators
+    await sql`
+      CREATE TABLE IF NOT EXISTS shared_lists (
+        id SERIAL PRIMARY KEY,
+        collaborator_id INTEGER NOT NULL REFERENCES collaborators(id) ON DELETE CASCADE,
+        list_type VARCHAR(30) NOT NULL,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(collaborator_id, list_type)
+      );
+    `;
+
+    // Add added_by column to user_media if it doesn't exist
+    try {
+      await sql`
+        ALTER TABLE user_media
+        ADD COLUMN IF NOT EXISTS added_by INTEGER REFERENCES users(id);
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    // Backfill added_by with user_id where null
+    await sql`
+      UPDATE user_media SET added_by = user_id WHERE added_by IS NULL;
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_media_added_by
+      ON user_media(added_by);
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },

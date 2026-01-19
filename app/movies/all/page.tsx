@@ -5,7 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Loader2, Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft } from 'lucide-react';
+import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft } from 'lucide-react';
+import AllListsSkeleton from '@/components/AllListsSkeleton';
 import { getImageUrl } from '@/lib/tmdb';
 
 interface LibraryItem {
@@ -79,17 +80,13 @@ export default function AllMoviesListsPage() {
   };
 
   if (status === 'loading' || isLoading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center pb-24">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
+    return <AllListsSkeleton />;
   }
 
   const lists = [
     { slug: 'watching', title: 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900' },
     { slug: 'watchlist', title: 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900' },
-    { slug: 'finished', title: 'Finished', items: watchedItems, icon: CheckCircle2, color: 'from-[#8b5ef4] to-[#5a30c0]' },
+    { slug: 'finished', title: 'Finished', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker' },
     { slug: 'onhold', title: 'On Hold', items: onHoldItems, icon: PauseCircle, color: 'from-yellow-500 to-yellow-900' },
     { slug: 'dropped', title: 'Dropped', items: droppedItems, icon: XCircle, color: 'from-red-600 to-red-900' },
     { slug: 'rewatch', title: 'Rewatch', items: rewatchItems, icon: RotateCcw, color: 'from-cyan-500 to-cyan-900' },

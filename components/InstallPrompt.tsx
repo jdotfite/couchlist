@@ -88,7 +88,7 @@ export default function InstallPrompt() {
         </button>
 
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-[#8b5ef4] rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="w-12 h-12 bg-brand-primary rounded-xl flex items-center justify-center flex-shrink-0">
             {isIOS ? <Share className="w-6 h-6 text-white" /> : <Download className="w-6 h-6 text-white" />}
           </div>
 
@@ -115,7 +115,7 @@ export default function InstallPrompt() {
             {!isIOS && deferredPrompt && (
               <button
                 onClick={handleInstall}
-                className="bg-[#8b5ef4] hover:bg-[#7a4ee3] text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+                className="bg-brand-primary hover:bg-brand-primary-dark text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
               >
                 Install App
               </button>

@@ -7,8 +7,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ProfileMenu from '@/components/ProfileMenu';
 import { getImageUrl } from '@/lib/tmdb';
-import { Loader2, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
+import LibraryDashboardSkeleton from '@/components/LibraryDashboardSkeleton';
 
 interface LibraryItem {
   id: number;
@@ -190,20 +191,8 @@ export default function ShowsPage() {
   const finishedItem = watchedItems[0];
   const onHoldItem = onHoldItems[0];
 
-  if (status === 'loading' || status === 'unauthenticated') {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center pb-24">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center pb-24">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
+  if (status === 'loading' || status === 'unauthenticated' || isLoading) {
+    return <LibraryDashboardSkeleton />;
   }
 
   return (

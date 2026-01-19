@@ -4,20 +4,25 @@ import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, ChevronLeft } from 'lucide-react';
+import { Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, ChevronLeft } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import MediaCard, { MediaCardItem } from '@/components/MediaCard';
+import EmptyState from '@/components/EmptyState';
+import MediaListSkeleton from '@/components/MediaListSkeleton';
 
 type ListItem = MediaCardItem;
 
 type LayoutType = 'list' | 'grid';
 
-const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint: string; icon: React.ReactNode; emptyMessage: string; emptySubMessage: string }> = {
+type IconType = 'finished' | 'watchlist' | 'watching' | 'onhold' | 'dropped' | 'rewatch' | 'classics' | 'favorites';
+
+const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint: string; icon: React.ReactNode; iconType: IconType; emptyMessage: string; emptySubMessage: string }> = {
   finished: {
     title: 'Finished',
     subtitle: 'Movies you\'ve watched',
     apiEndpoint: '/api/watched',
-    icon: <CheckCircle2 className="w-6 h-6 text-[#8b5ef4]" />,
+    icon: <CheckCircle2 className="w-6 h-6 text-brand-primary" />,
+    iconType: 'finished',
     emptyMessage: 'No finished movies yet',
     emptySubMessage: 'Mark movies as finished to track them here',
   },
@@ -25,7 +30,8 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     title: 'Finished',
     subtitle: 'Movies you\'ve watched',
     apiEndpoint: '/api/watched',
-    icon: <CheckCircle2 className="w-6 h-6 text-[#8b5ef4]" />,
+    icon: <CheckCircle2 className="w-6 h-6 text-brand-primary" />,
+    iconType: 'finished',
     emptyMessage: 'No finished movies yet',
     emptySubMessage: 'Mark movies as finished to track them here',
   },
@@ -34,6 +40,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Movies in progress',
     apiEndpoint: '/api/watching',
     icon: <Play className="w-6 h-6 text-green-500" />,
+    iconType: 'watching',
     emptyMessage: 'No movies in progress',
     emptySubMessage: 'Add movies you\'re currently watching',
   },
@@ -42,6 +49,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Movies you want to watch',
     apiEndpoint: '/api/watchlist',
     icon: <Clock className="w-6 h-6 text-blue-500" />,
+    iconType: 'watchlist',
     emptyMessage: 'Your movie watchlist is empty',
     emptySubMessage: 'Add movies you want to watch',
   },
@@ -50,6 +58,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Movies paused for later',
     apiEndpoint: '/api/onhold',
     icon: <PauseCircle className="w-6 h-6 text-yellow-500" />,
+    iconType: 'onhold',
     emptyMessage: 'No movies on hold',
     emptySubMessage: 'Add movies you\'ve paused',
   },
@@ -58,6 +67,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Movies you stopped watching',
     apiEndpoint: '/api/dropped',
     icon: <XCircle className="w-6 h-6 text-red-500" />,
+    iconType: 'dropped',
     emptyMessage: 'No dropped movies',
     emptySubMessage: 'Add movies you stopped watching',
   },
@@ -66,6 +76,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Movies worth another watch',
     apiEndpoint: '/api/rewatch',
     icon: <RotateCcw className="w-6 h-6 text-cyan-500" />,
+    iconType: 'rewatch',
     emptyMessage: 'No movies to rewatch',
     emptySubMessage: 'Add movies you want to revisit',
   },
@@ -74,6 +85,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Nostalgic movie favorites',
     apiEndpoint: '/api/nostalgia',
     icon: <Sparkles className="w-6 h-6 text-amber-500" />,
+    iconType: 'classics',
     emptyMessage: 'No classic movies yet',
     emptySubMessage: 'Add movies from your past',
   },
@@ -82,6 +94,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Your favorite movies',
     apiEndpoint: '/api/favorites',
     icon: <Heart className="w-6 h-6 text-pink-500" />,
+    iconType: 'favorites',
     emptyMessage: 'No favorite movies yet',
     emptySubMessage: 'Add your favorite movies',
   },
@@ -185,11 +198,7 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
   }
 
   if (status === 'loading' || isLoading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center pb-24">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
+    return <MediaListSkeleton layout={layout} />;
   }
 
   return (
@@ -227,10 +236,13 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
 
       <main className="px-4 pt-4">
         {filteredItems.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-lg text-gray-400 mb-1">{config.emptyMessage}</p>
-            <p className="text-sm text-gray-500">{config.emptySubMessage}</p>
-          </div>
+          <EmptyState
+            iconType={config.iconType}
+            title={config.emptyMessage}
+            subtitle={config.emptySubMessage}
+            actionLabel="Discover Movies"
+            actionHref="/discover?filter=movies"
+          />
         ) : layout === 'list' ? (
           <div className="space-y-1">
             {filteredItems.map((item) => (
@@ -239,6 +251,7 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
                 item={item}
                 variant="list"
                 onOptionsClick={() => openOptionsSheet(item)}
+                currentUserId={session?.user?.id ? Number(session.user.id) : undefined}
               />
             ))}
           </div>
@@ -250,6 +263,7 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
                 item={item}
                 variant="grid"
                 onOptionsClick={() => openOptionsSheet(item)}
+                currentUserId={session?.user?.id ? Number(session.user.id) : undefined}
               />
             ))}
           </div>

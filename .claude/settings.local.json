@@ -9,7 +9,18 @@
       "Bash(dir:*)",
       "Bash(for i in 1 2 3 4 5 6 7 8 9 10 11 12)",
       "Bash(do cp \"C:/Users/Justin/Desktop/place-holder-$i.jpg\" \"C:/_websites/couchlist/public/placeholders/\")",
-      "Bash(done)"
+      "Bash(done)",
+      "mcp__ide__getDiagnostics",
+      "Bash(copy \"C:\\\\Users\\\\Justin\\\\Desktop\\\\logo-flicklog.svg\" \"C:\\\\_websites\\\\couchlist\\\\public\"\")",
+      "Bash(cmd /c copy \"C:\\\\Users\\\\Justin\\\\Desktop\\\\logo-flicklog.svg\" \"C:\\\\_websites\\\\couchlist\\\\public\"\")",
+      "Bash(powershell -Command \"Copy-Item ''C:\\\\Users\\\\Justin\\\\Desktop\\\\logo-flicklog.svg'' -Destination ''C:\\\\_websites\\\\couchlist\\\\public\\\\''\")",
+      "Bash(npx next lint:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -30 \"\"C:\\\\_websites\\\\couchlist/app/api/{}\"\"')",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 8 /nobreak)",
+      "Bash(curl:*)",
+      "Bash(ping:*)",
+      "WebSearch"
     ]
   }
 }

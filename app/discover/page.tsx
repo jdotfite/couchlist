@@ -142,7 +142,7 @@ export default function DiscoverPage() {
           <button
             onClick={() => setFilter('all')}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              filter === 'all' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+              filter === 'all' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
             }`}
           >
             All
@@ -150,7 +150,7 @@ export default function DiscoverPage() {
           <button
             onClick={() => setFilter('movies')}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              filter === 'movies' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+              filter === 'movies' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
             }`}
           >
             Movies
@@ -158,7 +158,7 @@ export default function DiscoverPage() {
           <button
             onClick={() => setFilter('tv')}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              filter === 'tv' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+              filter === 'tv' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
             }`}
           >
             TV Shows
@@ -175,7 +175,7 @@ export default function DiscoverPage() {
                   onClick={() => handleCategoryClick(category.id)}
                   className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
                     selectedCategory === category.id
-                      ? 'bg-[#8b5ef4] text-white'
+                      ? 'bg-brand-primary text-white'
                       : 'bg-zinc-800 text-white hover:bg-zinc-700'
                   }`}
                 >

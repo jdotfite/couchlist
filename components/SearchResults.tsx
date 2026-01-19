@@ -7,6 +7,7 @@ import { getImageUrl } from '@/lib/tmdb';
 import { Movie, TVShow } from '@/types';
 import { Star, Plus } from 'lucide-react';
 import MediaOptionsSheet from './MediaOptionsSheet';
+import EmptyState from './EmptyState';
 
 interface SearchResultsProps {
   results: (Movie | TVShow)[];
@@ -40,10 +41,11 @@ export default function SearchResults({ results, isLoading }: SearchResultsProps
 
   if (results.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-lg text-gray-400">No results found</p>
-        <p className="text-sm text-gray-500 mt-1">Try a different search</p>
-      </div>
+      <EmptyState
+        iconType="search"
+        title="No results found"
+        subtitle="Try a different search term or browse categories"
+      />
     );
   }
 

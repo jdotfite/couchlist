@@ -17,7 +17,7 @@ export default function CommunityPage() {
       <main className="px-4 pt-4">
         {/* Coming Soon Hero */}
         <section className="mb-8">
-          <div className="bg-gradient-to-br from-[#8b5ef4] to-[#5a30c0] rounded-2xl p-8 text-center">
+          <div className="bg-gradient-to-br from-brand-primary to-brand-primary-darker rounded-2xl p-8 text-center">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8" />
             </div>
@@ -108,7 +108,7 @@ export default function CommunityPage() {
             <p className="text-sm text-gray-400 mb-4">
               We'll notify you when community features are ready.
             </p>
-            <button className="bg-[#8b5ef4] hover:bg-[#7040e0] text-white px-6 py-2 rounded-full font-semibold text-sm transition">
+            <button className="bg-brand-primary hover:bg-brand-primary-dark text-white px-6 py-2 rounded-full font-semibold text-sm transition">
               Notify Me
             </button>
           </div>

@@ -4,9 +4,11 @@ import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Loader2, MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star } from 'lucide-react';
+import { MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import ProfileMenu from '@/components/ProfileMenu';
+import EmptyState from '@/components/EmptyState';
+import MediaListSkeleton from '@/components/MediaListSkeleton';
 import { getImageUrl } from '@/lib/tmdb';
 
 interface ListItem {
@@ -24,12 +26,15 @@ interface ListItem {
 
 type LayoutType = 'list' | 'grid';
 
-const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint: string; icon: React.ReactNode; emptyMessage: string; emptySubMessage: string }> = {
+type IconType = 'finished' | 'watchlist' | 'watching' | 'onhold' | 'dropped' | 'rewatch' | 'classics' | 'favorites';
+
+const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint: string; icon: React.ReactNode; iconType: IconType; emptyMessage: string; emptySubMessage: string }> = {
   finished: {
     title: 'Finished',
     subtitle: 'Movies and shows you\'ve completed',
     apiEndpoint: '/api/watched',
-    icon: <CheckCircle2 className="w-6 h-6 text-[#8b5ef4]" />,
+    icon: <CheckCircle2 className="w-6 h-6 text-brand-primary" />,
+    iconType: 'finished',
     emptyMessage: 'Nothing finished yet',
     emptySubMessage: 'Mark movies and shows as finished to track them here',
   },
@@ -37,7 +42,8 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     title: 'Finished',
     subtitle: 'Movies and shows you\'ve completed',
     apiEndpoint: '/api/watched',
-    icon: <CheckCircle2 className="w-6 h-6 text-[#8b5ef4]" />,
+    icon: <CheckCircle2 className="w-6 h-6 text-brand-primary" />,
+    iconType: 'finished',
     emptyMessage: 'Nothing finished yet',
     emptySubMessage: 'Mark movies and shows as finished to track them here',
   },
@@ -46,6 +52,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'In progress right now',
     apiEndpoint: '/api/watching',
     icon: <Play className="w-6 h-6 text-green-500" />,
+    iconType: 'watching',
     emptyMessage: 'Nothing in progress yet',
     emptySubMessage: 'Add movies and shows you are watching',
   },
@@ -54,6 +61,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Movies and shows you want to watch',
     apiEndpoint: '/api/watchlist',
     icon: <Clock className="w-6 h-6 text-blue-500" />,
+    iconType: 'watchlist',
     emptyMessage: 'Your watchlist is empty',
     emptySubMessage: 'Add movies and shows you want to watch',
   },
@@ -62,6 +70,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Paused for later',
     apiEndpoint: '/api/onhold',
     icon: <PauseCircle className="w-6 h-6 text-yellow-500" />,
+    iconType: 'onhold',
     emptyMessage: 'Nothing on hold yet',
     emptySubMessage: 'Add movies and shows you paused',
   },
@@ -70,6 +79,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Titles you stopped watching',
     apiEndpoint: '/api/dropped',
     icon: <XCircle className="w-6 h-6 text-red-500" />,
+    iconType: 'dropped',
     emptyMessage: 'Nothing dropped yet',
     emptySubMessage: 'Add movies and shows you stopped',
   },
@@ -78,6 +88,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Worth another pass',
     apiEndpoint: '/api/rewatch',
     icon: <RotateCcw className="w-6 h-6 text-cyan-500" />,
+    iconType: 'rewatch',
     emptyMessage: 'Nothing queued to rewatch',
     emptySubMessage: 'Add movies and shows you want to revisit',
   },
@@ -86,6 +97,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Childhood favorites and throwbacks',
     apiEndpoint: '/api/nostalgia',
     icon: <Sparkles className="w-6 h-6 text-amber-500" />,
+    iconType: 'classics',
     emptyMessage: 'No nostalgic titles yet',
     emptySubMessage: 'Add movies and shows from your past',
   },
@@ -94,6 +106,7 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     subtitle: 'Your all-time favorites',
     apiEndpoint: '/api/favorites',
     icon: <Heart className="w-6 h-6 text-pink-500" />,
+    iconType: 'favorites',
     emptyMessage: 'No favorites yet',
     emptySubMessage: 'Add your favorite movies and shows',
   },
@@ -221,11 +234,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   }
 
   if (status === 'loading' || isLoading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center pb-24">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
+    return <MediaListSkeleton layout={layout} />;
   }
 
   return (
@@ -244,7 +253,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
             <button
               onClick={() => setFilter('all')}
               className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                filter === 'all' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+                filter === 'all' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
               }`}
             >
               All
@@ -252,7 +261,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
             <button
               onClick={() => setFilter('movies')}
               className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                filter === 'movies' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+                filter === 'movies' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
               }`}
             >
               Movies
@@ -260,7 +269,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
             <button
               onClick={() => setFilter('tv')}
               className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                filter === 'tv' ? 'bg-[#8b5ef4] text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+                filter === 'tv' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
               }`}
             >
               TV Shows
@@ -302,10 +311,13 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
 
       <main className="px-4">
         {filteredItems.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-lg text-gray-400 mb-1">{items.length === 0 ? config.emptyMessage : `No ${filter === 'movies' ? 'movies' : 'TV shows'} in this list`}</p>
-            <p className="text-sm text-gray-500">{items.length === 0 ? config.emptySubMessage : 'Try changing the filter'}</p>
-          </div>
+          <EmptyState
+            iconType={config.iconType}
+            title={items.length === 0 ? config.emptyMessage : `No ${filter === 'movies' ? 'movies' : 'TV shows'} in this list`}
+            subtitle={items.length === 0 ? config.emptySubMessage : 'Try changing the filter'}
+            actionLabel={items.length === 0 ? "Discover" : undefined}
+            actionHref={items.length === 0 ? "/discover" : undefined}
+          />
         ) : layout === 'list' ? (
           /* Spotify-style List View */
           <div className="space-y-1">

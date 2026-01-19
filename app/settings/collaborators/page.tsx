@@ -1,0 +1,418 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  Users,
+  Plus,
+  Copy,
+  Check,
+  Trash2,
+  ChevronLeft,
+  Loader2,
+  AlertCircle,
+  Clock,
+  Play,
+  CheckCircle2,
+  PauseCircle,
+  XCircle,
+  Heart,
+  RotateCcw,
+  Sparkles,
+  Share2,
+} from 'lucide-react';
+
+interface Collaboration {
+  collaboration: {
+    id: number;
+    owner_id: number;
+    collaborator_id: number;
+    owner_name: string;
+    collaborator_name: string;
+    accepted_at: string;
+  };
+  sharedLists: string[];
+  isOwner: boolean;
+}
+
+const listIcons: Record<string, React.ReactNode> = {
+  watchlist: <Clock className="w-4 h-4 text-blue-500" />,
+  watching: <Play className="w-4 h-4 text-green-500" />,
+  finished: <CheckCircle2 className="w-4 h-4 text-brand-primary" />,
+  onhold: <PauseCircle className="w-4 h-4 text-yellow-500" />,
+  dropped: <XCircle className="w-4 h-4 text-red-500" />,
+  favorites: <Heart className="w-4 h-4 text-pink-500" />,
+  rewatch: <RotateCcw className="w-4 h-4 text-cyan-500" />,
+  nostalgia: <Sparkles className="w-4 h-4 text-amber-500" />,
+};
+
+const listLabels: Record<string, string> = {
+  watchlist: 'Watchlist',
+  watching: 'Watching',
+  finished: 'Finished',
+  onhold: 'On Hold',
+  dropped: 'Dropped',
+  favorites: 'Favorites',
+  rewatch: 'Rewatch',
+  nostalgia: 'Classics',
+};
+
+export default function CollaboratorsSettingsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const [collaborations, setCollaborations] = useState<Collaboration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Invite modal state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [selectedLists, setSelectedLists] = useState<string[]>(['watchlist', 'watching', 'finished']);
+
+  // Remove confirmation
+  const [removingId, setRemovingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchCollaborations();
+    } else if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status]);
+
+  const fetchCollaborations = async () => {
+    try {
+      const response = await fetch('/api/collaborators');
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to load collaborations');
+        return;
+      }
+
+      setCollaborations(data.collaborations || []);
+    } catch (err) {
+      setError('Failed to load collaborations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createInvite = async () => {
+    setInviteLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/collaborators', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lists: selectedLists }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to create invite');
+        return;
+      }
+
+      setInviteUrl(data.inviteUrl);
+    } catch (err) {
+      setError('Failed to create invite');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const copyInviteLink = async () => {
+    if (inviteUrl) {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const removeCollaboration = async (id: number) => {
+    try {
+      const response = await fetch(`/api/collaborators/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to remove collaboration');
+        return;
+      }
+
+      setCollaborations(prev => prev.filter(c => c.collaboration.id !== id));
+      setRemovingId(null);
+    } catch (err) {
+      setError('Failed to remove collaboration');
+    }
+  };
+
+  const toggleListSelection = (listType: string) => {
+    setSelectedLists(prev =>
+      prev.includes(listType)
+        ? prev.filter(l => l !== listType)
+        : [...prev, listType]
+    );
+  };
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+        <div className="flex items-center gap-3">
+          <Link href="/shows" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
+            <ChevronLeft className="w-6 h-6" />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold">Shared Lists</h1>
+            <p className="text-xs text-gray-400">Collaborate with others</p>
+          </div>
+          <button
+            onClick={() => {
+              setShowInviteModal(true);
+              setInviteUrl(null);
+            }}
+            className="p-2 bg-brand-primary hover:bg-brand-primary-light rounded-full transition"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      <main className="px-4 pt-6">
+        {/* Error message */}
+        {error && (
+          <div className="flex items-center gap-3 p-4 mb-6 bg-red-500/10 border border-red-500 rounded-lg text-red-400">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <p className="text-sm">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto">
+              <XCircle className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {collaborations.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-gray-500" />
+            </div>
+            <h2 className="text-lg font-semibold mb-2">No shared lists yet</h2>
+            <p className="text-gray-400 mb-6 max-w-xs mx-auto">
+              Invite someone to collaborate on your movie and TV show lists.
+            </p>
+            <button
+              onClick={() => {
+                setShowInviteModal(true);
+                setInviteUrl(null);
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-primary hover:bg-brand-primary-light rounded-full font-semibold transition"
+            >
+              <Share2 className="w-4 h-4" />
+              Invite Someone
+            </button>
+          </div>
+        )}
+
+        {/* Collaborations list */}
+        {collaborations.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+              Your Collaborators
+            </h2>
+
+            {collaborations.map(({ collaboration, sharedLists, isOwner }) => {
+              const partnerName = isOwner
+                ? collaboration.collaborator_name
+                : collaboration.owner_name;
+
+              return (
+                <div
+                  key={collaboration.id}
+                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
+                        <span className="text-brand-primary font-semibold">
+                          {partnerName?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{partnerName}</h3>
+                        <p className="text-xs text-gray-500">
+                          Connected {new Date(collaboration.accepted_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+
+                    {removingId === collaboration.id ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => removeCollaboration(collaboration.id)}
+                          className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium transition"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          onClick={() => setRemovingId(null)}
+                          className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 rounded-lg text-sm font-medium transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setRemovingId(collaboration.id)}
+                        className="p-2 hover:bg-zinc-800 rounded-lg transition text-gray-400 hover:text-red-400"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Shared lists */}
+                  <div className="flex flex-wrap gap-2">
+                    {sharedLists.map(listType => (
+                      <span
+                        key={listType}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 rounded-lg text-xs"
+                      >
+                        {listIcons[listType]}
+                        {listLabels[listType]}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowInviteModal(false)}
+          />
+
+          <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-2">Invite to Collaborate</h2>
+            <p className="text-gray-400 text-sm mb-6">
+              Share this link with someone to collaborate on your lists.
+            </p>
+
+            {!inviteUrl ? (
+              <>
+                {/* List selection */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium mb-3">Select lists to share</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(listLabels).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => toggleListSelection(key)}
+                        className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition ${
+                          selectedLists.includes(key)
+                            ? 'bg-brand-primary/10 border-brand-primary'
+                            : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                          selectedLists.includes(key)
+                            ? 'bg-brand-primary border-brand-primary'
+                            : 'border-zinc-600'
+                        }`}>
+                          {selectedLists.includes(key) && <Check className="w-3 h-3" />}
+                        </div>
+                        {listIcons[key]}
+                        <span className="flex-1 text-left">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={createInvite}
+                  disabled={inviteLoading || selectedLists.length === 0}
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-light disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                >
+                  {inviteLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-5 h-5" />
+                      Create Invite Link
+                    </>
+                  )}
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Invite URL */}
+                <div className="mb-6">
+                  <div className="bg-zinc-800 rounded-lg p-3 mb-3">
+                    <p className="text-sm text-gray-300 break-all font-mono">
+                      {inviteUrl}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={copyInviteLink}
+                    className="w-full py-3 bg-brand-primary hover:bg-brand-primary-light rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-5 h-5" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-5 h-5" />
+                        Copy Link
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-500 text-center">
+                  This link expires in 7 days
+                </p>
+              </>
+            )}
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowInviteModal(false)}
+              className="w-full mt-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-semibold transition"
+            >
+              {inviteUrl ? 'Done' : 'Cancel'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

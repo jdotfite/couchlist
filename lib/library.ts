@@ -1,4 +1,5 @@
 import { db as sql, initDb } from './db';
+import { getCollaboratorIds } from './collaborators';
 
 // Ensure tables exist
 let dbInitialized = false;
@@ -48,15 +49,20 @@ export async function upsertUserMediaStatus(
   userId: number,
   mediaId: number,
   status: string,
-  rating?: number | null
+  rating?: number | null,
+  addedBy?: number
 ) {
+  // addedBy defaults to userId if not specified
+  const addedByValue = addedBy || userId;
+
   const result = await sql`
-    INSERT INTO user_media (user_id, media_id, status, status_updated_at, rating)
-    VALUES (${userId}, ${mediaId}, ${status}, CURRENT_TIMESTAMP, ${rating || null})
+    INSERT INTO user_media (user_id, media_id, status, status_updated_at, rating, added_by)
+    VALUES (${userId}, ${mediaId}, ${status}, CURRENT_TIMESTAMP, ${rating || null}, ${addedByValue})
     ON CONFLICT (user_id, media_id) DO UPDATE
     SET status = EXCLUDED.status,
         status_updated_at = EXCLUDED.status_updated_at,
         rating = COALESCE(EXCLUDED.rating, user_media.rating),
+        added_by = COALESCE(user_media.added_by, EXCLUDED.added_by),
         updated_at = CURRENT_TIMESTAMP
     RETURNING id
   `;
@@ -135,7 +141,54 @@ export async function removeTagFromUserMedia(userMediaId: number, tagId: number)
   `;
 }
 
-export async function getItemsByStatus(userId: number, status: string) {
+export async function getItemsByStatus(userId: number, status: string, includeCollaborators: boolean = true) {
+  // Get collaborator IDs for this list type
+  let collaboratorIds: number[] = [];
+  if (includeCollaborators) {
+    try {
+      collaboratorIds = await getCollaboratorIds(userId, status);
+    } catch (e) {
+      // If collaborators table doesn't exist yet, just continue without
+      console.log('Collaborators not available:', e);
+    }
+  }
+
+  // If no collaborators, use simple query for just the current user
+  if (collaboratorIds.length === 0) {
+    const result = await sql`
+      SELECT
+        user_media.id,
+        media.tmdb_id AS media_id,
+        media.media_type,
+        media.title,
+        media.poster_path,
+        user_media.status_updated_at AS added_date,
+        user_media.rating,
+        user_media.user_id AS owner_id,
+        user_media.added_by,
+        added_by_user.name AS added_by_name,
+        EXISTS (
+          SELECT 1
+          FROM user_media_tags
+          JOIN tags ON tags.id = user_media_tags.tag_id
+          WHERE user_media_tags.user_media_id = user_media.id
+            AND tags.slug = 'favorites'
+            AND tags.user_id IS NULL
+        ) AS is_favorite
+      FROM user_media
+      JOIN media ON media.id = user_media.media_id
+      LEFT JOIN users added_by_user ON added_by_user.id = user_media.added_by
+      WHERE user_media.user_id = ${userId}
+        AND user_media.status = ${status}
+      ORDER BY user_media.status_updated_at DESC
+    `;
+    return result.rows;
+  }
+
+  // With collaborators, use string_to_array for the user IDs
+  const allUserIds = [userId, ...collaboratorIds];
+  const userIdList = allUserIds.join(',');
+
   const result = await sql`
     SELECT
       user_media.id,
@@ -145,6 +198,9 @@ export async function getItemsByStatus(userId: number, status: string) {
       media.poster_path,
       user_media.status_updated_at AS added_date,
       user_media.rating,
+      user_media.user_id AS owner_id,
+      user_media.added_by,
+      added_by_user.name AS added_by_name,
       EXISTS (
         SELECT 1
         FROM user_media_tags
@@ -155,13 +211,65 @@ export async function getItemsByStatus(userId: number, status: string) {
       ) AS is_favorite
     FROM user_media
     JOIN media ON media.id = user_media.media_id
-    WHERE user_media.user_id = ${userId} AND user_media.status = ${status}
+    LEFT JOIN users added_by_user ON added_by_user.id = user_media.added_by
+    WHERE user_media.user_id = ANY(string_to_array(${userIdList}, ',')::int[])
+      AND user_media.status = ${status}
     ORDER BY user_media.status_updated_at DESC
   `;
   return result.rows;
 }
 
-export async function getItemsByTag(userId: number, tagSlug: string) {
+export async function getItemsByTag(userId: number, tagSlug: string, includeCollaborators: boolean = true) {
+  // Get collaborator IDs for this tag type
+  let collaboratorIds: number[] = [];
+  if (includeCollaborators) {
+    try {
+      collaboratorIds = await getCollaboratorIds(userId, tagSlug);
+    } catch (e) {
+      // If collaborators table doesn't exist yet, just continue without
+      console.log('Collaborators not available:', e);
+    }
+  }
+
+  // If no collaborators, use simple query for just the current user
+  if (collaboratorIds.length === 0) {
+    const result = await sql`
+      SELECT
+        user_media.id,
+        media.tmdb_id AS media_id,
+        media.media_type,
+        media.title,
+        media.poster_path,
+        user_media_tags.added_at AS added_date,
+        user_media.rating,
+        user_media.user_id AS owner_id,
+        user_media.added_by,
+        added_by_user.name AS added_by_name,
+        EXISTS (
+          SELECT 1
+          FROM user_media_tags AS favorites_tags
+          JOIN tags AS favorites_tag ON favorites_tag.id = favorites_tags.tag_id
+          WHERE favorites_tags.user_media_id = user_media.id
+            AND favorites_tag.slug = 'favorites'
+            AND favorites_tag.user_id IS NULL
+        ) AS is_favorite
+      FROM user_media_tags
+      JOIN user_media ON user_media.id = user_media_tags.user_media_id
+      JOIN media ON media.id = user_media.media_id
+      JOIN tags ON tags.id = user_media_tags.tag_id
+      LEFT JOIN users added_by_user ON added_by_user.id = user_media.added_by
+      WHERE user_media.user_id = ${userId}
+        AND tags.slug = ${tagSlug}
+        AND tags.user_id IS NULL
+      ORDER BY user_media_tags.added_at DESC
+    `;
+    return result.rows;
+  }
+
+  // With collaborators, use string_to_array for the user IDs
+  const allUserIds = [userId, ...collaboratorIds];
+  const userIdList = allUserIds.join(',');
+
   const result = await sql`
     SELECT
       user_media.id,
@@ -171,6 +279,9 @@ export async function getItemsByTag(userId: number, tagSlug: string) {
       media.poster_path,
       user_media_tags.added_at AS added_date,
       user_media.rating,
+      user_media.user_id AS owner_id,
+      user_media.added_by,
+      added_by_user.name AS added_by_name,
       EXISTS (
         SELECT 1
         FROM user_media_tags AS favorites_tags
@@ -183,7 +294,8 @@ export async function getItemsByTag(userId: number, tagSlug: string) {
     JOIN user_media ON user_media.id = user_media_tags.user_media_id
     JOIN media ON media.id = user_media.media_id
     JOIN tags ON tags.id = user_media_tags.tag_id
-    WHERE user_media.user_id = ${userId}
+    LEFT JOIN users added_by_user ON added_by_user.id = user_media.added_by
+    WHERE user_media.user_id = ANY(string_to_array(${userIdList}, ',')::int[])
       AND tags.slug = ${tagSlug}
       AND tags.user_id IS NULL
     ORDER BY user_media_tags.added_at DESC
