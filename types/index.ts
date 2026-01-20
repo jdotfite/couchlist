@@ -62,6 +62,26 @@ export interface Crew {
   profile_path: string | null;
 }
 
+export interface WatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+  display_priority: number;
+}
+
+export interface WatchProviderRegion {
+  link: string;
+  flatrate?: WatchProvider[];
+  rent?: WatchProvider[];
+  buy?: WatchProvider[];
+  ads?: WatchProvider[];
+  free?: WatchProvider[];
+}
+
+export interface WatchProviders {
+  results: Record<string, WatchProviderRegion>;
+}
+
 export interface MovieDetails extends Movie {
   genres: Genre[];
   runtime: number;
@@ -73,6 +93,7 @@ export interface MovieDetails extends Movie {
     cast: Cast[];
     crew: Crew[];
   };
+  'watch/providers'?: WatchProviders;
 }
 
 export interface TVShowDetails extends TVShow {
@@ -86,4 +107,5 @@ export interface TVShowDetails extends TVShow {
     cast: Cast[];
     crew: Crew[];
   };
+  'watch/providers'?: WatchProviders;
 }

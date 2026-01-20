@@ -10,7 +10,7 @@ export async function GET(
 
   try {
     const response = await tmdbApi.get<TVShowDetails>(`/tv/${id}`, {
-      params: { append_to_response: 'credits' },
+      params: { append_to_response: 'credits,watch/providers' },
     });
     return NextResponse.json(response.data);
   } catch (error: any) {

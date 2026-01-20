@@ -12,6 +12,7 @@ import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import StarRatingPopup from '@/components/StarRatingPopup';
 import FilmReelSpinner from '@/components/FilmReelSpinner';
 import NotesSection from '@/components/NotesSection';
+import WatchProviders from '@/components/WatchProviders';
 
 type MediaDetails = MovieDetails | TVShowDetails;
 
@@ -259,6 +260,12 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
             </div>
           </div>
         )}
+
+        {/* Watch Providers */}
+        <WatchProviders
+          providers={media['watch/providers']?.results?.US}
+          tmdbLink={media['watch/providers']?.results?.US?.link}
+        />
 
         {/* Notes Section */}
         <NotesSection
