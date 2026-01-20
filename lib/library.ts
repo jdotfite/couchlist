@@ -332,14 +332,15 @@ export interface MediaStatus {
     nostalgia: boolean;
   };
   rating: number | null;
+  notes: string | null;
 }
 
 export async function getMediaStatus(userId: number, tmdbId: number, mediaType: string): Promise<MediaStatus> {
   await ensureDb();
 
-  // Get the user_media record with status and rating
+  // Get the user_media record with status, rating, and notes
   const userMediaResult = await sql`
-    SELECT user_media.id, user_media.status, user_media.rating
+    SELECT user_media.id, user_media.status, user_media.rating, user_media.notes
     FROM user_media
     JOIN media ON media.id = user_media.media_id
     WHERE user_media.user_id = ${userId}
@@ -354,6 +355,7 @@ export async function getMediaStatus(userId: number, tmdbId: number, mediaType: 
       status: null,
       tags: { favorites: false, rewatch: false, nostalgia: false },
       rating: null,
+      notes: null,
     };
   }
 
@@ -377,5 +379,27 @@ export async function getMediaStatus(userId: number, tmdbId: number, mediaType: 
       nostalgia: tagSlugs.includes('nostalgia'),
     },
     rating: userMedia.rating,
+    notes: userMedia.notes,
   };
+}
+
+export async function updateNotes(userId: number, mediaId: number, notes: string | null) {
+  await sql`
+    UPDATE user_media
+    SET notes = ${notes},
+        updated_at = CURRENT_TIMESTAMP
+    WHERE user_id = ${userId} AND media_id = ${mediaId}
+  `;
+}
+
+export async function getNotes(userId: number, tmdbId: number, mediaType: string): Promise<string | null> {
+  const result = await sql`
+    SELECT user_media.notes
+    FROM user_media
+    JOIN media ON media.id = user_media.media_id
+    WHERE user_media.user_id = ${userId}
+      AND media.tmdb_id = ${tmdbId}
+      AND media.media_type = ${mediaType}
+  `;
+  return result.rows[0]?.notes as string | null;
 }

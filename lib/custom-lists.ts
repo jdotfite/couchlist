@@ -111,11 +111,12 @@ async function getUniqueSlug(userId: number, baseName: string): Promise<string> 
   }
 }
 
-// Get all custom lists for a user
-export async function getCustomLists(userId: number): Promise<CustomList[]> {
+// Get all custom lists for a user (including lists they're collaborating on)
+export async function getCustomLists(userId: number, includeShared: boolean = true): Promise<CustomList[]> {
   await ensureDb();
 
-  const result = await sql`
+  // Get user's own lists
+  const ownedResult = await sql`
     SELECT
       cl.*,
       COUNT(cli.id)::int as item_count
@@ -126,14 +127,35 @@ export async function getCustomLists(userId: number): Promise<CustomList[]> {
     ORDER BY cl.position ASC, cl.created_at DESC
   `;
 
-  return result.rows as CustomList[];
+  if (!includeShared) {
+    return ownedResult.rows as CustomList[];
+  }
+
+  // Get lists shared with the user
+  const sharedResult = await sql`
+    SELECT
+      cl.*,
+      COUNT(cli.id)::int as item_count
+    FROM custom_lists cl
+    JOIN custom_list_collaborators clc ON cl.id = clc.custom_list_id
+    LEFT JOIN custom_list_items cli ON cl.id = cli.custom_list_id
+    WHERE clc.user_id = ${userId}
+      AND clc.status = 'accepted'
+      AND clc.role = 'collaborator'
+    GROUP BY cl.id
+    ORDER BY cl.position ASC, cl.created_at DESC
+  `;
+
+  // Combine owned and shared lists
+  return [...ownedResult.rows, ...sharedResult.rows] as CustomList[];
 }
 
-// Get a single custom list by slug
+// Get a single custom list by slug (checks ownership or collaborator access)
 export async function getCustomList(userId: number, slug: string): Promise<CustomList | null> {
   await ensureDb();
 
-  const result = await sql`
+  // Try to get as owner first
+  const ownedResult = await sql`
     SELECT
       cl.*,
       COUNT(cli.id)::int as item_count
@@ -143,7 +165,25 @@ export async function getCustomList(userId: number, slug: string): Promise<Custo
     GROUP BY cl.id
   `;
 
-  return result.rows[0] as CustomList || null;
+  if (ownedResult.rows[0]) {
+    return ownedResult.rows[0] as CustomList;
+  }
+
+  // Try to get as collaborator
+  const sharedResult = await sql`
+    SELECT
+      cl.*,
+      COUNT(cli.id)::int as item_count
+    FROM custom_lists cl
+    JOIN custom_list_collaborators clc ON cl.id = clc.custom_list_id
+    LEFT JOIN custom_list_items cli ON cl.id = cli.custom_list_id
+    WHERE cl.slug = ${slug}
+      AND clc.user_id = ${userId}
+      AND clc.status = 'accepted'
+    GROUP BY cl.id
+  `;
+
+  return sharedResult.rows[0] as CustomList || null;
 }
 
 // Get custom list by ID (for internal use)
@@ -318,9 +358,15 @@ export async function deleteCustomList(userId: number, slug: string): Promise<{ 
   }
 }
 
-// Get items in a custom list
+// Get items in a custom list (checks ownership or collaborator access)
 export async function getCustomListItems(userId: number, slug: string): Promise<CustomListItem[]> {
   await ensureDb();
+
+  // First verify the user has access to this list
+  const list = await getCustomList(userId, slug);
+  if (!list) {
+    return [];
+  }
 
   const result = await sql`
     SELECT
@@ -334,14 +380,14 @@ export async function getCustomListItems(userId: number, slug: string): Promise<
     JOIN custom_lists cl ON cli.custom_list_id = cl.id
     JOIN media m ON cli.media_id = m.id
     LEFT JOIN users u ON cli.added_by = u.id
-    WHERE cl.user_id = ${userId} AND cl.slug = ${slug}
+    WHERE cl.id = ${list.id}
     ORDER BY cli.position ASC, cli.added_at DESC
   `;
 
   return result.rows as CustomListItem[];
 }
 
-// Add item to custom list
+// Add item to custom list (works for owners and collaborators)
 export async function addItemToList(
   userId: number,
   slug: string,
@@ -350,10 +396,10 @@ export async function addItemToList(
 ): Promise<{ success: boolean; error?: string }> {
   await ensureDb();
 
-  // Verify list ownership
+  // Verify list access (ownership or collaborator)
   const list = await getCustomList(userId, slug);
   if (!list) {
-    return { success: false, error: 'List not found' };
+    return { success: false, error: 'List not found or access denied' };
   }
 
   // Check item limit
@@ -375,7 +421,7 @@ export async function addItemToList(
   }
 }
 
-// Remove item from custom list
+// Remove item from custom list (works for owners and collaborators)
 export async function removeItemFromList(
   userId: number,
   slug: string,
@@ -383,10 +429,10 @@ export async function removeItemFromList(
 ): Promise<{ success: boolean; error?: string }> {
   await ensureDb();
 
-  // Verify list ownership
+  // Verify list access (ownership or collaborator)
   const list = await getCustomList(userId, slug);
   if (!list) {
-    return { success: false, error: 'List not found' };
+    return { success: false, error: 'List not found or access denied' };
   }
 
   try {
@@ -402,18 +448,37 @@ export async function removeItemFromList(
   }
 }
 
-// Check if media is in any custom lists for a user
+// Check if media is in any custom lists for a user (includes shared lists)
 export async function getMediaCustomLists(userId: number, mediaId: number): Promise<{ listId: number; slug: string; name: string }[]> {
   await ensureDb();
 
-  const result = await sql`
+  // Get from owned lists
+  const ownedResult = await sql`
     SELECT cl.id as list_id, cl.slug, cl.name
     FROM custom_lists cl
     JOIN custom_list_items cli ON cl.id = cli.custom_list_id
     WHERE cl.user_id = ${userId} AND cli.media_id = ${mediaId}
   `;
 
-  return result.rows.map(row => ({
+  // Get from shared lists
+  const sharedResult = await sql`
+    SELECT cl.id as list_id, cl.slug, cl.name
+    FROM custom_lists cl
+    JOIN custom_list_collaborators clc ON cl.id = clc.custom_list_id
+    JOIN custom_list_items cli ON cl.id = cli.custom_list_id
+    WHERE clc.user_id = ${userId}
+      AND clc.status = 'accepted'
+      AND cli.media_id = ${mediaId}
+  `;
+
+  const combined = [...ownedResult.rows, ...sharedResult.rows];
+  // Remove duplicates
+  const seen = new Set<number>();
+  return combined.filter(row => {
+    if (seen.has(row.list_id)) return false;
+    seen.add(row.list_id);
+    return true;
+  }).map(row => ({
     listId: row.list_id,
     slug: row.slug,
     name: row.name,
@@ -431,26 +496,399 @@ export async function getCustomListsCount(userId: number): Promise<number> {
   return result.rows[0].count;
 }
 
+// ============================================
+// COLLABORATOR MANAGEMENT
+// ============================================
+
+export interface CustomListCollaborator {
+  id: number;
+  custom_list_id: number;
+  user_id: number;
+  role: 'owner' | 'collaborator';
+  invite_code: string | null;
+  invite_expires_at: Date | null;
+  status: 'pending' | 'accepted';
+  added_at: Date;
+  // Joined fields
+  user_name?: string;
+  user_email?: string;
+}
+
+// Generate a random invite code
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let code = '';
+  for (let i = 0; i < 12; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+// Create an invite link for a custom list
+export async function createListInvite(
+  userId: number,
+  slug: string
+): Promise<{ success: boolean; inviteCode?: string; error?: string }> {
+  await ensureDb();
+
+  // Verify ownership
+  const list = await getCustomList(userId, slug);
+  if (!list) {
+    return { success: false, error: 'List not found' };
+  }
+
+  const inviteCode = generateInviteCode();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
+
+  try {
+    // Create a pending collaborator entry with the invite code
+    await sql`
+      INSERT INTO custom_list_collaborators (custom_list_id, user_id, role, invite_code, invite_expires_at, status)
+      VALUES (${list.id}, ${userId}, 'owner', ${inviteCode}, ${expiresAt.toISOString()}, 'pending')
+      ON CONFLICT (custom_list_id, user_id)
+      DO UPDATE SET invite_code = ${inviteCode}, invite_expires_at = ${expiresAt.toISOString()}
+    `;
+
+    return { success: true, inviteCode };
+  } catch (error) {
+    console.error('Error creating list invite:', error);
+    return { success: false, error: 'Failed to create invite' };
+  }
+}
+
+// Get invite details by code
+export async function getListInvite(inviteCode: string): Promise<{
+  list: CustomList;
+  owner: { id: number; name: string; email: string };
+  expiresAt: Date;
+} | null> {
+  await ensureDb();
+
+  const result = await sql`
+    SELECT
+      cl.*,
+      clc.invite_expires_at,
+      u.id as owner_id,
+      u.name as owner_name,
+      u.email as owner_email
+    FROM custom_list_collaborators clc
+    JOIN custom_lists cl ON clc.custom_list_id = cl.id
+    JOIN users u ON cl.user_id = u.id
+    WHERE clc.invite_code = ${inviteCode}
+      AND clc.status = 'pending'
+      AND clc.invite_expires_at > CURRENT_TIMESTAMP
+  `;
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  const row = result.rows[0];
+  return {
+    list: {
+      id: row.id,
+      user_id: row.user_id,
+      slug: row.slug,
+      name: row.name,
+      description: row.description,
+      icon: row.icon,
+      color: row.color,
+      is_shared: row.is_shared,
+      position: row.position,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    },
+    owner: {
+      id: row.owner_id,
+      name: row.owner_name,
+      email: row.owner_email,
+    },
+    expiresAt: row.invite_expires_at,
+  };
+}
+
+// Accept an invite to join a custom list
+export async function acceptListInvite(
+  userId: number,
+  inviteCode: string
+): Promise<{ success: boolean; list?: CustomList; error?: string }> {
+  await ensureDb();
+
+  // Get the invite details
+  const invite = await getListInvite(inviteCode);
+  if (!invite) {
+    return { success: false, error: 'Invalid or expired invite' };
+  }
+
+  // Can't accept your own invite
+  if (invite.owner.id === userId) {
+    return { success: false, error: 'You cannot accept your own invite' };
+  }
+
+  try {
+    // Add the user as a collaborator
+    await sql`
+      INSERT INTO custom_list_collaborators (custom_list_id, user_id, role, status, added_at)
+      VALUES (${invite.list.id}, ${userId}, 'collaborator', 'accepted', CURRENT_TIMESTAMP)
+      ON CONFLICT (custom_list_id, user_id)
+      DO UPDATE SET status = 'accepted', added_at = CURRENT_TIMESTAMP
+    `;
+
+    // Mark the list as shared
+    await sql`
+      UPDATE custom_lists SET is_shared = true WHERE id = ${invite.list.id}
+    `;
+
+    return { success: true, list: invite.list };
+  } catch (error) {
+    console.error('Error accepting list invite:', error);
+    return { success: false, error: 'Failed to accept invite' };
+  }
+}
+
+// Get all collaborators for a custom list
+export async function getListCollaborators(
+  userId: number,
+  slug: string
+): Promise<CustomListCollaborator[]> {
+  await ensureDb();
+
+  // Verify access (owner or collaborator)
+  const list = await getCustomList(userId, slug);
+  if (!list) {
+    // Check if user is a collaborator
+    const collabResult = await sql`
+      SELECT cl.* FROM custom_lists cl
+      JOIN custom_list_collaborators clc ON cl.id = clc.custom_list_id
+      WHERE cl.slug = ${slug} AND clc.user_id = ${userId} AND clc.status = 'accepted'
+    `;
+    if (collabResult.rows.length === 0) {
+      return [];
+    }
+  }
+
+  const result = await sql`
+    SELECT
+      clc.*,
+      u.name as user_name,
+      u.email as user_email
+    FROM custom_list_collaborators clc
+    JOIN custom_lists cl ON clc.custom_list_id = cl.id
+    JOIN users u ON clc.user_id = u.id
+    WHERE cl.slug = ${slug} AND clc.status = 'accepted'
+    ORDER BY clc.role = 'owner' DESC, clc.added_at ASC
+  `;
+
+  return result.rows as CustomListCollaborator[];
+}
+
+// Add a collaborator directly (for existing connections)
+export async function addCollaboratorDirect(
+  ownerId: number,
+  slug: string,
+  collaboratorId: number
+): Promise<{ success: boolean; error?: string }> {
+  await ensureDb();
+
+  // Verify ownership
+  const list = await getCustomList(ownerId, slug);
+  if (!list) {
+    return { success: false, error: 'List not found' };
+  }
+
+  // Can't add yourself
+  if (ownerId === collaboratorId) {
+    return { success: false, error: 'Cannot add yourself as a collaborator' };
+  }
+
+  try {
+    await sql`
+      INSERT INTO custom_list_collaborators (custom_list_id, user_id, role, status, added_at)
+      VALUES (${list.id}, ${collaboratorId}, 'collaborator', 'accepted', CURRENT_TIMESTAMP)
+      ON CONFLICT (custom_list_id, user_id) DO NOTHING
+    `;
+
+    // Mark the list as shared
+    await sql`
+      UPDATE custom_lists SET is_shared = true WHERE id = ${list.id}
+    `;
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding collaborator:', error);
+    return { success: false, error: 'Failed to add collaborator' };
+  }
+}
+
+// Remove a collaborator from a custom list
+export async function removeCollaborator(
+  userId: number,
+  slug: string,
+  collaboratorId: number
+): Promise<{ success: boolean; error?: string }> {
+  await ensureDb();
+
+  // Verify ownership
+  const list = await getCustomList(userId, slug);
+  if (!list) {
+    return { success: false, error: 'List not found' };
+  }
+
+  try {
+    await sql`
+      DELETE FROM custom_list_collaborators
+      WHERE custom_list_id = ${list.id} AND user_id = ${collaboratorId} AND role != 'owner'
+    `;
+
+    // Check if any collaborators remain
+    const remaining = await sql`
+      SELECT COUNT(*)::int as count FROM custom_list_collaborators
+      WHERE custom_list_id = ${list.id} AND status = 'accepted' AND role = 'collaborator'
+    `;
+
+    // If no collaborators, mark as not shared
+    if (remaining.rows[0].count === 0) {
+      await sql`
+        UPDATE custom_lists SET is_shared = false WHERE id = ${list.id}
+      `;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing collaborator:', error);
+    return { success: false, error: 'Failed to remove collaborator' };
+  }
+}
+
+// Leave a shared list (as a collaborator)
+export async function leaveSharedList(
+  userId: number,
+  listId: number
+): Promise<{ success: boolean; error?: string }> {
+  await ensureDb();
+
+  try {
+    const result = await sql`
+      DELETE FROM custom_list_collaborators
+      WHERE custom_list_id = ${listId} AND user_id = ${userId} AND role = 'collaborator'
+      RETURNING id
+    `;
+
+    if (result.rows.length === 0) {
+      return { success: false, error: 'Not a collaborator on this list' };
+    }
+
+    // Check if any collaborators remain
+    const remaining = await sql`
+      SELECT COUNT(*)::int as count FROM custom_list_collaborators
+      WHERE custom_list_id = ${listId} AND status = 'accepted' AND role = 'collaborator'
+    `;
+
+    // If no collaborators, mark as not shared
+    if (remaining.rows[0].count === 0) {
+      await sql`
+        UPDATE custom_lists SET is_shared = false WHERE id = ${listId}
+      `;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error leaving shared list:', error);
+    return { success: false, error: 'Failed to leave list' };
+  }
+}
+
+// Get lists shared with a user (lists they're collaborating on)
+export async function getSharedLists(userId: number): Promise<CustomList[]> {
+  await ensureDb();
+
+  const result = await sql`
+    SELECT
+      cl.*,
+      COUNT(cli.id)::int as item_count
+    FROM custom_lists cl
+    JOIN custom_list_collaborators clc ON cl.id = clc.custom_list_id
+    LEFT JOIN custom_list_items cli ON cl.id = cli.custom_list_id
+    WHERE clc.user_id = ${userId}
+      AND clc.status = 'accepted'
+      AND clc.role = 'collaborator'
+    GROUP BY cl.id
+    ORDER BY cl.position ASC, cl.created_at DESC
+  `;
+
+  return result.rows as CustomList[];
+}
+
+// Get existing connections (users you've collaborated with before)
+export async function getExistingConnections(userId: number): Promise<{ id: number; name: string; email: string }[]> {
+  await ensureDb();
+
+  // Get users from both system list collaborations and custom list collaborations
+  const result = await sql`
+    SELECT DISTINCT u.id, u.name, u.email
+    FROM users u
+    WHERE u.id IN (
+      -- From system list collaborators table
+      SELECT CASE WHEN c.owner_id = ${userId} THEN c.collaborator_id ELSE c.owner_id END
+      FROM collaborators c
+      WHERE (c.owner_id = ${userId} OR c.collaborator_id = ${userId})
+        AND c.status = 'accepted'
+      UNION
+      -- From custom list collaborators (where user is owner)
+      SELECT clc.user_id
+      FROM custom_list_collaborators clc
+      JOIN custom_lists cl ON clc.custom_list_id = cl.id
+      WHERE cl.user_id = ${userId} AND clc.status = 'accepted' AND clc.role = 'collaborator'
+      UNION
+      -- From custom list collaborators (where user is collaborator)
+      SELECT cl.user_id
+      FROM custom_list_collaborators clc
+      JOIN custom_lists cl ON clc.custom_list_id = cl.id
+      WHERE clc.user_id = ${userId} AND clc.status = 'accepted' AND clc.role = 'collaborator'
+    )
+    AND u.id != ${userId}
+    ORDER BY u.name ASC
+  `;
+
+  return result.rows.map(row => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+  }));
+}
+
 // Get custom lists with items filtered by media type (for /movies/all and /shows/all pages)
+// Includes both owned lists and shared lists
 export async function getCustomListsWithMediaType(
   userId: number,
   mediaType: 'movie' | 'tv'
 ): Promise<(CustomList & { items: CustomListItem[] })[]> {
   await ensureDb();
 
-  // Get all custom lists for the user
-  const listsResult = await sql`
+  // Get owned custom lists for the user
+  const ownedListsResult = await sql`
     SELECT * FROM custom_lists
     WHERE user_id = ${userId}
     ORDER BY position ASC, created_at DESC
   `;
 
-  const lists = listsResult.rows as CustomList[];
+  // Get shared custom lists
+  const sharedListsResult = await sql`
+    SELECT cl.* FROM custom_lists cl
+    JOIN custom_list_collaborators clc ON cl.id = clc.custom_list_id
+    WHERE clc.user_id = ${userId}
+      AND clc.status = 'accepted'
+      AND clc.role = 'collaborator'
+    ORDER BY cl.position ASC, cl.created_at DESC
+  `;
+
+  const allLists = [...ownedListsResult.rows, ...sharedListsResult.rows] as CustomList[];
 
   // For each list, get items of the specified media type
   const listsWithItems: (CustomList & { items: CustomListItem[] })[] = [];
 
-  for (const list of lists) {
+  for (const list of allLists) {
     const itemsResult = await sql`
       SELECT
         cli.*,

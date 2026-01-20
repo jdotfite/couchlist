@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { MovieDetails } from '@/types';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
@@ -10,9 +11,11 @@ import Link from 'next/link';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import StarRatingPopup from '@/components/StarRatingPopup';
 import FilmReelSpinner from '@/components/FilmReelSpinner';
+import NotesSection from '@/components/NotesSection';
 
 export default function MoviePage({ params }: { params: Promise<{ id: string }> }) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [id, setId] = useState<string>('');
@@ -94,7 +97,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   }
 
   const director = movie.credits?.crew.find((person) => person.job === 'Director');
-  const mainCast = movie.credits?.cast.slice(0, 6) || [];
+  const mainCast = movie.credits?.cast.slice(0, 10) || [];
   const tmdbRating = movie.vote_average.toFixed(1);
 
   return (
@@ -114,12 +117,12 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
 
         {/* Top Navigation */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-10">
-          <Link
-            href="/movies"
+          <button
+            onClick={() => router.back()}
             className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-full flex items-center justify-center transition"
           >
             <ArrowLeft className="w-5 h-5" />
-          </Link>
+          </button>
 
           <button
             onClick={() => setIsSheetOpen(true)}
@@ -196,26 +199,40 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
 
         {/* Cast */}
         {mainCast.length > 0 && (
-          <div className="pt-4">
-            <h2 className="text-lg font-semibold mb-3">Cast</h2>
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-              {mainCast.map((actor) => (
-                <div key={actor.id} className="text-center">
-                  <div className="relative w-full aspect-[2/3] mb-1.5 rounded-lg overflow-hidden bg-zinc-900">
-                    <Image
-                      src={getImageUrl(actor.profile_path, 'w185')}
-                      alt={actor.name}
-                      fill
-                      className="object-cover"
-                    />
+          <div className="pt-4 -mx-4">
+            <h2 className="text-lg font-semibold mb-3 px-4">Cast</h2>
+            <div className="overflow-x-auto snap-x snap-mandatory scrollbar-hide" style={{ scrollPaddingLeft: '1rem' }}>
+              <div className="flex gap-3 px-4">
+                {mainCast.map((actor) => (
+                  <div
+                    key={actor.id}
+                    className="flex-shrink-0 snap-start text-center"
+                    style={{ width: 'calc(28% - 6px)' }}
+                  >
+                    <div className="relative w-full aspect-[2/3] mb-1.5 rounded-lg overflow-hidden bg-zinc-900">
+                      <Image
+                        src={getImageUrl(actor.profile_path, 'w185')}
+                        alt={actor.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <p className="font-medium text-xs line-clamp-1">{actor.name}</p>
+                    <p className="text-xs text-gray-500 line-clamp-1">{actor.character}</p>
                   </div>
-                  <p className="font-medium text-xs line-clamp-1">{actor.name}</p>
-                  <p className="text-xs text-gray-500 line-clamp-1">{actor.character}</p>
-                </div>
-              ))}
+                ))}
+                <div className="flex-shrink-0 w-1" aria-hidden="true" />
+              </div>
             </div>
           </div>
         )}
+
+        {/* Notes Section */}
+        <NotesSection
+          tmdbId={movie.id}
+          mediaType="movie"
+          isLoggedIn={!!session?.user}
+        />
       </div>
 
       {/* Bottom Sheet */}

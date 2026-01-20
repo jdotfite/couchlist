@@ -218,6 +218,36 @@ export async function initDb() {
       ON custom_list_items(media_id);
     `;
 
+    // Custom list collaborators - links users who share custom lists
+    await sql`
+      CREATE TABLE IF NOT EXISTS custom_list_collaborators (
+        id SERIAL PRIMARY KEY,
+        custom_list_id INTEGER NOT NULL REFERENCES custom_lists(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        role VARCHAR(20) DEFAULT 'collaborator',
+        invite_code VARCHAR(32) UNIQUE,
+        invite_expires_at TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'pending',
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(custom_list_id, user_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_custom_list_collaborators_list
+      ON custom_list_collaborators(custom_list_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_custom_list_collaborators_user
+      ON custom_list_collaborators(user_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_custom_list_collaborators_invite
+      ON custom_list_collaborators(invite_code);
+    `;
+
     // Add added_by column to user_media if it doesn't exist
     try {
       await sql`
@@ -237,6 +267,68 @@ export async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_user_media_added_by
       ON user_media(added_by);
     `;
+
+    // Add username column to users if it doesn't exist
+    try {
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS username VARCHAR(30) UNIQUE;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_users_username
+      ON users(username);
+    `;
+
+    // User privacy settings table
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_privacy_settings (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        discoverability VARCHAR(20) DEFAULT 'everyone',
+        show_in_search BOOLEAN DEFAULT true,
+        allow_invites_from VARCHAR(20) DEFAULT 'everyone',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_privacy_settings_user
+      ON user_privacy_settings(user_id);
+    `;
+
+    // Add invited_by and invite_message columns to custom_list_collaborators
+    try {
+      await sql`
+        ALTER TABLE custom_list_collaborators
+        ADD COLUMN IF NOT EXISTS invited_by INTEGER REFERENCES users(id);
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE custom_list_collaborators
+        ADD COLUMN IF NOT EXISTS invite_message VARCHAR(200);
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE custom_list_collaborators
+        ADD COLUMN IF NOT EXISTS declined_at TIMESTAMP;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
 
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [

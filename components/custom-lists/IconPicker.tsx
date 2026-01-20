@@ -76,7 +76,7 @@ export default function IconPicker({ selected, onSelect, color = '#6b7280' }: Ic
           onClick={() => onSelect(name)}
           className={`p-3 rounded-lg transition flex items-center justify-center ${
             selected === name
-              ? 'bg-zinc-700 ring-2 ring-brand-primary'
+              ? 'bg-brand-primary/20 ring-2 ring-brand-primary'
               : 'bg-zinc-800 hover:bg-zinc-700'
           }`}
         >

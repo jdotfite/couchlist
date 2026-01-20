@@ -2,41 +2,18 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { X, Tv, Film, Compass, Users, Settings, LogOut, Share2, Plus, List } from 'lucide-react';
+import { X, Tv, Film, Compass, Users, Settings, LogOut, List } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 import { useEffect, useState } from 'react';
-import { getIconComponent } from './custom-lists/IconPicker';
-import { getColorValue } from './custom-lists/ColorPicker';
-
-interface CustomList {
-  id: number;
-  slug: string;
-  name: string;
-  icon: string;
-  color: string;
-  is_shared: boolean;
-  item_count?: number;
-}
 
 export default function Sidebar() {
   const { isOpen, setIsOpen } = useSidebar();
   const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
-  const [customLists, setCustomLists] = useState<CustomList[]>([]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  // Fetch custom lists when sidebar opens
-  useEffect(() => {
-    if (isOpen && session?.user) {
-      fetch('/api/custom-lists')
-        .then(res => res.json())
-        .then(data => setCustomLists(data.lists || []))
-        .catch(() => {});
-    }
-  }, [isOpen, session]);
 
   // Always render the sidebar container for hydration consistency
   // but only show content after mount and if user is logged in
@@ -129,6 +106,15 @@ export default function Sidebar() {
           </Link>
 
           <Link
+            href="/lists"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
+          >
+            <List className="w-5 h-5" />
+            <span className="font-medium">My Lists</span>
+          </Link>
+
+          <Link
             href="/community"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
@@ -136,67 +122,6 @@ export default function Sidebar() {
             <Users className="w-5 h-5" />
             <span className="font-medium">Community</span>
           </Link>
-
-          <Link
-            href="/settings/collaborators"
-            onClick={() => setIsOpen(false)}
-            className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
-          >
-            <Share2 className="w-5 h-5" />
-            <span className="font-medium">Shared Lists</span>
-          </Link>
-
-          {/* Custom Lists Section */}
-          <div className="border-t border-zinc-800 my-2" />
-
-          <div className="px-4 py-2 flex items-center justify-between">
-            <span className="text-xs text-gray-500 uppercase tracking-wider">My Lists</span>
-            <Link
-              href="/lists"
-              onClick={() => setIsOpen(false)}
-              className="p-1 hover:bg-zinc-800 rounded transition text-gray-400 hover:text-white"
-            >
-              <Plus className="w-4 h-4" />
-            </Link>
-          </div>
-
-          {customLists.length > 0 ? (
-            customLists.slice(0, 5).map((list) => {
-              const IconComponent = getIconComponent(list.icon);
-              const colorValue = getColorValue(list.color);
-              return (
-                <Link
-                  key={list.slug}
-                  href={`/lists/${list.slug}`}
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-4 px-4 py-2.5 hover:bg-zinc-800 rounded-lg transition"
-                >
-                  <IconComponent className="w-5 h-5" style={{ color: colorValue }} />
-                  <span className="font-medium flex-1 truncate">{list.name}</span>
-                  {list.is_shared && <Users className="w-4 h-4 text-brand-primary" />}
-                </Link>
-              );
-            })
-          ) : (
-            <Link
-              href="/lists"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-4 px-4 py-2.5 hover:bg-zinc-800 rounded-lg transition text-gray-400"
-            >
-              <List className="w-5 h-5" />
-              <span className="font-medium">Create a list</span>
-            </Link>
-          )}
-
-          {customLists.length > 5 && (
-            <Link
-              href="/lists"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-4 px-4 py-2 text-sm text-gray-400 hover:text-white transition"
-            >
-              View all {customLists.length} lists
-            </Link>
-          )}
 
           <div className="border-t border-zinc-800 my-2" />
 

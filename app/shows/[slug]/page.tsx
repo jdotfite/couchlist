@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import MediaCard, { MediaCardItem } from '@/components/MediaCard';
 import EmptyState from '@/components/EmptyState';
 import MediaListSkeleton from '@/components/MediaListSkeleton';
+import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import { useListPreferences } from '@/hooks/useListPreferences';
 
 type ListItem = MediaCardItem;
@@ -111,6 +112,8 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isShared, setIsShared] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('added-desc');
   const { getListName } = useListPreferences();
 
   const config = listConfig[slug];
@@ -136,8 +139,12 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
   const TAG_LISTS = ['favorites', 'rewatch', 'nostalgia'];
   const isTagList = TAG_LISTS.includes(slug);
 
-  // Filter to only TV shows
-  const filteredItems = items.filter(item => item.media_type === 'tv');
+  // Filter to only TV shows, then apply search and sort
+  const filteredItems = useMemo(() => {
+    const tvItems = items.filter(item => item.media_type === 'tv');
+    const searched = filterItems(tvItems, searchQuery);
+    return sortItems(searched, sortBy);
+  }, [items, searchQuery, sortBy]);
 
   useEffect(() => {
     if (status === 'authenticated' && config) {
@@ -258,7 +265,7 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
             <button
               onClick={() => setLayout('list')}
               className={`p-2 rounded-md transition ${
-                layout === 'list' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'
+                layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               <List className="w-4 h-4" />
@@ -266,7 +273,7 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
             <button
               onClick={() => setLayout('grid')}
               className={`p-2 rounded-md transition ${
-                layout === 'grid' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'
+                layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               <Grid3X3 className="w-4 h-4" />
@@ -276,7 +283,29 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
       </header>
 
       <main className="px-4 pt-4">
-        {filteredItems.length === 0 ? (
+        {/* Sort and Filter Bar */}
+        {items.filter(item => item.media_type === 'tv').length > 0 && (
+          <SortFilterBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            resultCount={searchQuery ? filteredItems.length : undefined}
+            placeholder="Search TV shows..."
+          />
+        )}
+
+        {filteredItems.length === 0 && searchQuery ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">No results found for "{searchQuery}"</p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mt-2 text-brand-primary hover:underline"
+            >
+              Clear search
+            </button>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <EmptyState
             iconType={config.iconType}
             title={config.emptyMessage}

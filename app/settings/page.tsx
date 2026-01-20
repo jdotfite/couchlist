@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Share2, ChevronRight } from 'lucide-react';
+import { ChevronLeft, Share2, ChevronRight, Shield, Download } from 'lucide-react';
 
 export default function SettingsPage() {
   const { status } = useSession();
@@ -39,6 +39,20 @@ export default function SettingsPage() {
       <main className="px-4 pt-6">
         <div className="space-y-2">
           <Link
+            href="/settings/privacy"
+            className="flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
+          >
+            <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
+              <Shield className="w-5 h-5 text-brand-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">Privacy & Profile</h3>
+              <p className="text-sm text-gray-400">Manage your username and privacy settings</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-500" />
+          </Link>
+
+          <Link
             href="/settings/collaborators"
             className="flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
           >
@@ -48,6 +62,20 @@ export default function SettingsPage() {
             <div className="flex-1">
               <h3 className="font-semibold">Shared Lists</h3>
               <p className="text-sm text-gray-400">Collaborate with others on your lists</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-500" />
+          </Link>
+
+          <Link
+            href="/settings/export"
+            className="flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
+          >
+            <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
+              <Download className="w-5 h-5 text-brand-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">Export Data</h3>
+              <p className="text-sm text-gray-400">Download your watch history as CSV or JSON</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-500" />
           </Link>

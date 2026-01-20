@@ -292,7 +292,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
             <button
               onClick={() => setLayout('list')}
               className={`p-2 rounded-md transition ${
-                layout === 'list' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'
+                layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               <List className="w-5 h-5" />
@@ -300,7 +300,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
             <button
               onClick={() => setLayout('grid')}
               className={`p-2 rounded-md transition ${
-                layout === 'grid' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'
+                layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
               <Grid3X3 className="w-5 h-5" />

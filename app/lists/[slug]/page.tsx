@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -19,6 +19,7 @@ import { getIconComponent } from '@/components/custom-lists/IconPicker';
 import { getColorValue } from '@/components/custom-lists/ColorPicker';
 import EditListModal from '@/components/custom-lists/EditListModal';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
+import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import { getImageUrl } from '@/lib/tmdb';
 
 interface CustomList {
@@ -41,6 +42,8 @@ interface ListItem {
   tmdb_id: number;
   added_by_name?: string;
   added_at: string;
+  added_date?: string; // Alias for sorting compatibility
+  rating?: number;
 }
 
 type LayoutType = 'list' | 'grid';
@@ -58,6 +61,19 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [removingId, setRemovingId] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('added-desc');
+
+  // Apply search and sort to items
+  const filteredItems = useMemo(() => {
+    // Map added_at to added_date for sorting compatibility
+    const itemsWithDate = items.map(item => ({
+      ...item,
+      added_date: item.added_at || item.added_date,
+    }));
+    const searched = filterItems(itemsWithDate, searchQuery);
+    return sortItems(searched, sortBy);
+  }, [items, searchQuery, sortBy]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -170,7 +186,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
               <button
                 onClick={() => setLayout('list')}
                 className={`p-2 rounded-md transition ${
-                  layout === 'list' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'
+                  layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <List className="w-4 h-4" />
@@ -178,7 +194,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
               <button
                 onClick={() => setLayout('grid')}
                 className={`p-2 rounded-md transition ${
-                  layout === 'grid' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'
+                  layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
                 <Grid3X3 className="w-4 h-4" />
@@ -202,7 +218,29 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
       )}
 
       <main className="px-4 pt-4">
-        {items.length === 0 ? (
+        {/* Sort and Filter Bar */}
+        {items.length > 0 && (
+          <SortFilterBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            resultCount={searchQuery ? filteredItems.length : undefined}
+            placeholder="Search this list..."
+          />
+        )}
+
+        {filteredItems.length === 0 && searchQuery ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">No results found for "{searchQuery}"</p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mt-2 text-brand-primary hover:underline"
+            >
+              Clear search
+            </button>
+          </div>
+        ) : items.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-400 mb-4">This list is empty</p>
             <Link
@@ -214,7 +252,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
           </div>
         ) : layout === 'list' ? (
           <div className="space-y-1">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <div
                 key={item.id}
                 className="flex items-center gap-3 p-2 bg-zinc-900 hover:bg-zinc-800 rounded-lg transition"
@@ -267,7 +305,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <Link
                 key={item.id}
                 href={`/${item.media_type}/${item.tmdb_id}`}

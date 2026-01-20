@@ -3,15 +3,15 @@
 ## Quick Wins (Low Effort, High Value)
 
 ### Sorting & Filtering Enhancements
-- [ ] Add sort options to library pages (date added, rating, title, release date)
-- [ ] Add search/filter within your own library
+- [x] Add sort options to library pages (date added, rating, title, release date)
+- [x] Add search/filter within your own library
 - [ ] Genre badges on list items
 - [ ] Advanced filters (by year, genre)
 
 ### User Content
-- [ ] Enable notes field in UI (DB column exists)
+- [x] Enable notes field in UI (DB column exists)
 - [ ] Text reviews with ratings
-- [ ] Export watch history (CSV/JSON download)
+- [x] Export watch history (CSV/JSON download)
 
 ### UI Polish
 - [ ] Consolidate MoviePage and TVShowPage into shared component
@@ -130,9 +130,9 @@
 - [ ] Share to social media with custom cards
 
 ### Lists & Collections
-- [ ] Custom lists (Best of 2024, Halloween movies, etc.)
-- [ ] Public/private list toggle
-- [ ] Collaborative lists
+- [x] Custom lists (Best of 2024, Halloween movies, etc.) ✅ Phase B
+- [x] Public/private list toggle (is_shared flag) ✅ Phase E
+- [x] Collaborative lists ✅ Phase E
 - [ ] List templates
 
 ---
@@ -198,6 +198,8 @@ These are ideas to consider but not yet prioritized:
 - [x] Custom lists core (create up to 10 custom lists with icons/colors)
 - [x] Add media to custom lists from options sheet
 - [x] List page enhancements (custom lists on /all pages, settings button, hide lists)
+- [x] Custom list sharing (invite via link, add from connections, collaborator management)
+- [x] In-app collaboration invites (user search, pending invites, notifications, privacy settings)
 
 ---
 
@@ -211,7 +213,8 @@ These are ideas to consider but not yet prioritized:
 | B | Custom Lists Core (CRUD, UI, icons, colors) | ✅ Complete |
 | C | Add Media to Custom Lists (from options sheet) | ✅ Complete |
 | D | List Page Enhancements | ✅ Complete |
-| E | Custom List Sharing | 🔲 Planned |
+| E | Custom List Sharing (link-based) | ✅ Complete |
+| E.2 | In-App Collaboration Invites | ✅ Complete |
 | F | Polish & Refinements | 🔲 Planned |
 
 ### How System List Renaming Works
@@ -252,9 +255,26 @@ When a user renames "Rewatch" to "Watch Again":
    - Standardized bottom sheet style: white/gray icons, "Add to X" / "Remove from X" pattern
    - Custom lists selector now matches tag toggle style (no checkboxes)
 
-### Phase E - Custom List Sharing
+### Phase E - Custom List Sharing (COMPLETE)
 
 **Goal:** Share custom lists with collaborators via in-app + links
+
+#### Implementation Summary
+
+1. **Database**: Added `custom_list_collaborators` table with indexes
+2. **API Endpoints**:
+   - `GET/POST/DELETE /api/custom-lists/[slug]/collaborators` - Manage collaborators
+   - `POST /api/custom-lists/[slug]/invite` - Generate invite link
+   - `GET/POST /api/custom-lists/invite/[code]` - View/accept invites
+   - `GET /api/custom-lists/connections` - Get existing connections
+   - `GET/DELETE /api/custom-lists/shared` - View/leave shared lists
+3. **UI**: EditListModal now has "Collaborators" tab with:
+   - Current collaborators list
+   - Generate invite link button with copy functionality
+   - Quick add from existing connections
+   - Remove collaborator button
+4. **Invite Page**: `/lists/invite/[code]` for accepting invitations
+5. **Query Updates**: All custom list queries now include shared lists
 
 #### Sharing Methods
 
@@ -319,12 +339,144 @@ WHERE (c.owner_id = :userId OR c.collaborator_id = :userId)
 AND c.status = 'accepted'
 ```
 
+### Phase E.2 - In-App Collaboration Invites (NEW)
+
+**Goal:** Enable streamlined in-app user discovery, invitations, and notifications
+
+#### Competitor Analysis
+
+| App | User Discovery | Invite Method | Notifications | Privacy Controls |
+|-----|----------------|---------------|---------------|------------------|
+| Letterboxd | Search by name/handle | Link to private lists | Follow-based | Public/Private lists |
+| Spotify | None (link only) | Link invite (7-day expiry) | None for changes | Basic |
+| Notion | Name/email search | Email or link | Real-time presence | Permission levels |
+| Discord | Username search | Friend request | Badge + Message Requests | Granular (Everyone/FoF/Server/None) |
+| Trakt | Username search | VIP: collaborate | Following-based | Public/Private/Shared |
+
+#### Our Improvements Over Competitors
+
+1. **Better than Letterboxd**: True collaborative editing + in-app user search (not just follow)
+2. **Better than Spotify**: Actually notify users when invited or when items are added
+3. **Better than Discord**: Simpler privacy settings focused on list-sharing context
+4. **Better than Notion**: Mobile-first design, simpler permission model
+5. **Better than Trakt**: Free collaboration (not VIP-only), modern notification UX
+
+#### Implementation Phases
+
+**E.2.1 - User Discovery System** ✅
+- [x] Add `username` field to users table (unique, URL-safe)
+- [x] Username selection during registration or first use
+- [x] Profile settings to edit username
+- [x] Search API endpoint: `/api/users/search?q=term`
+- [x] Search by username (exact/partial match) or email (exact match only)
+- [x] Return minimal info: id, name, username, avatar (not email unless exact match)
+
+**E.2.2 - Privacy Settings** ✅
+- [x] Add `privacy_settings` JSON column to users table or new table
+- [x] Settings:
+  - `discoverability`: 'everyone' | 'connections_only' | 'nobody'
+  - `show_in_search`: boolean (default true)
+  - `allow_invites_from`: 'everyone' | 'connections_only' | 'nobody'
+- [x] Privacy settings page in /settings/privacy
+- [x] Respect privacy settings in search results and invite flow
+
+**E.2.3 - Pending Invites System** ✅
+- [x] Update `custom_list_collaborators` table:
+  - Add `invited_by` column (user ID of inviter)
+  - Add `invite_message` column (optional personal note)
+  - Status values: 'pending' | 'accepted' | 'declined'
+- [x] API endpoints:
+  - `GET /api/invites/pending` - Get user's pending invites
+  - `POST /api/invites/[id]/accept` - Accept invite
+  - `POST /api/invites/[id]/decline` - Decline invite
+  - `GET /api/invites/sent` - Invites user has sent (pending)
+  - `POST /api/invites/[id]/cancel` - Cancel sent invite
+
+**E.2.4 - Notification UI** ✅
+- [x] Notification bell icon in header (shows, movies, lists pages)
+- [x] Badge count for unread notifications
+- [x] Notification center slide-in sheet:
+  - Pending list invites (with Accept/Decline CTAs)
+  - Shows sender info, list name, and invite message
+- [x] Banner on `/lists` page when pending invites exist
+- [x] Real-time invite processing with loading states
+
+**E.2.5 - Enhanced Invite Flow in EditListModal** ✅
+- [x] User search input in Collaborators tab
+- [x] Search results with avatar, name, username
+- [x] "Invite" button per result (sends invite or adds directly if connected)
+- [x] "Pending" section showing sent invites awaiting response
+- [x] Cancel pending invite option
+
+**E.2.6 - Accept/Decline UI** ✅
+- [x] Notification center shows invite with:
+  - List name
+  - Inviter name and avatar
+  - Invite message (if provided)
+  - Accept / Decline buttons
+- [x] Accept redirects to the list
+- [x] Decline removes from pending
+
+#### Database Changes
+
+```sql
+-- Add username to users
+ALTER TABLE users ADD COLUMN username VARCHAR(30) UNIQUE;
+CREATE INDEX idx_users_username ON users(username);
+
+-- User privacy settings
+CREATE TABLE user_privacy_settings (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  discoverability VARCHAR(20) DEFAULT 'everyone',
+  show_in_search BOOLEAN DEFAULT true,
+  allow_invites_from VARCHAR(20) DEFAULT 'everyone',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id)
+);
+
+-- Update collaborators table
+ALTER TABLE custom_list_collaborators
+  ADD COLUMN invited_by INTEGER REFERENCES users(id),
+  ADD COLUMN invite_message VARCHAR(200),
+  ADD COLUMN declined_at TIMESTAMP;
+```
+
+#### UI/UX Specifications
+
+**Notification Bell**
+- Position: Header right side (desktop), bottom nav (mobile)
+- Badge: Red circle with count, max "9+"
+- Tap opens notification center sheet
+
+**Notification Center**
+- Full-screen bottom sheet on mobile
+- Dropdown panel on desktop
+- Sections: "Invites" (pending), "Activity" (recent, Phase F)
+- Empty state: "No new notifications"
+
+**Privacy Settings Page**
+- Located at /settings/privacy
+- Toggle: "Show me in search results"
+- Radio: "Who can invite me to lists" - Everyone / Connections only / Nobody
+- Explanation text for each option
+
+**Search UI in Collaborators Tab**
+- Search input with magnifying glass icon
+- Debounced search (300ms)
+- Results list with: Avatar, Name, @username
+- "Invite" button (primary color)
+- "Already invited" or "Already collaborating" states
+- "User not found" or "User has disabled invites" feedback
+
 ### Phase F - Polish & Refinements
 
 1. **List Reordering** - Drag and drop to reorder lists
 2. **Empty State Improvements** - Better messaging when lists are empty
-3. **Notifications** - When someone adds you to a custom list
-4. **Activity Indicators** - Show when collaborator adds items
+3. **Activity Notifications** - When collaborator adds/removes items from shared lists
+4. **Real-time Presence** - Show who's viewing a list (like Notion)
+5. **Invite History** - See past invites sent/received
 
 ---
 
@@ -339,3 +491,8 @@ AND c.status = 'accepted'
 | Are renamed lists still tagged correctly? | Yes, backend uses original slugs |
 | Can users hide lists they don't use? | Yes, add hidden flag to preferences |
 | Create custom list from list pages? | Yes, both card and menu option |
+| User search by username or email? | Yes, both (email requires exact match for privacy) |
+| Where to show pending invites? | Combination: notification bell + /lists banner |
+| Can users opt-out of being searchable? | Yes, privacy settings with granular controls |
+| Notification approach? | In-app bell icon with badge (better than Spotify's no-notifications) |
+| Username requirements? | Unique, URL-safe, 3-30 chars, set during onboarding or settings |

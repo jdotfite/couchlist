@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import ProfileMenu from '@/components/ProfileMenu';
+import NotificationBell from '@/components/notifications/NotificationBell';
 import { getImageUrl } from '@/lib/tmdb';
 import { Plus } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
@@ -201,9 +202,12 @@ export default function ShowsPage() {
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
-        <div className="flex items-center gap-3">
-          <ProfileMenu />
-          <h1 className="text-2xl font-bold">TV Shows</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <ProfileMenu />
+            <h1 className="text-2xl font-bold">TV Shows</h1>
+          </div>
+          <NotificationBell />
         </div>
       </header>
 

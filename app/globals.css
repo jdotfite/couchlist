@@ -1,5 +1,41 @@
 @import "tailwindcss";
 
+@theme {
+  /* Brand Colors */
+  --color-brand-primary: #8b5ef4;
+  --color-brand-primary-light: #a07ef6;
+  --color-brand-primary-dark: #7040e0;
+  --color-brand-primary-darker: #5a30c0;
+
+  /* Status Colors */
+  --color-status-watchlist: #3b82f6;
+  --color-status-watching: #22c55e;
+  --color-status-finished: #8b5ef4;
+  --color-status-onhold: #eab308;
+  --color-status-dropped: #ef4444;
+
+  /* Tag Colors */
+  --color-tag-favorites: #ec4899;
+  --color-tag-rewatch: #06b6d4;
+  --color-tag-classics: #f59e0b;
+
+  /* Feedback Colors */
+  --color-feedback-success: #22c55e;
+  --color-feedback-warning: #f59e0b;
+  --color-feedback-error: #ef4444;
+  --color-feedback-info: #3b82f6;
+
+  /* Rating Colors */
+  --color-rating-active: #facc15;
+  --color-rating-inactive: #71717a;
+
+  /* Surface Colors */
+  --color-surface-1: #09090b;
+  --color-surface-2: #18181b;
+  --color-surface-3: #27272a;
+  --color-surface-4: #3f3f46;
+}
+
 :root {
   /* ===========================================
      FlickLog Design System
@@ -157,4 +193,18 @@ h1, h2, h3, h4, h5, h6 {
     rgb(0 0 0),
     rgb(0 0 0)
   );
+}
+
+/* Slide in from right animation for sheets/panels */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.2s ease-out forwards;
 }
