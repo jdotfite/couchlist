@@ -295,7 +295,14 @@ export async function getUserById(userId: number): Promise<{ id: number; name: s
     SELECT id, name, username FROM users WHERE id = ${userId}
   `;
 
-  return result.rows[0] || null;
+  if (result.rows.length === 0) return null;
+
+  const row = result.rows[0];
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    username: row.username as string | null,
+  };
 }
 
 // Get user profile with username
@@ -312,12 +319,16 @@ export async function getUserProfile(userId: number): Promise<{
     SELECT id, name, email, username FROM users WHERE id = ${userId}
   `;
 
-  if (!result.rows[0]) return null;
+  if (result.rows.length === 0) return null;
 
+  const row = result.rows[0];
   const privacySettings = await getPrivacySettings(userId);
 
   return {
-    ...result.rows[0],
+    id: row.id as number,
+    name: row.name as string,
+    email: row.email as string,
+    username: row.username as string | null,
     privacySettings,
   };
 }
