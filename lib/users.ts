@@ -1,4 +1,8 @@
 import { db as sql, initDb } from './db';
+import { Filter } from 'bad-words';
+
+// Profanity filter instance
+const profanityFilter = new Filter();
 
 // Ensure tables exist
 let dbInitialized = false;
@@ -53,6 +57,10 @@ export function isValidUsername(username: string): { valid: boolean; error?: str
 
   if (RESERVED_USERNAMES.includes(username.toLowerCase())) {
     return { valid: false, error: 'This username is reserved' };
+  }
+
+  if (profanityFilter.isProfane(username)) {
+    return { valid: false, error: 'This username contains inappropriate language' };
   }
 
   return { valid: true };
