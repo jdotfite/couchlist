@@ -38,6 +38,15 @@
 - [ ] Batch operations (mark multiple as watched)
 - [ ] Recently added section on home
 
+### List Reordering
+- [ ] Add drag-to-reorder for system lists (ListSettingsSheet)
+  - Drag handle (⋮⋮ grip icon) or touch-and-hold gesture
+  - Visual feedback during drag (lift effect, drop placeholder)
+  - Persist order in user_list_preferences table (add `position` column)
+- [ ] Add drag-to-reorder for custom lists (/lists page)
+  - Same UX pattern as system lists
+  - Update custom_lists.position on reorder
+
 ---
 
 ## Phase 2: Episode Tracking
@@ -181,20 +190,20 @@ Inline expand showing:
 
 ### Implementation Phases
 
-#### Phase 2A: Foundation (MVP)
-- [ ] Database schema for episode tracking
-- [ ] TMDb season/episode API integration with caching
-- [ ] Progress section on TV detail page (bar + percentage)
-- [ ] Season pills with episode counts
-- [ ] Episode list bottom sheet
-- [ ] Tap to mark individual episodes watched
-- [ ] "Mark All" for entire season
-- [ ] Update user_media progress fields on changes
+#### Phase 2A: Foundation (MVP) ✅ COMPLETE
+- [x] Database schema for episode tracking
+- [x] TMDb season/episode API integration with caching
+- [x] Progress section on TV detail page (bar + percentage)
+- [x] Season pills with episode counts
+- [x] Episode list bottom sheet
+- [x] Tap to mark individual episodes watched
+- [x] "Mark All" for entire season
+- [x] Update user_media progress fields on changes
 
 #### Phase 2B: Quick Actions
 - [ ] Swipe-to-mark gesture on episode rows
 - [ ] "Mark all previous" (long press → batch)
-- [ ] "Up Next" card with quick mark button
+- [x] "Up Next" card with quick mark button
 - [ ] Progress bar overlay on show cards in library
 - [ ] Continue Watching section on /shows page
 
@@ -269,6 +278,13 @@ Inline expand showing:
 - [ ] Friends list
 - [ ] Activity feed (what friends are watching)
 - [ ] Friend suggestions
+
+### Community Page (/community)
+- [ ] Implement community page (currently placeholder)
+- [ ] User search integration (reuse existing searchUsers from lib/users.ts)
+- [ ] Find and follow friends by username
+- [ ] See who's watching what in your network
+- [ ] Discover users with similar taste
 
 ### Social Features
 - [ ] Share lists/collections
@@ -383,6 +399,7 @@ These are ideas to consider but not yet prioritized:
 - [x] List page enhancements (custom lists on /all pages, settings button, hide lists)
 - [x] Custom list sharing (invite via link, add from connections, collaborator management)
 - [x] In-app collaboration invites (user search, pending invites, notifications, privacy settings)
+- [x] Episode tracking MVP (progress bar, season pills, episode list sheet, mark watched)
 
 ---
 
