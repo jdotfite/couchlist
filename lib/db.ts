@@ -354,6 +354,62 @@ export async function initDb() {
       ON media(release_year);
     `;
 
+    // User episodes table - tracks individual episode watch status
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_episodes (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+        season_number INTEGER NOT NULL,
+        episode_number INTEGER NOT NULL,
+        tmdb_episode_id INTEGER,
+        status VARCHAR(20) DEFAULT 'watched',
+        rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+        notes TEXT,
+        watched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, media_id, season_number, episode_number)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_episodes_user_media
+      ON user_episodes(user_id, media_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_episodes_season
+      ON user_episodes(user_id, media_id, season_number);
+    `;
+
+    // Add episode tracking columns to user_media if they don't exist
+    try {
+      await sql`
+        ALTER TABLE user_media
+        ADD COLUMN IF NOT EXISTS current_season INTEGER DEFAULT 1;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE user_media
+        ADD COLUMN IF NOT EXISTS current_episode INTEGER DEFAULT 0;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE user_media
+        ADD COLUMN IF NOT EXISTS total_episodes_watched INTEGER DEFAULT 0;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },

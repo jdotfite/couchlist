@@ -13,6 +13,7 @@ import StarRatingPopup from '@/components/StarRatingPopup';
 import FilmReelSpinner from '@/components/FilmReelSpinner';
 import NotesSection from '@/components/NotesSection';
 import WatchProviders from '@/components/WatchProviders';
+import TVProgressSection from '@/components/episodes/TVProgressSection';
 
 type MediaDetails = MovieDetails | TVShowDetails;
 
@@ -230,6 +231,18 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
             </div>
           )}
         </div>
+
+        {/* Episode Tracking - TV only */}
+        {!isMovie(media) && (
+          <TVProgressSection
+            tmdbId={media.id}
+            numberOfSeasons={media.number_of_seasons}
+            numberOfEpisodes={media.number_of_episodes}
+            showTitle={media.name}
+            posterPath={media.poster_path}
+            isLoggedIn={!!session?.user}
+          />
+        )}
 
         {/* Cast */}
         {mainCast.length > 0 && (
