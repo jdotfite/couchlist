@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MoreVertical, Heart, Star, Users } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
+import { getGenreNames } from '@/lib/genres';
 
 export interface MediaCardItem {
   id: number;
@@ -11,6 +12,8 @@ export interface MediaCardItem {
   media_type: string;
   title: string;
   poster_path: string;
+  genre_ids?: string | null;
+  release_year?: number | null;
   added_date?: string;
   watched_date?: string;
   rating?: number;
@@ -33,6 +36,9 @@ export default function MediaCard({ item, onOptionsClick, variant = 'grid', curr
   // Show "Added by" when item was added by someone other than current user
   const showAddedBy = currentUserId && item.added_by && item.added_by !== currentUserId && item.added_by_name;
 
+  // Get genre names (limit to 2)
+  const genres = getGenreNames(item.genre_ids, 2);
+
   if (variant === 'list') {
     return (
       <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition group">
@@ -51,12 +57,15 @@ export default function MediaCard({ item, onOptionsClick, variant = 'grid', curr
 
         <Link href={href} className="flex-1 min-w-0">
           <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {item.rating && (
               <div className="flex items-center gap-1 text-xs text-yellow-400">
                 <Star className="w-3 h-3 fill-yellow-400" />
                 {item.rating}
               </div>
+            )}
+            {genres.length > 0 && (
+              <span className="text-xs text-gray-500">{genres.join(' · ')}</span>
             )}
             {showAddedBy && (
               <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -98,6 +107,20 @@ export default function MediaCard({ item, onOptionsClick, variant = 'grid', curr
 
           {/* Gradient overlay - always visible but subtle, stronger on hover */}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-opacity" />
+
+          {/* Genre badges at top */}
+          {genres.length > 0 && (
+            <div className="absolute top-2 left-2 flex gap-1 z-10">
+              {genres.map((genre) => (
+                <span
+                  key={genre}
+                  className="px-1.5 py-0.5 bg-black/70 backdrop-blur-sm rounded text-[10px] text-gray-300"
+                >
+                  {genre}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Content overlay at bottom */}
           <div className="absolute bottom-0 left-0 right-0 p-3">

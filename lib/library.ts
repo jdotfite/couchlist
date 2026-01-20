@@ -15,6 +15,8 @@ type MediaInput = {
   media_type: string;
   title: string;
   poster_path: string | null;
+  genre_ids?: number[];
+  release_year?: number | null;
 };
 
 export async function getUserIdByEmail(email: string) {
@@ -26,12 +28,15 @@ export async function getUserIdByEmail(email: string) {
 }
 
 export async function upsertMedia(input: MediaInput) {
+  const genreIdsStr = input.genre_ids ? input.genre_ids.join(',') : null;
   const result = await sql`
-    INSERT INTO media (tmdb_id, media_type, title, poster_path)
-    VALUES (${input.media_id}, ${input.media_type}, ${input.title}, ${input.poster_path})
+    INSERT INTO media (tmdb_id, media_type, title, poster_path, genre_ids, release_year)
+    VALUES (${input.media_id}, ${input.media_type}, ${input.title}, ${input.poster_path}, ${genreIdsStr}, ${input.release_year || null})
     ON CONFLICT (tmdb_id, media_type) DO UPDATE
     SET title = EXCLUDED.title,
         poster_path = EXCLUDED.poster_path,
+        genre_ids = COALESCE(EXCLUDED.genre_ids, media.genre_ids),
+        release_year = COALESCE(EXCLUDED.release_year, media.release_year),
         updated_at = CURRENT_TIMESTAMP
     RETURNING id
   `;
@@ -162,6 +167,8 @@ export async function getItemsByStatus(userId: number, status: string, includeCo
         media.media_type,
         media.title,
         media.poster_path,
+        media.genre_ids,
+        media.release_year,
         user_media.status_updated_at AS added_date,
         user_media.rating,
         user_media.user_id AS owner_id,
@@ -196,6 +203,8 @@ export async function getItemsByStatus(userId: number, status: string, includeCo
       media.media_type,
       media.title,
       media.poster_path,
+      media.genre_ids,
+      media.release_year,
       user_media.status_updated_at AS added_date,
       user_media.rating,
       user_media.user_id AS owner_id,
@@ -240,6 +249,8 @@ export async function getItemsByTag(userId: number, tagSlug: string, includeColl
         media.media_type,
         media.title,
         media.poster_path,
+        media.genre_ids,
+        media.release_year,
         user_media_tags.added_at AS added_date,
         user_media.rating,
         user_media.user_id AS owner_id,
@@ -277,6 +288,8 @@ export async function getItemsByTag(userId: number, tagSlug: string, includeColl
       media.media_type,
       media.title,
       media.poster_path,
+      media.genre_ids,
+      media.release_year,
       user_media_tags.added_at AS added_date,
       user_media.rating,
       user_media.user_id AS owner_id,

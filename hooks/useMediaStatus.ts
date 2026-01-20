@@ -10,6 +10,8 @@ export interface MediaInfo {
   mediaType: 'movie' | 'tv';
   title: string;
   posterPath: string;
+  genreIds?: number[];
+  releaseYear?: number | null;
 }
 
 interface UseMediaStatusReturn {
@@ -82,6 +84,8 @@ export function useMediaStatus(): UseMediaStatusReturn {
           media_type: mediaInfo.mediaType,
           title: mediaInfo.title,
           poster_path: mediaInfo.posterPath,
+          genre_ids: mediaInfo.genreIds,
+          release_year: mediaInfo.releaseYear,
         }),
       });
 
@@ -118,6 +122,8 @@ export function useMediaStatus(): UseMediaStatusReturn {
             media_type: mediaInfo.mediaType,
             title: mediaInfo.title,
             poster_path: mediaInfo.posterPath,
+            genre_ids: mediaInfo.genreIds,
+            release_year: mediaInfo.releaseYear,
           }),
         });
         if (!response.ok) throw new Error(`Failed to add ${tag}`);

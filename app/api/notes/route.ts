@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getUserIdByEmail, getMediaIdByTmdb, updateNotes, getNotes } from '@/lib/library';
+import { getUserIdByEmail, getMediaIdByTmdb, updateNotes, getNotes, getUserMediaId } from '@/lib/library';
 
 // GET /api/notes - Get notes for a media item
 export async function GET(request: NextRequest) {
@@ -21,11 +21,21 @@ export async function GET(request: NextRequest) {
 
     const userId = await getUserIdByEmail(session.user.email);
     if (!userId) {
-      return NextResponse.json({ notes: null });
+      return NextResponse.json({ notes: null, isInLibrary: false });
     }
 
-    const notes = await getNotes(userId, Number(tmdbId), mediaType);
-    return NextResponse.json({ notes });
+    // Check if media is in user's library
+    const mediaId = await getMediaIdByTmdb(Number(tmdbId), mediaType);
+    if (!mediaId) {
+      return NextResponse.json({ notes: null, isInLibrary: false });
+    }
+
+    // Check if user has this media in their library
+    const userMediaId = await getUserMediaId(userId, mediaId);
+    const isInLibrary = !!userMediaId;
+
+    const notes = isInLibrary ? await getNotes(userId, Number(tmdbId), mediaType) : null;
+    return NextResponse.json({ notes, isInLibrary });
   } catch (error) {
     console.error('Error fetching notes:', error);
     return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 });

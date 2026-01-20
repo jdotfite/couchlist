@@ -330,6 +330,30 @@ export async function initDb() {
       // Column might already exist
     }
 
+    // Add genre_ids and release_year to media table for filtering
+    try {
+      await sql`
+        ALTER TABLE media
+        ADD COLUMN IF NOT EXISTS genre_ids TEXT;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE media
+        ADD COLUMN IF NOT EXISTS release_year INTEGER;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_media_release_year
+      ON media(release_year);
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },

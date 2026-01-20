@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { media_id, media_type, title, poster_path } = await request.json();
+    const { media_id, media_type, title, poster_path, genre_ids, release_year } = await request.json();
     const userId = await getUserIdByEmail(session.user.email);
     if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -28,6 +28,8 @@ export async function POST(request: NextRequest) {
       media_type,
       title,
       poster_path,
+      genre_ids,
+      release_year,
     });
 
     await upsertUserMediaStatus(userId, mediaId, 'dropped');

@@ -16,6 +16,7 @@ export default function NotesSection({ tmdbId, mediaType, isLoggedIn }: NotesSec
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isInLibrary, setIsInLibrary] = useState(false);
 
   const fetchNotes = useCallback(async () => {
     if (!isLoggedIn) {
@@ -29,6 +30,7 @@ export default function NotesSection({ tmdbId, mediaType, isLoggedIn }: NotesSec
         const data = await response.json();
         setNotes(data.notes);
         setEditedNotes(data.notes || '');
+        setIsInLibrary(data.isInLibrary ?? false);
       }
     } catch (error) {
       console.error('Failed to fetch notes:', error);
@@ -91,6 +93,11 @@ export default function NotesSection({ tmdbId, mediaType, isLoggedIn }: NotesSec
         </div>
       </div>
     );
+  }
+
+  // Don't show notes section if item is not in user's library
+  if (!isInLibrary) {
+    return null;
   }
 
   return (

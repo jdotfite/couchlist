@@ -5,7 +5,7 @@
 ### Sorting & Filtering Enhancements
 - [x] Add sort options to library pages (date added, rating, title, release date)
 - [x] Add search/filter within your own library
-- [ ] Genre badges on list items
+- [x] Genre badges on list items
 - [ ] Advanced filters (by year, genre)
 
 ### User Content
@@ -14,8 +14,8 @@
 - [x] Export watch history (CSV/JSON download)
 
 ### UI Polish
-- [ ] Consolidate MoviePage and TVShowPage into shared component
-- [ ] CSS variables for theme colors (currently hardcoded #8b5ef4)
+- [x] Consolidate MoviePage and TVShowPage into shared component
+- [x] CSS variables for theme colors (Tailwind v4 @theme)
 - [ ] Empty state improvements
 - [ ] Loading skeletons
 

@@ -44,6 +44,9 @@ interface MediaOptionsSheetProps {
   mediaType: 'movie' | 'tv';
   title: string;
   posterPath: string;
+  // Genre and year data for filtering
+  genreIds?: number[];
+  releaseYear?: number | null;
   // Optional: provide current status if already known (e.g., from library page)
   // If not provided, status will be fetched when sheet opens
   currentStatus?: string | null;
@@ -77,6 +80,8 @@ export default function MediaOptionsSheet({
   mediaType,
   title,
   posterPath,
+  genreIds,
+  releaseYear,
   currentStatus: providedStatus,
   currentTags: providedTags,
   onStatusChange,
@@ -128,6 +133,8 @@ export default function MediaOptionsSheet({
     mediaType,
     title,
     posterPath,
+    genreIds,
+    releaseYear,
   };
 
   // Handle status change
