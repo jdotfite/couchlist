@@ -220,14 +220,18 @@ export default function MoviesPage() {
               href="/movies/watching"
               className="flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
             >
-              <div className="relative w-16 h-16 flex-shrink-0 bg-zinc-800">
-                <Image
-                  src={watchingItem?.poster_path ? getImageUrl(watchingItem.poster_path) : '/placeholders/place-holder-1.jpg'}
-                  alt="Watching"
-                  fill
-                  className="object-cover object-top"
-                  sizes="64px"
-                />
+              <div className="relative w-16 h-16 flex-shrink-0">
+                {watchingItem?.poster_path ? (
+                  <Image
+                    src={getImageUrl(watchingItem.poster_path)}
+                    alt="Watching"
+                    fill
+                    className="object-cover object-top"
+                    sizes="64px"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-emerald-900" />
+                )}
               </div>
               <div>
                 <h3 className="font-semibold text-sm">{getListName('watching') || 'Watching'}</h3>
@@ -239,14 +243,18 @@ export default function MoviesPage() {
               href="/movies/watchlist"
               className="flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
             >
-              <div className="relative w-16 h-16 flex-shrink-0 bg-zinc-800">
-                <Image
-                  src={watchlistItem?.poster_path ? getImageUrl(watchlistItem.poster_path) : '/placeholders/place-holder-2.jpg'}
-                  alt="Watchlist"
-                  fill
-                  className="object-cover object-top"
-                  sizes="64px"
-                />
+              <div className="relative w-16 h-16 flex-shrink-0">
+                {watchlistItem?.poster_path ? (
+                  <Image
+                    src={getImageUrl(watchlistItem.poster_path)}
+                    alt="Watchlist"
+                    fill
+                    className="object-cover object-top"
+                    sizes="64px"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-900" />
+                )}
               </div>
               <div>
                 <h3 className="font-semibold text-sm">{getListName('watchlist') || 'Watchlist'}</h3>
@@ -258,14 +266,18 @@ export default function MoviesPage() {
               href="/movies/finished"
               className="flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
             >
-              <div className="relative w-16 h-16 flex-shrink-0 bg-zinc-800">
-                <Image
-                  src={finishedItem?.poster_path ? getImageUrl(finishedItem.poster_path) : '/placeholders/place-holder-3.jpg'}
-                  alt="Finished"
-                  fill
-                  className="object-cover object-top"
-                  sizes="64px"
-                />
+              <div className="relative w-16 h-16 flex-shrink-0">
+                {finishedItem?.poster_path ? (
+                  <Image
+                    src={getImageUrl(finishedItem.poster_path)}
+                    alt="Finished"
+                    fill
+                    className="object-cover object-top"
+                    sizes="64px"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-brand-primary to-brand-primary-darker" />
+                )}
               </div>
               <div>
                 <h3 className="font-semibold text-sm">{getListName('finished') || 'Finished'}</h3>
@@ -277,14 +289,18 @@ export default function MoviesPage() {
               href="/movies/all"
               className="flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
             >
-              <div className="relative w-16 h-16 flex-shrink-0 bg-zinc-800">
-                <Image
-                  src={onHoldItem?.poster_path ? getImageUrl(onHoldItem.poster_path) : '/placeholders/place-holder-4.jpg'}
-                  alt="All Lists"
-                  fill
-                  className="object-cover object-top"
-                  sizes="64px"
-                />
+              <div className="relative w-16 h-16 flex-shrink-0">
+                {onHoldItem?.poster_path ? (
+                  <Image
+                    src={getImageUrl(onHoldItem.poster_path)}
+                    alt="All Lists"
+                    fill
+                    className="object-cover object-top"
+                    sizes="64px"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-zinc-600 to-zinc-800" />
+                )}
               </div>
               <div>
                 <h3 className="font-semibold text-sm">All Lists</h3>

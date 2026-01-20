@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft, Settings, Plus, Grid3X3, LayoutList } from 'lucide-react';
+import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft, Settings, Plus, Grid3X3, LayoutList, Users, ChevronRight, ChevronDown } from 'lucide-react';
 import AllListsSkeleton from '@/components/AllListsSkeleton';
 import ListSettingsSheet from '@/components/ListSettingsSheet';
 import CreateListModal from '@/components/custom-lists/CreateListModal';
@@ -51,11 +51,16 @@ export default function AllShowsListsPage() {
   const [nostalgiaItems, setNostalgiaItems] = useState<LibraryItem[]>([]);
   const [favoritesItems, setFavoritesItems] = useState<LibraryItem[]>([]);
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
+  const [sharedLists, setSharedLists] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [layout, setLayout] = useState<'grid' | 'list'>('grid');
+  const [showMoreLists, setShowMoreLists] = useState(false);
   const { getListName, isListHidden, refetch: refetchPreferences } = useListPreferences();
+
+  // Core lists that are always shown
+  const CORE_LISTS = ['watching', 'watchlist', 'finished'];
 
   // Load saved layout preference
   useEffect(() => {
@@ -82,7 +87,7 @@ export default function AllShowsListsPage() {
     try {
       const [
         watchingRes, watchlistRes, watchedRes, onHoldRes,
-        droppedRes, rewatchRes, nostalgiaRes, favoritesRes, customListsRes
+        droppedRes, rewatchRes, nostalgiaRes, favoritesRes, customListsRes, sharedListsRes
       ] = await Promise.all([
         fetch('/api/watching'),
         fetch('/api/watchlist'),
@@ -92,7 +97,8 @@ export default function AllShowsListsPage() {
         fetch('/api/rewatch'),
         fetch('/api/nostalgia'),
         fetch('/api/favorites'),
-        fetch('/api/custom-lists?mediaType=tv')
+        fetch('/api/custom-lists?mediaType=tv'),
+        fetch('/api/collaborators/shared-lists')
       ]);
 
       const parseRes = async (res: Response, key: string) => {
@@ -117,6 +123,10 @@ export default function AllShowsListsPage() {
       // Parse custom lists
       const customListsData = await customListsRes.json().catch(() => ({ lists: [] }));
       setCustomLists(customListsData.lists || []);
+
+      // Parse shared lists
+      const sharedListsData = await sharedListsRes.json().catch(() => ({ sharedLists: [] }));
+      setSharedLists(sharedListsData.sharedLists || []);
     } catch (error) {
       console.error('Failed to fetch library data:', error);
     } finally {
@@ -134,18 +144,33 @@ export default function AllShowsListsPage() {
   }
 
   const allSystemLists = [
-    { slug: 'watching', title: getListName('watching') || 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900' },
-    { slug: 'watchlist', title: getListName('watchlist') || 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900' },
-    { slug: 'finished', title: getListName('finished') || 'Finished', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker' },
-    { slug: 'onhold', title: getListName('onhold') || 'On Hold', items: onHoldItems, icon: PauseCircle, color: 'from-yellow-500 to-yellow-900' },
-    { slug: 'dropped', title: getListName('dropped') || 'Dropped', items: droppedItems, icon: XCircle, color: 'from-red-600 to-red-900' },
-    { slug: 'rewatch', title: getListName('rewatch') || 'Rewatch', items: rewatchItems, icon: RotateCcw, color: 'from-cyan-500 to-cyan-900' },
-    { slug: 'nostalgia', title: getListName('nostalgia') || 'Classics', items: nostalgiaItems, icon: Sparkles, color: 'from-amber-500 to-amber-900' },
-    { slug: 'favorites', title: getListName('favorites') || 'Favorites', items: favoritesItems, icon: Heart, color: 'from-pink-600 to-pink-900' },
+    { slug: 'watching', title: getListName('watching') || 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900', isCore: true },
+    { slug: 'watchlist', title: getListName('watchlist') || 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900', isCore: true },
+    { slug: 'finished', title: getListName('finished') || 'Finished', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker', isCore: true },
+    { slug: 'onhold', title: getListName('onhold') || 'On Hold', items: onHoldItems, icon: PauseCircle, color: 'from-yellow-500 to-yellow-900', isCore: false },
+    { slug: 'dropped', title: getListName('dropped') || 'Dropped', items: droppedItems, icon: XCircle, color: 'from-red-600 to-red-900', isCore: false },
+    { slug: 'rewatch', title: getListName('rewatch') || 'Rewatch', items: rewatchItems, icon: RotateCcw, color: 'from-cyan-500 to-cyan-900', isCore: false },
+    { slug: 'nostalgia', title: getListName('nostalgia') || 'Classics', items: nostalgiaItems, icon: Sparkles, color: 'from-amber-500 to-amber-900', isCore: false },
+    { slug: 'favorites', title: getListName('favorites') || 'Favorites', items: favoritesItems, icon: Heart, color: 'from-pink-600 to-pink-900', isCore: false },
   ];
 
-  // Filter out hidden lists
-  const lists = allSystemLists.filter(list => !isListHidden(list.slug));
+  // Filter out hidden lists, then separate into visible and more lists
+  const visibleSystemLists = allSystemLists.filter(list => !isListHidden(list.slug));
+
+  // Core lists are always shown, secondary lists only if they have items OR showMoreLists is true
+  const coreLists = visibleSystemLists.filter(list => list.isCore);
+  const secondaryLists = visibleSystemLists.filter(list => !list.isCore);
+  const populatedSecondaryLists = secondaryLists.filter(list => list.items.length > 0);
+  const emptySecondaryLists = secondaryLists.filter(list => list.items.length === 0);
+
+  // Show core + populated secondary, then empty secondary only if expanded
+  const lists = [
+    ...coreLists,
+    ...populatedSecondaryLists,
+    ...(showMoreLists ? emptySecondaryLists : [])
+  ];
+
+  const hasHiddenEmptyLists = emptySecondaryLists.length > 0;
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -187,34 +212,44 @@ export default function AllShowsListsPage() {
       </header>
 
       <main className="px-4 pt-4">
-        {layout === 'grid' ? (
+        {layout === 'grid' ? (<>
           <div className="grid grid-cols-2 gap-3">
             {/* System Lists - Grid View */}
-            {lists.map(({ slug, title, items, icon: Icon, color }) => (
-              <Link
-                key={slug}
-                href={`/shows/${slug}`}
-                className={`relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br ${color}`}
-              >
-                {items[0]?.poster_path && (
-                  <Image
-                    src={getImageUrl(items[0].poster_path)}
-                    alt={title}
-                    fill
-                    className="object-cover object-top opacity-60"
-                    sizes="50vw"
-                  />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                  <Icon className="w-6 h-6" />
-                  <div>
-                    <h3 className="text-lg mb-1">{title}</h3>
-                    <p className="text-sm text-gray-200">{items.length} shows</p>
+            {lists.map(({ slug, title, items, icon: Icon, color }) => {
+              const isShared = sharedLists.includes(slug);
+              return (
+                <Link
+                  key={slug}
+                  href={`/shows/${slug}`}
+                  className={`relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br ${color}`}
+                >
+                  {items[0]?.poster_path && (
+                    <Image
+                      src={getImageUrl(items[0].poster_path)}
+                      alt={title}
+                      fill
+                      className="object-cover object-top opacity-60"
+                      sizes="50vw"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <Icon className="w-6 h-6" />
+                      {isShared && (
+                        <div className="bg-black/50 rounded-full p-1.5">
+                          <Users className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-lg mb-1">{title}</h3>
+                      <p className="text-sm text-gray-200">{items.length} shows</p>
+                    </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
 
             {/* Custom Lists - Grid View */}
             {customLists.map((list) => {
@@ -259,38 +294,64 @@ export default function AllShowsListsPage() {
               <span className="text-sm">Create List</span>
             </button>
           </div>
-        ) : (
+
+          {/* Show More Lists Toggle - Grid View */}
+          {hasHiddenEmptyLists && (
+            <button
+              onClick={() => setShowMoreLists(!showMoreLists)}
+              className="w-full mt-4 flex items-center justify-center gap-2 py-3 text-sm text-gray-400 hover:text-white transition"
+            >
+              {showMoreLists ? (
+                <>
+                  <ChevronDown className="w-4 h-4 rotate-180" />
+                  Hide empty lists
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Show {emptySecondaryLists.length} more {emptySecondaryLists.length === 1 ? 'list' : 'lists'}
+                </>
+              )}
+            </button>
+          )}
+        </>) : (
           <div className="space-y-1">
             {/* System Lists - List View */}
-            {lists.map(({ slug, title, items, icon: Icon, color }) => (
-              <Link
-                key={slug}
-                href={`/shows/${slug}`}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition"
-              >
-                {/* Poster thumbnail */}
-                <div className="relative w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden bg-zinc-800">
-                  {items[0]?.poster_path ? (
-                    <Image
-                      src={getImageUrl(items[0].poster_path)}
-                      alt={title}
-                      fill
-                      className="object-cover"
-                      sizes="48px"
-                    />
-                  ) : (
-                    <div className={`w-full h-full bg-gradient-to-br ${color} flex items-center justify-center`}>
-                      <Icon className="w-5 h-5" />
+            {lists.map(({ slug, title, items, icon: Icon, color }) => {
+              const isShared = sharedLists.includes(slug);
+              return (
+                <Link
+                  key={slug}
+                  href={`/shows/${slug}`}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition"
+                >
+                  {/* Poster thumbnail */}
+                  <div className="relative w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden bg-zinc-800">
+                    {items[0]?.poster_path ? (
+                      <Image
+                        src={getImageUrl(items[0].poster_path)}
+                        alt={title}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                      />
+                    ) : (
+                      <div className={`w-full h-full bg-gradient-to-br ${color} flex items-center justify-center`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium text-sm line-clamp-1">{title}</h3>
+                      {isShared && <Users className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />}
                     </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-sm line-clamp-1">{title}</h3>
-                  <p className="text-xs text-gray-400">{items.length} shows</p>
-                </div>
-                <Icon className="w-5 h-5 text-gray-500 flex-shrink-0" />
-              </Link>
-            ))}
+                    <p className="text-xs text-gray-400">{items.length} shows</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                </Link>
+              );
+            })}
 
             {/* Custom Lists - List View */}
             {customLists.map((list) => {
@@ -327,7 +388,7 @@ export default function AllShowsListsPage() {
                     <h3 className="font-medium text-sm line-clamp-1">{list.name}</h3>
                     <p className="text-xs text-gray-400">{list.item_count} shows</p>
                   </div>
-                  <IconComponent className="w-5 h-5 flex-shrink-0" style={{ color: colorValue }} />
+                  <ChevronRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
                 </Link>
               );
             })}
@@ -342,6 +403,26 @@ export default function AllShowsListsPage() {
               </div>
               <span className="font-medium text-sm">Create List</span>
             </button>
+
+            {/* Show More Lists Toggle - List View */}
+            {hasHiddenEmptyLists && (
+              <button
+                onClick={() => setShowMoreLists(!showMoreLists)}
+                className="w-full mt-2 flex items-center justify-center gap-2 py-3 text-sm text-gray-400 hover:text-white transition"
+              >
+                {showMoreLists ? (
+                  <>
+                    <ChevronDown className="w-4 h-4 rotate-180" />
+                    Hide empty lists
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4" />
+                    Show {emptySecondaryLists.length} more {emptySecondaryLists.length === 1 ? 'list' : 'lists'}
+                  </>
+                )}
+              </button>
+            )}
           </div>
         )}
       </main>
