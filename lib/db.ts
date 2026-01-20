@@ -410,6 +410,64 @@ export async function initDb() {
       // Column might already exist
     }
 
+    // Import jobs table - tracks bulk import operations
+    await sql`
+      CREATE TABLE IF NOT EXISTS import_jobs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        source VARCHAR(30) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        total_items INTEGER DEFAULT 0,
+        processed_items INTEGER DEFAULT 0,
+        successful_items INTEGER DEFAULT 0,
+        failed_items INTEGER DEFAULT 0,
+        skipped_items INTEGER DEFAULT 0,
+        error_message TEXT,
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_import_jobs_user
+      ON import_jobs(user_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_import_jobs_status
+      ON import_jobs(status);
+    `;
+
+    // Import job items table - tracks individual item results
+    await sql`
+      CREATE TABLE IF NOT EXISTS import_job_items (
+        id SERIAL PRIMARY KEY,
+        import_job_id INTEGER NOT NULL REFERENCES import_jobs(id) ON DELETE CASCADE,
+        source_title VARCHAR(500) NOT NULL,
+        source_year INTEGER,
+        source_rating DECIMAL(3,1),
+        source_status VARCHAR(30),
+        tmdb_id INTEGER,
+        matched_title VARCHAR(500),
+        match_confidence VARCHAR(20),
+        status VARCHAR(20) DEFAULT 'pending',
+        result_action VARCHAR(30),
+        error_message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_import_job_items_job
+      ON import_job_items(import_job_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_import_job_items_status
+      ON import_job_items(status);
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },
