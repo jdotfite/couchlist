@@ -116,7 +116,7 @@ export default function CustomListSelector({
   if (isLoading) {
     return (
       <div className="py-4 flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+        <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
       </div>
     );
   }
@@ -154,7 +154,7 @@ export default function CustomListSelector({
               {isSelected ? `Remove from ${list.name}` : `Add to ${list.name}`}
             </span>
             {isToggling ? (
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
             ) : isSelected ? (
               <Check className="w-5 h-5 text-brand-primary" />
             ) : null}

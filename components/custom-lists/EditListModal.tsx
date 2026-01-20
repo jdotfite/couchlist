@@ -453,7 +453,7 @@ export default function EditListModal({
               >
                 {isDeleting ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                     Deleting...
                   </>
                 ) : (
@@ -467,7 +467,7 @@ export default function EditListModal({
           <div className="p-4 space-y-6">
             {loadingCollaborators ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                <Loader2 className="w-6 h-6 animate-spin-fast text-gray-400" />
               </div>
             ) : (
               <>
@@ -484,7 +484,7 @@ export default function EditListModal({
                       className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary"
                     />
                     {isSearching && (
-                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-gray-400" />
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin-fast text-gray-400" />
                     )}
                   </div>
 
@@ -520,7 +520,7 @@ export default function EditListModal({
                               title="Send Invite"
                             >
                               {sendingInvite === user.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                               ) : (
                                 <Send className="w-4 h-4" />
                               )}
@@ -582,7 +582,7 @@ export default function EditListModal({
                             title="Cancel Invite"
                           >
                             {cancelingInvite === invite.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                             ) : (
                               <X className="w-4 h-4" />
                             )}
@@ -627,7 +627,7 @@ export default function EditListModal({
                               className="p-2 hover:bg-zinc-700 rounded-lg text-gray-400 hover:text-red-400 transition"
                             >
                               {removingUser === collab.user_id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                               ) : (
                                 <UserMinus className="w-4 h-4" />
                               )}
@@ -671,7 +671,7 @@ export default function EditListModal({
                       className="w-full flex items-center justify-center gap-2 p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition"
                     >
                       {generatingInvite ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                       ) : (
                         <>
                           <LinkIcon className="w-5 h-5" />
@@ -709,7 +709,7 @@ export default function EditListModal({
                               className="p-2 bg-brand-primary/20 hover:bg-brand-primary/30 rounded-lg text-brand-primary transition"
                             >
                               {addingUser === conn.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                               ) : (
                                 <UserPlus className="w-4 h-4" />
                               )}
@@ -812,7 +812,7 @@ export default function EditListModal({
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                     Saving...
                   </>
                 ) : (

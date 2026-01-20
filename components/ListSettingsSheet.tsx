@@ -211,7 +211,7 @@ export default function ListSettingsSheet({
                         className="p-1 hover:bg-zinc-700 rounded text-green-500 flex-shrink-0"
                       >
                         {savingName ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                         ) : (
                           <Check className="w-4 h-4" />
                         )}
@@ -265,7 +265,7 @@ export default function ListSettingsSheet({
                   title={hidden ? 'Show list' : 'Hide list'}
                 >
                   {isToggling ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                   ) : hidden ? (
                     <EyeOff className="w-5 h-5 text-gray-500" />
                   ) : (

@@ -173,7 +173,7 @@ export default function CommunityPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+        <Loader2 className="w-8 h-8 animate-spin-fast text-gray-400" />
       </div>
     );
   }
@@ -212,7 +212,7 @@ export default function CommunityPage() {
               className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary"
             />
             {isSearching && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 animate-spin text-gray-400" />
+              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 animate-spin-fast text-gray-400" />
             )}
           </div>
 
@@ -286,7 +286,7 @@ export default function CommunityPage() {
                       className="flex items-center gap-1 text-sm bg-brand-primary hover:bg-brand-primary-light disabled:opacity-50 px-3 py-1.5 rounded-full transition"
                     >
                       {creatingInvite === user.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                       ) : (
                         <>
                           <Copy className="w-4 h-4" />
@@ -320,7 +320,7 @@ export default function CommunityPage() {
 
           {isLoadingConnections ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-brand-primary" />
+              <Loader2 className="w-6 h-6 animate-spin-fast text-gray-400" />
             </div>
           ) : connections.length === 0 ? (
             <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center">

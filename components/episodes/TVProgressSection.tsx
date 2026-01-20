@@ -171,7 +171,7 @@ export default function TVProgressSection({
     return (
       <div className="pt-4 space-y-4">
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-6 h-6 animate-spin text-[#8b5ef4]" />
+          <Loader2 className="w-6 h-6 animate-spin-fast text-gray-400" />
         </div>
       </div>
     );

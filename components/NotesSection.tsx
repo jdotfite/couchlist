@@ -89,7 +89,7 @@ export default function NotesSection({ tmdbId, mediaType, isLoggedIn }: NotesSec
           <h2 className="text-lg font-semibold">My Notes</h2>
         </div>
         <div className="flex items-center justify-center py-4">
-          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+          <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
         </div>
       </div>
     );
@@ -154,7 +154,7 @@ export default function NotesSection({ tmdbId, mediaType, isLoggedIn }: NotesSec
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                     Saving...
                   </>
                 ) : (

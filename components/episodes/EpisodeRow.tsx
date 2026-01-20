@@ -28,7 +28,7 @@ export default function EpisodeRow({ episode, onToggle, isUpdating }: EpisodeRow
       {/* Checkbox/status indicator */}
       <div className="flex-shrink-0">
         {isUpdating ? (
-          <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+          <Loader2 className="w-5 h-5 text-gray-400 animate-spin-fast" />
         ) : isWatched ? (
           <div className="w-5 h-5 bg-[#8b5ef4] rounded flex items-center justify-center">
             <Check className="w-3.5 h-3.5 text-white" />

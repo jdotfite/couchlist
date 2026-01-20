@@ -205,7 +205,7 @@ export default function CreateListModal({ isOpen, onClose, onCreated }: CreateLi
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                 Creating...
               </>
             ) : (

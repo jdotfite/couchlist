@@ -232,7 +232,7 @@ export default function CollaboratorsSettingsPage() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin-fast text-gray-400" />
       </div>
     );
   }
@@ -446,7 +446,7 @@ export default function CollaboratorsSettingsPage() {
                 >
                   {inviteLoading ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                       Creating...
                     </>
                   ) : (
@@ -551,7 +551,7 @@ export default function CollaboratorsSettingsPage() {
             >
               {editLoading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                   Saving...
                 </>
               ) : (

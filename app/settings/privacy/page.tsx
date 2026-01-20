@@ -222,7 +222,7 @@ export default function PrivacySettingsPage() {
   const getAvailabilityIcon = () => {
     switch (availabilityStatus) {
       case 'checking':
-        return <Loader2 className="w-5 h-5 animate-spin text-gray-400" />;
+        return <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />;
       case 'available':
         return <Check className="w-5 h-5 text-green-400" />;
       case 'taken':
@@ -245,7 +245,7 @@ export default function PrivacySettingsPage() {
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+        <Loader2 className="w-8 h-8 animate-spin-fast text-gray-400" />
       </div>
     );
   }
@@ -340,7 +340,7 @@ export default function PrivacySettingsPage() {
             >
               {savingUsername ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                   Saving...
                 </>
               ) : (
@@ -438,7 +438,7 @@ export default function PrivacySettingsPage() {
           >
             {savingSettings ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                 Saving...
               </>
             ) : settingsSuccess ? (

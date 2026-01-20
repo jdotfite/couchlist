@@ -154,7 +154,7 @@ export default function EpisodeListSheet({
                 `}
               >
                 {isUpdating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                 ) : allWatched ? (
                   'Unmark All'
                 ) : (
@@ -178,7 +178,7 @@ export default function EpisodeListSheet({
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {isLoadingSeason ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin text-[#8b5ef4]" />
+              <Loader2 className="w-8 h-8 animate-spin-fast text-gray-400" />
             </div>
           ) : episodesWithStatus.length === 0 ? (
             <div className="text-center py-8 text-gray-400">

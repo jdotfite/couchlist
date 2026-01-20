@@ -41,7 +41,7 @@ export default function UpNextCard({
         className="px-3 py-1.5 bg-[#8b5ef4] hover:bg-[#7a4ed3] disabled:opacity-50 rounded-lg text-sm font-medium transition flex-shrink-0 flex items-center gap-1.5"
       >
         {isUpdating ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
         ) : (
           'Mark Watched'
         )}

@@ -20,7 +20,18 @@
       "Bash(timeout /t 8 /nobreak)",
       "Bash(curl:*)",
       "Bash(ping:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npm install bad-words)",
+      "WebFetch(domain:developer.themoviedb.org)",
+      "WebFetch(domain:letterboxd.com)",
+      "WebFetch(domain:listy.is)",
+      "WebFetch(domain:docs.movary.org)",
+      "WebFetch(domain:www.feadin.eu)",
+      "Bash(npm install:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run lint)",
+      "Bash(npx tsx:*)",
+      "Bash(find:*)"
     ]
   }
 }

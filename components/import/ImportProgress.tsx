@@ -68,7 +68,7 @@ export default function ImportProgress({
   if (!progress) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
+        <Loader2 className="w-8 h-8 text-brand-primary animate-spin-fast text-gray-400" />
       </div>
     );
   }
@@ -130,13 +130,13 @@ export default function ImportProgress({
       <div className="flex items-center justify-center gap-2 text-gray-400">
         {progress.status === 'processing' && (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
             <span>Searching TMDb and importing movies...</span>
           </>
         )}
         {progress.status === 'pending' && (
           <>
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
             <span>Starting import...</span>
           </>
         )}

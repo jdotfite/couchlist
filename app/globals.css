@@ -208,3 +208,17 @@ h1, h2, h3, h4, h5, h6 {
 .animate-slide-in-right {
   animation: slide-in-right 0.2s ease-out forwards;
 }
+
+/* Fast spin animation for loading indicators */
+@keyframes spin-fast {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-fast {
+  animation: spin-fast 0.5s linear infinite;
+}

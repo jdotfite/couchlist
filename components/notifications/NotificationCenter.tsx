@@ -128,7 +128,7 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#8b5ef4]"></div>
+              <div className="animate-spin-fast rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-400"></div>
             </div>
           ) : invites.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">

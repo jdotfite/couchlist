@@ -265,7 +265,7 @@ export default function MediaOptionsSheet({
       {/* Loading State */}
       {isLoading && !hasProvidedStatus && (
         <div className="py-8 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          <Loader2 className="w-6 h-6 animate-spin-fast text-gray-400" />
         </div>
       )}
 
@@ -289,7 +289,7 @@ export default function MediaOptionsSheet({
                 >
                   <span className={option.color}>{option.icon}</span>
                   <span className="text-white">{option.label}</span>
-                  {isUpdating && <Loader2 className="w-4 h-4 animate-spin ml-auto text-gray-400" />}
+                  {isUpdating && <Loader2 className="w-4 h-4 animate-spin-fast ml-auto text-gray-400" />}
                 </button>
               ))}
             </>

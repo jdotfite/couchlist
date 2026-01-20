@@ -138,7 +138,7 @@ export default function ListsPage() {
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin-fast text-gray-400" />
       </div>
     );
   }
@@ -210,7 +210,7 @@ export default function ListsPage() {
                         className="flex items-center gap-1.5 px-4 py-2 bg-brand-primary text-white text-sm font-medium rounded-lg hover:bg-brand-primary-light transition disabled:opacity-50"
                       >
                         {processingInvite === invite.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                         ) : (
                           <>
                             <Check className="w-4 h-4" />

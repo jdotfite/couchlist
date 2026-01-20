@@ -134,7 +134,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin" />
+        <Loader2 className="w-8 h-8 animate-spin-fast text-gray-400" />
       </div>
     );
   }
@@ -294,7 +294,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
                     className="p-2 hover:bg-zinc-700 rounded-lg transition text-gray-400 hover:text-red-400 disabled:opacity-50"
                   >
                     {removingId === item.media_id ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                     ) : (
                       <Trash2 className="w-5 h-5" />
                     )}

@@ -144,7 +144,7 @@ export default function ImportPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin-fast-fast text-gray-400" />
       </div>
     );
   }
@@ -265,7 +265,7 @@ export default function ImportPage() {
             >
               {uploading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
                   Starting Import...
                 </>
               ) : (
