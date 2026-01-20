@@ -62,13 +62,20 @@ export function isValidUsername(username: string): { valid: boolean; error?: str
 export async function isUsernameAvailable(username: string, excludeUserId?: number): Promise<boolean> {
   await ensureDb();
 
-  const result = await sql`
-    SELECT id FROM users
-    WHERE LOWER(username) = LOWER(${username})
-    ${excludeUserId ? sql`AND id != ${excludeUserId}` : sql``}
-  `;
-
-  return result.rows.length === 0;
+  if (excludeUserId) {
+    const result = await sql`
+      SELECT id FROM users
+      WHERE LOWER(username) = LOWER(${username})
+      AND id != ${excludeUserId}
+    `;
+    return result.rows.length === 0;
+  } else {
+    const result = await sql`
+      SELECT id FROM users
+      WHERE LOWER(username) = LOWER(${username})
+    `;
+    return result.rows.length === 0;
+  }
 }
 
 // Set username for a user
