@@ -371,15 +371,15 @@ export default function EditListModal({
   const colorValue = getColorValue(color);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={handleClose}
       />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-lg bg-zinc-900 rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
+      {/* Modal - positioned above bottom nav on mobile */}
+      <div className="relative w-full max-w-lg bg-zinc-900 rounded-t-2xl sm:rounded-2xl max-h-[85vh] overflow-y-auto mb-16 sm:mb-0">
         {/* Header */}
         <div className="sticky top-0 bg-zinc-900 px-4 py-4 border-b border-zinc-800">
           <div className="flex items-center justify-between mb-3">

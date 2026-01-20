@@ -42,20 +42,195 @@
 
 ## Phase 2: Episode Tracking
 
-### Database Changes
-- [ ] Add seasons_watched, episodes_watched to user_media
-- [ ] Consider separate episode tracking table for granular tracking
+> **Priority:** High - This is THE differentiator for TV tracking apps. Users cite lack of episode tracking as a dealbreaker.
+
+### Design Philosophy
+1. **Progressive disclosure** - Simple by default, detail on demand
+2. **One-tap/swipe primary actions** - Mark watched instantly
+3. **Visual progress everywhere** - Bars on cards, percentages on detail
+4. **Respect existing design language** - Black/zinc/purple palette, bottom sheets
+5. **Mobile-first** - Thumb-friendly, swipe-native
+
+### Competitive Research Summary
+| App | Strengths | Weaknesses |
+|-----|-----------|------------|
+| TV Time | Swipe-to-mark, progress bars, "mark all previous" | Buggy/slow, no episode notes |
+| Trakt | Rich stats, rewatch tracking, calendar | Complex UI, notes paywalled |
+| Serializd | Episode lists, community ratings | Too many taps, no swipe |
+| Netflix | Clean season dropdown, familiar pattern | No tracking features |
+
+### Database Schema
+
+```sql
+-- Track individual episode watches
+CREATE TABLE user_episodes (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+  season_number INTEGER NOT NULL,
+  episode_number INTEGER NOT NULL,
+  tmdb_episode_id INTEGER,
+  status VARCHAR(20) DEFAULT 'watched',  -- 'watched', 'skipped'
+  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  notes TEXT,
+  watched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, media_id, season_number, episode_number)
+);
+
+CREATE INDEX idx_user_episodes_user_media ON user_episodes(user_id, media_id);
+CREATE INDEX idx_user_episodes_watched ON user_episodes(user_id, watched_at DESC);
+
+-- Add episode tracking fields to user_media
+ALTER TABLE user_media
+ADD COLUMN IF NOT EXISTS current_season INTEGER DEFAULT 1,
+ADD COLUMN IF NOT EXISTS current_episode INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS total_episodes_watched INTEGER DEFAULT 0;
+```
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/tv/[id]/seasons` | GET | Get all seasons with episode lists (TMDb) |
+| `/api/tv/[id]/season/[num]` | GET | Get specific season details |
+| `/api/episodes` | POST | Mark episode(s) as watched |
+| `/api/episodes` | DELETE | Unmark episode |
+| `/api/episodes/batch` | POST | Mark up to episode X / entire season |
+| `/api/progress/[media_id]` | GET | Get user's watch progress for a show |
+| `/api/continue-watching` | GET | Get user's "up next" episodes |
 
 ### UI Components
-- [ ] Season/episode selector on TV detail page
-- [ ] Progress bar showing completion percentage
-- [ ] "Continue watching" section
-- [ ] Episode checklist view
 
-### Features
-- [ ] Mark entire season as watched
-- [ ] Track last watched episode
-- [ ] Calculate total watch time for shows
+#### 1. Show Card Enhancement (Library Grid)
+- Add 3px progress bar at bottom of poster
+- Purple (#8b5ef4) fill on zinc-800 track
+- Only shows for "watching" status with tracked progress
+
+#### 2. Continue Watching Section (/shows page)
+- Horizontal scroll row at top of library
+- Shows poster + progress bar + "S4 E13" label
+- Tap → Goes to show detail page
+- Only shows "watching" status items with episode data
+
+#### 3. Show Detail Page - Progress Section
+Location: Below genres/synopsis, above cast
+
+```
+YOUR PROGRESS
+████████████████████░░░░░░░░░░  47/62  (76%)
+
+Up Next: S4 E13 "Face Off"
+┌─────────────────────────────────────────┐
+│   advancement  │ ▶ Mark Watched │  52m  │
+└─────────────────────────────────────────┘
+
+SEASONS
+┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐
+│ 1  │ │ 2  │ │ 3  │ │ 4  │ │ 5  │
+│ ✓  │ │ ✓  │ │ ✓  │ │12/16│ │0/16│
+└────┘ └────┘ └────┘ └────┘ └────┘
+```
+
+- "Mark Watched" button advances to next episode
+- Season pills: tap opens episode list bottom sheet
+- Completed seasons show ✓, partial show count
+
+#### 4. Episode List Bottom Sheet
+Trigger: Tap season pill
+
+```
+Season 4                              Mark All ✓
+████████████████░░░░  12/16 episodes
+
+┌─────────────────────────────────────────┐
+│ ✓ │  1. Box Cutter                 52m │
+├─────────────────────────────────────────┤
+│ ✓ │  2. Thirty-Eight Snub          47m │
+├─────────────────────────────────────────┤
+│ ○ │  13. Face Off         ← NEXT   47m │  ← purple accent
+├─────────────────────────────────────────┤
+│ ○ │  14. Live Free or Die          47m │
+└─────────────────────────────────────────┘
+```
+
+**Interactions:**
+- Tap row → Toggle watched/unwatched
+- Swipe right → Quick mark watched (haptic feedback)
+- Long press → Options menu (Skip, Add note, View details)
+- "Mark All" → Marks entire season
+- Long press episode → "Mark all previous?" batch action
+
+#### 5. Episode Row States
+- **Unwatched:** ○ + normal text
+- **Next to watch:** ○ + "← NEXT" badge (purple accent)
+- **Watched:** ✓ + dimmed text
+- **Skipped:** ⊘ + gray strikethrough + "(skipped)" label
+
+#### 6. Episode Expansion (tap title)
+Inline expand showing:
+- Air date
+- Synopsis
+- ★★★★★ rating input
+- 📝 Add note field
+
+#### 7. Swipe Gesture
+- Swipe right reveals green "✓ Watched" indicator
+- Release → marks episode, snaps back
+- Haptic feedback + toast confirmation
+
+### Implementation Phases
+
+#### Phase 2A: Foundation (MVP)
+- [ ] Database schema for episode tracking
+- [ ] TMDb season/episode API integration with caching
+- [ ] Progress section on TV detail page (bar + percentage)
+- [ ] Season pills with episode counts
+- [ ] Episode list bottom sheet
+- [ ] Tap to mark individual episodes watched
+- [ ] "Mark All" for entire season
+- [ ] Update user_media progress fields on changes
+
+#### Phase 2B: Quick Actions
+- [ ] Swipe-to-mark gesture on episode rows
+- [ ] "Mark all previous" (long press → batch)
+- [ ] "Up Next" card with quick mark button
+- [ ] Progress bar overlay on show cards in library
+- [ ] Continue Watching section on /shows page
+
+#### Phase 2C: Polish
+- [ ] Per-episode ratings (1-5 stars)
+- [ ] Per-episode notes
+- [ ] Skip episode option
+- [ ] Episode detail expansion (inline)
+- [ ] Watch date tracking per episode
+- [ ] Haptic feedback on mobile
+
+#### Phase 2D: Advanced (Future)
+- [ ] Specials (Season 0) handling preference
+- [ ] Rewatch tracking (watch count per episode)
+- [ ] Calendar view for upcoming episodes
+- [ ] Push notifications for new episodes
+- [ ] Episode-level activity in stats
+
+### Key Decisions Made
+1. **Entry point:** Progress section visible by default on TV detail pages
+2. **Data fetching:** Lazy-load seasons on tap (less upfront data, acceptable delay)
+3. **Continue Watching:** Sits above existing library content (not replacing)
+4. **Swipe gestures:** Include from Phase 2B (not MVP but high priority)
+
+### FlickLog Differentiators vs Competitors
+| Feature | TV Time | Trakt | Serializd | FlickLog |
+|---------|---------|-------|-----------|----------|
+| Swipe to mark | ✓ | ✗ | ✗ | ✓ |
+| Progress on cards | ✓ | ✗ | ✓ | ✓ |
+| Continue Watching | ✓ | ✓ | ✓ | ✓ |
+| Mark all previous | ✓ | ✓ | ✗ | ✓ |
+| Episode notes | ✗ | VIP | ✗ | ✓ Free |
+| Skip episode | ✗ | ✓ | ✗ | ✓ |
+| Inline episode expand | ✗ | ✗ | ✗ | ✓ |
+| Movies + TV unified | ✗ | ✓ | ✗ | ✓ |
+| Fast/stable | ✗ | ✓ | Mixed | ✓ Goal |
 
 ---
 
