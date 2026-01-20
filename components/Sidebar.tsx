@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { X, Tv, Film, Compass, Users, Settings, LogOut, List } from 'lucide-react';
+import { X, Tv, Film, Compass, Users, Settings, LogOut, List, ChevronRight } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 import { useEffect, useState } from 'react';
 
@@ -10,10 +10,23 @@ export default function Sidebar() {
   const { isOpen, setIsOpen } = useSidebar();
   const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch username when sidebar opens and user is logged in
+  useEffect(() => {
+    if (isOpen && session?.user) {
+      fetch('/api/users/username')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) setUsername(data.username);
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, session?.user]);
 
   // Always render the sidebar container for hydration consistency
   // but only show content after mount and if user is logged in
@@ -64,9 +77,18 @@ export default function Sidebar() {
             </div>
             <div>
               <h2 className="text-lg">{userName}</h2>
-              <Link href="/profile" onClick={() => setIsOpen(false)} className="text-sm text-gray-400 hover:text-white">
-                View profile
-              </Link>
+              {username ? (
+                <span className="text-sm text-gray-400">@{username}</span>
+              ) : (
+                <Link
+                  href="/settings/privacy"
+                  onClick={() => setIsOpen(false)}
+                  className="text-sm text-brand-primary hover:text-brand-primary-light flex items-center gap-1"
+                >
+                  Set username
+                  <ChevronRight className="w-3 h-3" />
+                </Link>
+              )}
             </div>
           </div>
         </div>

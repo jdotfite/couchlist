@@ -13,6 +13,10 @@
 - [ ] Text reviews with ratings
 - [x] Export watch history (CSV/JSON download)
 
+### Authentication
+- [ ] Forgot password / password reset flow (email-based)
+- [ ] Email verification on sign-up (activation email)
+
 ### UI Polish
 - [x] Consolidate MoviePage and TVShowPage into shared component
 - [x] CSS variables for theme colors (Tailwind v4 @theme)

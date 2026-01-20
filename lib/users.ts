@@ -90,7 +90,7 @@ export async function isUsernameAvailable(username: string, excludeUserId?: numb
 export async function setUsername(
   userId: number,
   username: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; username?: string }> {
   await ensureDb();
 
   const validation = isValidUsername(username);
@@ -103,13 +103,35 @@ export async function setUsername(
     return { success: false, error: 'This username is already taken' };
   }
 
+  const normalizedUsername = username.toLowerCase();
+
   try {
-    await sql`
-      UPDATE users SET username = ${username.toLowerCase()} WHERE id = ${userId}
+    // Use RETURNING to verify the update actually happened
+    const result = await sql`
+      UPDATE users
+      SET username = ${normalizedUsername}
+      WHERE id = ${userId}
+      RETURNING username
     `;
-    return { success: true };
+
+    if (result.rows.length === 0) {
+      console.error('setUsername: No rows updated for userId:', userId);
+      return { success: false, error: 'User not found' };
+    }
+
+    const savedUsername = result.rows[0].username;
+    if (savedUsername !== normalizedUsername) {
+      console.error('setUsername: Saved username mismatch:', { expected: normalizedUsername, got: savedUsername });
+      return { success: false, error: 'Failed to verify username save' };
+    }
+
+    return { success: true, username: savedUsername };
   } catch (error) {
     console.error('Error setting username:', error);
+    // Check if it's a unique constraint violation
+    if (error instanceof Error && error.message.includes('unique')) {
+      return { success: false, error: 'This username is already taken' };
+    }
     return { success: false, error: 'Failed to set username' };
   }
 }
@@ -123,6 +145,21 @@ export async function getUsername(userId: number): Promise<string | null> {
   `;
 
   return result.rows[0]?.username || null;
+}
+
+// Clear user's username
+export async function clearUsername(userId: number): Promise<{ success: boolean; error?: string }> {
+  await ensureDb();
+
+  try {
+    await sql`
+      UPDATE users SET username = NULL WHERE id = ${userId}
+    `;
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing username:', error);
+    return { success: false, error: 'Failed to clear username' };
+  }
 }
 
 // Get user's privacy settings
@@ -339,4 +376,64 @@ export async function getUserProfile(userId: number): Promise<{
     username: row.username as string | null,
     privacySettings,
   };
+}
+
+// Connection with stats interface
+export interface ConnectionWithStats {
+  id: number;
+  name: string;
+  username: string | null;
+  sharedListCount: number;
+  connectedAt: string;
+}
+
+// Get all connections for a user with shared list counts
+export async function getConnectionsWithStats(userId: number): Promise<ConnectionWithStats[]> {
+  await ensureDb();
+
+  // Get all accepted collaborations where user is either owner or collaborator
+  const collaborations = await sql`
+    SELECT
+      c.id as collab_id,
+      c.owner_id,
+      c.collaborator_id,
+      c.accepted_at,
+      CASE
+        WHEN c.owner_id = ${userId} THEN c.collaborator_id
+        ELSE c.owner_id
+      END as other_user_id,
+      u.name,
+      u.username
+    FROM collaborators c
+    JOIN users u ON u.id = CASE
+      WHEN c.owner_id = ${userId} THEN c.collaborator_id
+      ELSE c.owner_id
+    END
+    WHERE (c.owner_id = ${userId} OR c.collaborator_id = ${userId})
+      AND c.status = 'accepted'
+    ORDER BY c.accepted_at DESC
+  `;
+
+  // For each collaboration, count shared lists
+  const connections: ConnectionWithStats[] = [];
+
+  for (const collab of collaborations.rows) {
+    // Count shared lists for this collaboration
+    const sharedListsResult = await sql`
+      SELECT COUNT(*) as count
+      FROM shared_lists
+      WHERE collaborator_id = ${collab.collab_id}
+        AND is_active = true
+    `;
+
+    connections.push({
+      id: collab.other_user_id as number,
+      name: collab.name as string,
+      username: collab.username as string | null,
+      sharedListCount: parseInt(sharedListsResult.rows[0]?.count as string || '0', 10),
+      connectedAt: collab.accepted_at as string,
+    });
+  }
+
+  return connections;
 }

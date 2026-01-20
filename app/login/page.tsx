@@ -26,7 +26,23 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError('Invalid email or password');
+        // Check if this might be a Google-only account
+        try {
+          const checkRes = await fetch('/api/auth/check-account', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          const checkData = await checkRes.json();
+
+          if (checkData.exists && checkData.isGoogleOnly) {
+            setError('This account uses Google sign-in. Please click "Continue with Google" above.');
+          } else {
+            setError('Invalid email or password');
+          }
+        } catch {
+          setError('Invalid email or password');
+        }
       } else {
         router.push('/');
         router.refresh();

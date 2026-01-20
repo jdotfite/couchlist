@@ -22,14 +22,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         try {
           await initDb();
-          
+
           const result = await db`
             SELECT * FROM users WHERE email = ${credentials.email as string}
           `;
-          
+
           const user = result.rows[0];
 
           if (!user) {
+            return null;
+          }
+
+          // Google-only accounts have empty passwords - reject credential login
+          if (!user.password || user.password === '') {
             return null;
           }
 

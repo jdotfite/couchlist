@@ -26,6 +26,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      // Step 1: Register the account
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -36,14 +37,19 @@ export default function RegisterPage() {
 
       if (!response.ok) {
         setError(data.error || 'Registration failed');
+        setIsLoading(false);
         return;
       }
 
-      // Redirect to login
-      router.push('/login?registered=true');
+      // Step 2: Auto sign-in - let NextAuth handle the redirect
+      await signIn('credentials', {
+        email,
+        password,
+        callbackUrl: '/',
+        redirect: true,
+      });
     } catch (err) {
       setError('An error occurred. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -160,7 +166,7 @@ export default function RegisterPage() {
               {isLoading ? 'Creating account...' : 'Sign Up'}
             </button>
           </form>
-.
+
           {/* Terms */}
           <p className="text-xs text-gray-400 text-center mt-6">
             By signing up, you agree to our Terms of Service and Privacy Policy.

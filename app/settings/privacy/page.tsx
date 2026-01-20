@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Loader2, Check, AlertCircle, User, Eye, Users, Shield } from 'lucide-react';
+import { ChevronLeft, Loader2, Check, AlertCircle, User, Eye, Users, Shield, X, Link as LinkIcon } from 'lucide-react';
 
 interface PrivacySettings {
   discoverability: 'everyone' | 'connections_only' | 'nobody';
   show_in_search: boolean;
   allow_invites_from: 'everyone' | 'connections_only' | 'nobody';
 }
+
+type AvailabilityStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 export default function PrivacySettingsPage() {
   const { status } = useSession();
@@ -21,6 +23,8 @@ export default function PrivacySettingsPage() {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameSuccess, setUsernameSuccess] = useState(false);
   const [savingUsername, setSavingUsername] = useState(false);
+  const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus>('idle');
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [settings, setSettings] = useState<PrivacySettings>({
     discoverability: 'everyone',
@@ -76,12 +80,83 @@ export default function PrivacySettingsPage() {
     return null;
   };
 
+  const checkAvailability = useCallback(async (value: string) => {
+    if (!value || value.length < 3) {
+      setAvailabilityStatus('idle');
+      return;
+    }
+
+    // Don't check if it's the same as the original
+    if (value.toLowerCase() === originalUsername?.toLowerCase()) {
+      setAvailabilityStatus('idle');
+      return;
+    }
+
+    setAvailabilityStatus('checking');
+
+    try {
+      const response = await fetch('/api/users/username', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: value }),
+      });
+
+      const data = await response.json();
+
+      if (data.error && !data.available) {
+        // Validation error (not taken, but invalid format)
+        if (data.error !== 'This username is already taken') {
+          setAvailabilityStatus('invalid');
+          setUsernameError(data.error);
+        } else {
+          setAvailabilityStatus('taken');
+          setUsernameError(data.error);
+        }
+      } else if (data.available) {
+        setAvailabilityStatus('available');
+        setUsernameError(null);
+      } else {
+        setAvailabilityStatus('taken');
+        setUsernameError('This username is already taken');
+      }
+    } catch {
+      setAvailabilityStatus('idle');
+    }
+  }, [originalUsername]);
+
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase();
     setUsername(value);
-    setUsernameError(validateUsername(value));
     setUsernameSuccess(false);
+
+    const validationError = validateUsername(value);
+    if (validationError) {
+      setUsernameError(validationError);
+      setAvailabilityStatus('invalid');
+      return;
+    }
+
+    setUsernameError(null);
+
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Debounce the availability check
+    debounceTimerRef.current = setTimeout(() => {
+      checkAvailability(value);
+    }, 500);
   };
+
+  // Cleanup debounce timer
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   const saveUsername = async () => {
     const error = validateUsername(username);
@@ -96,7 +171,7 @@ export default function PrivacySettingsPage() {
 
     try {
       const response = await fetch('/api/users/username', {
-        method: username ? 'PUT' : 'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username || null }),
       });
@@ -108,10 +183,14 @@ export default function PrivacySettingsPage() {
         return;
       }
 
-      setOriginalUsername(username);
+      // Use the verified username from the server
+      const savedUsername = data.username || '';
+      setUsername(savedUsername);
+      setOriginalUsername(savedUsername);
       setUsernameSuccess(true);
+      setAvailabilityStatus('idle');
       setTimeout(() => setUsernameSuccess(false), 3000);
-    } catch (error) {
+    } catch {
       setUsernameError('Failed to save username');
     } finally {
       setSavingUsername(false);
@@ -140,6 +219,29 @@ export default function PrivacySettingsPage() {
     }
   };
 
+  const getAvailabilityIcon = () => {
+    switch (availabilityStatus) {
+      case 'checking':
+        return <Loader2 className="w-5 h-5 animate-spin text-gray-400" />;
+      case 'available':
+        return <Check className="w-5 h-5 text-green-400" />;
+      case 'taken':
+      case 'invalid':
+        return <X className="w-5 h-5 text-red-400" />;
+      default:
+        return null;
+    }
+  };
+
+  const isSaveDisabled = () => {
+    if (savingUsername) return true;
+    if (username === originalUsername) return true;
+    if (usernameError) return true;
+    if (availabilityStatus === 'taken' || availabilityStatus === 'invalid') return true;
+    if (availabilityStatus === 'checking') return true;
+    return false;
+  };
+
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -163,9 +265,22 @@ export default function PrivacySettingsPage() {
       <main className="px-4 pt-6 space-y-8">
         {/* Username Section */}
         <section>
-          <div className="flex items-center gap-2 mb-4">
-            <User className="w-5 h-5 text-brand-primary" />
-            <h2 className="text-lg font-semibold">Username</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <User className="w-5 h-5 text-brand-primary" />
+              <h2 className="text-lg font-semibold">Username</h2>
+            </div>
+            {originalUsername && (
+              <span className="flex items-center gap-1 text-sm text-green-400 bg-green-400/10 px-2 py-1 rounded-full">
+                <Check className="w-3 h-3" />
+                Saved
+              </span>
+            )}
+            {!originalUsername && (
+              <span className="text-sm text-gray-500 bg-zinc-800 px-2 py-1 rounded-full">
+                Not set
+              </span>
+            )}
           </div>
           <div className="bg-zinc-900 rounded-xl p-4 space-y-4">
             <p className="text-sm text-gray-400">
@@ -181,13 +296,24 @@ export default function PrivacySettingsPage() {
                   onChange={handleUsernameChange}
                   placeholder="username"
                   maxLength={30}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-8 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-8 pr-12 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary"
                 />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {getAvailabilityIcon()}
+                </div>
               </div>
+
+              {/* Availability/Error Messages */}
               {usernameError && (
                 <p className="text-sm text-red-400 mt-2 flex items-center gap-1">
                   <AlertCircle className="w-4 h-4" />
                   {usernameError}
+                </p>
+              )}
+              {availabilityStatus === 'available' && !usernameError && (
+                <p className="text-sm text-green-400 mt-2 flex items-center gap-1">
+                  <Check className="w-4 h-4" />
+                  Username is available
                 </p>
               )}
               {usernameSuccess && (
@@ -196,10 +322,20 @@ export default function PrivacySettingsPage() {
                   Username saved successfully
                 </p>
               )}
+
+              {/* Profile URL Preview */}
+              {username && !usernameError && availabilityStatus !== 'taken' && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-gray-400">
+                  <LinkIcon className="w-4 h-4" />
+                  <span>
+                    Your profile: <span className="text-white">flicklog.com/@{username}</span>
+                  </span>
+                </div>
+              )}
             </div>
             <button
               onClick={saveUsername}
-              disabled={savingUsername || username === originalUsername || !!usernameError}
+              disabled={isSaveDisabled()}
               className="w-full py-3 bg-brand-primary hover:bg-brand-primary-light disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium transition flex items-center justify-center gap-2"
             >
               {savingUsername ? (

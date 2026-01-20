@@ -16,28 +16,27 @@ export default function AppLayout({ children }: AppLayoutProps) {
     setMounted(true);
   }, []);
 
-  // Use consistent classes for SSR - only apply transform after mount
-  const shouldTransform = mounted && isOpen;
+  // Only apply transforms after hydration to avoid mismatch
+  const showSidebar = mounted && isOpen;
 
   return (
     <>
       {/* Sidebar */}
       <Sidebar />
 
-      {/* Overlay for closing sidebar on mobile */}
-      {mounted && (
-        <div
-          className={`fixed inset-0 z-40 bg-black/20 transition-opacity duration-300 ${
-            isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-          }`}
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {/* Overlay for closing sidebar on mobile - always render, use CSS for visibility */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/20 transition-opacity duration-300 ${
+          showSidebar ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsOpen(false)}
+        aria-hidden={!showSidebar}
+      />
 
       {/* Main Content - pushes right when sidebar opens */}
       <div
         className={`min-h-screen transition-transform duration-300 ease-out ${
-          mounted && isOpen ? 'translate-x-[280px]' : 'translate-x-0'
+          showSidebar ? 'translate-x-[280px]' : 'translate-x-0'
         }`}
       >
         {children}

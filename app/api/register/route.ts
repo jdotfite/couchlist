@@ -17,12 +17,22 @@ export async function POST(request: NextRequest) {
 
     // Check if user already exists
     const existingUserResult = await db`
-      SELECT id FROM users WHERE email = ${email}
+      SELECT id, password FROM users WHERE email = ${email}
     `;
 
     if (existingUserResult.rows.length > 0) {
+      const existingUser = existingUserResult.rows[0];
+
+      // Check if this is a Google-only account (empty password)
+      if (!existingUser.password || existingUser.password === '') {
+        return NextResponse.json(
+          { error: 'This email is linked to Google. Please sign in with Google instead.' },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'User already exists' },
+        { error: 'An account with this email already exists. Please sign in instead.' },
         { status: 400 }
       );
     }
