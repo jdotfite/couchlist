@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Check, XCircle, Clock, User, List } from 'lucide-react';
+import { X, Check, XCircle, Clock, User, List, Users } from 'lucide-react';
 import Image from 'next/image';
 
-interface Invite {
+interface CustomListInvite {
+  type: 'custom_list';
   id: number;
   listSlug: string;
   listName: string;
@@ -17,6 +18,31 @@ interface Invite {
     image: string | null;
   };
 }
+
+interface CollaborationInvite {
+  type: 'collaboration';
+  id: number;
+  ownerName: string;
+  ownerUsername: string | null;
+  ownerImage: string | null;
+  ownerId: number;
+  message: string | null;
+  sharedLists: string[];
+  createdAt: string;
+}
+
+type Invite = CustomListInvite | CollaborationInvite;
+
+const LIST_LABELS: Record<string, string> = {
+  watchlist: 'Watchlist',
+  watching: 'Watching',
+  finished: 'Finished',
+  onhold: 'On Hold',
+  dropped: 'Dropped',
+  favorites: 'Favorites',
+  rewatch: 'Rewatch',
+  nostalgia: 'Classics',
+};
 
 interface NotificationCenterProps {
   isOpen: boolean;
@@ -38,12 +64,39 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
   const fetchInvites = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/invites/pending');
-      if (response.ok) {
-        const data = await response.json();
-        setInvites(data.invites || []);
-        onCountChange(data.invites?.length || 0);
+      // Fetch both custom list invites and collaboration invites in parallel
+      const [customListRes, collaborationRes] = await Promise.all([
+        fetch('/api/invites/pending'),
+        fetch('/api/collaborators/direct-invites'),
+      ]);
+
+      const allInvites: Invite[] = [];
+
+      if (customListRes.ok) {
+        const data = await customListRes.json();
+        const customInvites = (data.invites || []).map((inv: any) => ({
+          ...inv,
+          type: 'custom_list' as const,
+        }));
+        allInvites.push(...customInvites);
       }
+
+      if (collaborationRes.ok) {
+        const data = await collaborationRes.json();
+        const collabInvites = (data.invites || []).map((inv: any) => ({
+          ...inv,
+          type: 'collaboration' as const,
+        }));
+        allInvites.push(...collabInvites);
+      }
+
+      // Sort by createdAt descending
+      allInvites.sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+
+      setInvites(allInvites);
+      onCountChange(allInvites.length);
     } catch (error) {
       console.error('Failed to fetch invites:', error);
     } finally {
@@ -51,14 +104,18 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
     }
   };
 
-  const handleAccept = async (inviteId: number) => {
-    setProcessingId(inviteId);
+  const handleAccept = async (invite: Invite) => {
+    setProcessingId(invite.id);
     try {
-      const response = await fetch(`/api/invites/${inviteId}/accept`, {
+      const endpoint = invite.type === 'custom_list'
+        ? `/api/invites/${invite.id}/accept`
+        : `/api/collaborators/direct-invites/${invite.id}/accept`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
       });
       if (response.ok) {
-        setInvites(prev => prev.filter(i => i.id !== inviteId));
+        setInvites(prev => prev.filter(i => !(i.id === invite.id && i.type === invite.type)));
         onCountChange(invites.length - 1);
       }
     } catch (error) {
@@ -68,14 +125,18 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
     }
   };
 
-  const handleDecline = async (inviteId: number) => {
-    setProcessingId(inviteId);
+  const handleDecline = async (invite: Invite) => {
+    setProcessingId(invite.id);
     try {
-      const response = await fetch(`/api/invites/${inviteId}/decline`, {
+      const endpoint = invite.type === 'custom_list'
+        ? `/api/invites/${invite.id}/decline`
+        : `/api/collaborators/direct-invites/${invite.id}/decline`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
       });
       if (response.ok) {
-        setInvites(prev => prev.filter(i => i.id !== inviteId));
+        setInvites(prev => prev.filter(i => !(i.id === invite.id && i.type === invite.type)));
         onCountChange(invites.length - 1);
       }
     } catch (error) {
@@ -140,77 +201,112 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
             </div>
           ) : (
             <div className="divide-y divide-zinc-800">
-              {invites.map((invite) => (
-                <div
-                  key={invite.id}
-                  className="p-4 hover:bg-zinc-800/50 transition"
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Sender Avatar */}
-                    <div className="flex-shrink-0">
-                      {invite.sender.image ? (
-                        <Image
-                          src={invite.sender.image}
-                          alt={invite.sender.name}
-                          width={40}
-                          height={40}
-                          className="rounded-full"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center">
-                          <User className="w-5 h-5 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
+              {invites.map((invite) => {
+                const isCustomList = invite.type === 'custom_list';
+                const senderName = isCustomList
+                  ? (invite as CustomListInvite).sender.name
+                  : (invite as CollaborationInvite).ownerName;
+                const senderUsername = isCustomList
+                  ? (invite as CustomListInvite).sender.username
+                  : (invite as CollaborationInvite).ownerUsername;
+                const senderImage = isCustomList
+                  ? (invite as CustomListInvite).sender.image
+                  : (invite as CollaborationInvite).ownerImage;
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white">
-                        <span className="font-medium">{invite.sender.name}</span>
-                        {invite.sender.username && (
-                          <span className="text-gray-500 ml-1">@{invite.sender.username}</span>
+                return (
+                  <div
+                    key={`${invite.type}-${invite.id}`}
+                    className="p-4 hover:bg-zinc-800/50 transition"
+                  >
+                    <div className="flex items-start gap-3">
+                      {/* Sender Avatar */}
+                      <div className="flex-shrink-0">
+                        {senderImage ? (
+                          <Image
+                            src={senderImage}
+                            alt={senderName}
+                            width={40}
+                            height={40}
+                            className="rounded-full"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-gray-400" />
+                          </div>
                         )}
-                      </p>
-                      <p className="text-sm text-gray-400 mt-0.5">
-                        invited you to collaborate on
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <List className="w-4 h-4 text-[#8b5ef4]" />
-                        <span className="text-sm font-medium text-white">{invite.listName}</span>
-                      </div>
-                      {invite.message && (
-                        <p className="text-sm text-gray-400 mt-2 italic">
-                          "{invite.message}"
-                        </p>
-                      )}
-                      <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-                        <Clock className="w-3 h-3" />
-                        {formatTimeAgo(invite.createdAt)}
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 mt-3">
-                        <button
-                          onClick={() => handleAccept(invite.id)}
-                          disabled={processingId === invite.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8b5ef4] text-white text-sm font-medium rounded-lg hover:bg-[#7a4ed3] transition disabled:opacity-50"
-                        >
-                          <Check className="w-4 h-4" />
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => handleDecline(invite.id)}
-                          disabled={processingId === invite.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-700 text-gray-300 text-sm font-medium rounded-lg hover:bg-zinc-600 transition disabled:opacity-50"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          Decline
-                        </button>
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white">
+                          <span className="font-medium">{senderName}</span>
+                          {senderUsername && (
+                            <span className="text-gray-500 ml-1">@{senderUsername}</span>
+                          )}
+                        </p>
+
+                        {isCustomList ? (
+                          <>
+                            <p className="text-sm text-gray-400 mt-0.5">
+                              invited you to collaborate on
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <List className="w-4 h-4 text-[#8b5ef4]" />
+                              <span className="text-sm font-medium text-white">
+                                {(invite as CustomListInvite).listName}
+                              </span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm text-gray-400 mt-0.5">
+                              wants to share lists with you
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              <Users className="w-4 h-4 text-[#8b5ef4]" />
+                              <span className="text-sm text-white">
+                                {(invite as CollaborationInvite).sharedLists
+                                  .map(list => LIST_LABELS[list] || list)
+                                  .join(', ')}
+                              </span>
+                            </div>
+                          </>
+                        )}
+
+                        {invite.message && (
+                          <p className="text-sm text-gray-400 mt-2 italic">
+                            "{invite.message}"
+                          </p>
+                        )}
+                        <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          {formatTimeAgo(invite.createdAt)}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-2 mt-3">
+                          <button
+                            onClick={() => handleAccept(invite)}
+                            disabled={processingId === invite.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#8b5ef4] text-white text-sm font-medium rounded-lg hover:bg-[#7a4ed3] transition disabled:opacity-50"
+                          >
+                            <Check className="w-4 h-4" />
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleDecline(invite)}
+                            disabled={processingId === invite.id}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-700 text-gray-300 text-sm font-medium rounded-lg hover:bg-zinc-600 transition disabled:opacity-50"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            Decline
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

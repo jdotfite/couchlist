@@ -17,6 +17,8 @@ import {
   ExternalLink,
   Lightbulb,
   X,
+  Send,
+  Clock,
 } from 'lucide-react';
 import ProfileMenu from '@/components/ProfileMenu';
 
@@ -25,6 +27,7 @@ interface UserSearchResult {
   name: string;
   username: string | null;
   isConnection: boolean;
+  hasPendingInvite?: boolean;
 }
 
 interface Connection {
@@ -50,6 +53,8 @@ export default function CommunityPage() {
   const [username, setUsername] = useState<string | null>(null);
   const [usernameLoaded, setUsernameLoaded] = useState(false);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const [sendingDirectInvite, setSendingDirectInvite] = useState<number | null>(null);
+  const [sentInviteUserId, setSentInviteUserId] = useState<number | null>(null);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -158,6 +163,40 @@ export default function CommunityPage() {
       console.error('Failed to create invite:', error);
     } finally {
       setCreatingInvite(null);
+    }
+  };
+
+  const sendDirectInvite = async (user: UserSearchResult) => {
+    if (!user.username) return;
+
+    setSendingDirectInvite(user.id);
+    try {
+      const response = await fetch('/api/collaborators/invite-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user.username,
+          lists: ['watchlist', 'watching', 'finished'],
+        }),
+      });
+
+      if (response.ok) {
+        setSentInviteUserId(user.id);
+        // Update the search results to show pending status
+        setSearchResults((prev) =>
+          prev.map((u) =>
+            u.id === user.id ? { ...u, hasPendingInvite: true } : u
+          )
+        );
+        setTimeout(() => setSentInviteUserId(null), 3000);
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to send invite');
+      }
+    } catch (error) {
+      console.error('Failed to send direct invite:', error);
+    } finally {
+      setSendingDirectInvite(null);
     }
   };
 
@@ -274,23 +313,47 @@ export default function CommunityPage() {
                       <Check className="w-4 h-4" />
                       Connected
                     </span>
+                  ) : user.hasPendingInvite || sentInviteUserId === user.id ? (
+                    <span className="flex items-center gap-1 text-sm text-yellow-400 bg-yellow-400/10 px-3 py-1.5 rounded-full">
+                      <Clock className="w-4 h-4" />
+                      Invite Sent
+                    </span>
                   ) : copiedUserId === user.id ? (
                     <span className="flex items-center gap-1 text-sm text-green-400 bg-green-400/10 px-3 py-1.5 rounded-full">
                       <Check className="w-4 h-4" />
                       Link Copied!
                     </span>
+                  ) : user.username ? (
+                    // User has a username - can send direct invite
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => sendDirectInvite(user)}
+                        disabled={sendingDirectInvite === user.id}
+                        className="flex items-center gap-1 text-sm bg-brand-primary hover:bg-brand-primary-light disabled:opacity-50 px-3 py-1.5 rounded-full transition"
+                      >
+                        {sendingDirectInvite === user.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4" />
+                            Send Invite
+                          </>
+                        )}
+                      </button>
+                    </div>
                   ) : (
+                    // User has no username - can only use invite link
                     <button
                       onClick={() => createInviteForUser(user.id)}
                       disabled={creatingInvite === user.id}
-                      className="flex items-center gap-1 text-sm bg-brand-primary hover:bg-brand-primary-light disabled:opacity-50 px-3 py-1.5 rounded-full transition"
+                      className="flex items-center gap-1 text-sm bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 px-3 py-1.5 rounded-full transition"
                     >
                       {creatingInvite === user.id ? (
                         <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />
                       ) : (
                         <>
                           <Copy className="w-4 h-4" />
-                          Get Invite Link
+                          Get Link
                         </>
                       )}
                     </button>

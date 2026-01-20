@@ -35,6 +35,7 @@ export interface UserSearchResult {
   name: string;
   username: string | null;
   isConnection: boolean;
+  hasPendingInvite: boolean;
 }
 
 // Validate username format
@@ -294,15 +295,31 @@ export async function searchUsers(
     `;
   }
 
-  // Check connection status for each result
+  // Check connection status and pending invite status for each result
   const resultsWithConnection: UserSearchResult[] = [];
   for (const row of results.rows) {
     const isConnection = await areUsersConnected(searcherId, row.id);
+
+    // Check if there's a pending invite to this user
+    let hasPendingInvite = false;
+    if (!isConnection) {
+      const pendingInvite = await sql`
+        SELECT id FROM collaborators
+        WHERE owner_id = ${searcherId}
+        AND target_user_id = ${row.id}
+        AND status = 'pending'
+        AND invite_expires_at > NOW()
+        LIMIT 1
+      `;
+      hasPendingInvite = pendingInvite.rows.length > 0;
+    }
+
     resultsWithConnection.push({
       id: row.id,
       name: row.name,
       username: row.username,
       isConnection,
+      hasPendingInvite,
     });
   }
 

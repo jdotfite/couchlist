@@ -362,3 +362,178 @@ export async function getSharedListTypes(userId: number): Promise<string[]> {
   `;
   return result.rows.map(r => r.list_type);
 }
+
+// Create a direct invite to a specific user (by their user ID)
+export async function createDirectInvite(
+  ownerId: number,
+  targetUserId: number,
+  lists: string[] = ['watchlist', 'watching', 'finished'],
+  message?: string
+): Promise<{ success: boolean; error?: string; inviteId?: number }> {
+  // Check if user is trying to invite themselves
+  if (ownerId === targetUserId) {
+    return { success: false, error: 'Cannot invite yourself' };
+  }
+
+  // Check if collaboration already exists between these users
+  const existingResult = await sql`
+    SELECT id, status FROM collaborators
+    WHERE (
+      (owner_id = ${ownerId} AND (collaborator_id = ${targetUserId} OR target_user_id = ${targetUserId}))
+      OR (owner_id = ${targetUserId} AND collaborator_id = ${ownerId})
+    )
+  `;
+
+  if (existingResult.rows.length > 0) {
+    const existing = existingResult.rows[0];
+    if (existing.status === 'accepted') {
+      return { success: false, error: 'You are already connected with this user' };
+    }
+    if (existing.status === 'pending') {
+      return { success: false, error: 'An invite is already pending with this user' };
+    }
+  }
+
+  const inviteCode = generateInviteCode();
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30); // 30 days for direct invites
+
+  // Create the collaboration record with target_user_id
+  const result = await sql`
+    INSERT INTO collaborators (owner_id, target_user_id, invite_code, invite_expires_at, invite_message, status)
+    VALUES (${ownerId}, ${targetUserId}, ${inviteCode}, ${expiresAt.toISOString()}, ${message || null}, 'pending')
+    RETURNING id
+  `;
+
+  const collaboratorId = result.rows[0].id;
+
+  // Add the shared lists
+  for (const listType of lists) {
+    await sql`
+      INSERT INTO shared_lists (collaborator_id, list_type)
+      VALUES (${collaboratorId}, ${listType})
+    `;
+  }
+
+  return { success: true, inviteId: collaboratorId };
+}
+
+// Get pending direct invites for a user
+export async function getPendingDirectInvites(userId: number): Promise<{
+  id: number;
+  ownerName: string;
+  ownerUsername: string | null;
+  ownerImage: string | null;
+  ownerId: number;
+  message: string | null;
+  sharedLists: string[];
+  createdAt: Date;
+}[]> {
+  const result = await sql`
+    SELECT
+      c.id,
+      c.owner_id,
+      c.invite_message,
+      c.created_at,
+      u.name as owner_name,
+      u.username as owner_username,
+      u.image as owner_image
+    FROM collaborators c
+    JOIN users u ON c.owner_id = u.id
+    WHERE c.target_user_id = ${userId}
+    AND c.status = 'pending'
+    AND c.invite_expires_at > NOW()
+    ORDER BY c.created_at DESC
+  `;
+
+  const invites = [];
+  for (const row of result.rows) {
+    const listsResult = await sql`
+      SELECT list_type FROM shared_lists
+      WHERE collaborator_id = ${row.id}
+    `;
+
+    invites.push({
+      id: row.id,
+      ownerId: row.owner_id,
+      ownerName: row.owner_name,
+      ownerUsername: row.owner_username,
+      ownerImage: row.owner_image,
+      message: row.invite_message,
+      sharedLists: listsResult.rows.map(r => r.list_type),
+      createdAt: row.created_at,
+    });
+  }
+
+  return invites;
+}
+
+// Accept a direct invite
+export async function acceptDirectInvite(
+  inviteId: number,
+  userId: number,
+  selectedLists: string[]
+): Promise<{ success: boolean; error?: string }> {
+  // Verify the invite is for this user and is pending
+  const result = await sql`
+    SELECT * FROM collaborators
+    WHERE id = ${inviteId}
+    AND target_user_id = ${userId}
+    AND status = 'pending'
+    AND invite_expires_at > NOW()
+  `;
+
+  if (result.rows.length === 0) {
+    return { success: false, error: 'Invite not found or expired' };
+  }
+
+  const invite = result.rows[0];
+
+  // Update the collaboration
+  await sql`
+    UPDATE collaborators
+    SET collaborator_id = ${userId},
+        status = 'accepted',
+        accepted_at = NOW()
+    WHERE id = ${inviteId}
+  `;
+
+  // Update shared lists to only include selected ones
+  await sql`
+    UPDATE shared_lists
+    SET is_active = false
+    WHERE collaborator_id = ${inviteId}
+  `;
+
+  for (const listType of selectedLists) {
+    await sql`
+      UPDATE shared_lists
+      SET is_active = true
+      WHERE collaborator_id = ${inviteId}
+      AND list_type = ${listType}
+    `;
+  }
+
+  return { success: true };
+}
+
+// Decline a direct invite
+export async function declineDirectInvite(
+  inviteId: number,
+  userId: number
+): Promise<{ success: boolean; error?: string }> {
+  const result = await sql`
+    UPDATE collaborators
+    SET status = 'declined'
+    WHERE id = ${inviteId}
+    AND target_user_id = ${userId}
+    AND status = 'pending'
+    RETURNING id
+  `;
+
+  if (result.rows.length === 0) {
+    return { success: false, error: 'Invite not found' };
+  }
+
+  return { success: true };
+}

@@ -468,6 +468,30 @@ export async function initDb() {
       ON import_job_items(status);
     `;
 
+    // Add target_user_id column to collaborators for direct invites (by username)
+    try {
+      await sql`
+        ALTER TABLE collaborators
+        ADD COLUMN IF NOT EXISTS target_user_id INTEGER REFERENCES users(id);
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE collaborators
+        ADD COLUMN IF NOT EXISTS invite_message VARCHAR(200);
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_collaborators_target_user
+      ON collaborators(target_user_id);
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },
