@@ -105,6 +105,7 @@ export default function MediaOptionsSheet({
           nostalgia: providedTags?.nostalgia ?? false,
         },
         rating: null,
+        notes: null,
       }
     : fetchedStatus;
 

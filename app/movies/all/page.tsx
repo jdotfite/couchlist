@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft, Settings, Plus } from 'lucide-react';
+import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft, Settings, Plus, Grid3X3, LayoutList } from 'lucide-react';
 import AllListsSkeleton from '@/components/AllListsSkeleton';
 import ListSettingsSheet from '@/components/ListSettingsSheet';
 import CreateListModal from '@/components/custom-lists/CreateListModal';
@@ -54,7 +54,21 @@ export default function AllMoviesListsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [layout, setLayout] = useState<'grid' | 'list'>('grid');
   const { getListName, isListHidden, refetch: refetchPreferences } = useListPreferences();
+
+  // Load saved layout preference
+  useEffect(() => {
+    const savedLayout = localStorage.getItem('movieListsLayout');
+    if (savedLayout === 'list' || savedLayout === 'grid') {
+      setLayout(savedLayout);
+    }
+  }, []);
+
+  const handleLayoutChange = (newLayout: 'grid' | 'list') => {
+    setLayout(newLayout);
+    localStorage.setItem('movieListsLayout', newLayout);
+  };
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -143,61 +157,49 @@ export default function AllMoviesListsPage() {
             </Link>
             <h1 className="text-xl font-bold">All Movie Lists</h1>
           </div>
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-2 hover:bg-zinc-800 rounded-full transition"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
+              <button
+                onClick={() => handleLayoutChange('list')}
+                className={`p-2 rounded-md transition ${
+                  layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <LayoutList className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleLayoutChange('grid')}
+                className={`p-2 rounded-md transition ${
+                  layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+            </div>
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 hover:bg-zinc-800 rounded-full transition"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="px-4 pt-4">
-        <div className="grid grid-cols-2 gap-3">
-          {/* System Lists */}
-          {lists.map(({ slug, title, items, icon: Icon, color }) => (
-            <Link
-              key={slug}
-              href={`/movies/${slug}`}
-              className={`relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br ${color}`}
-            >
-              {items[0]?.poster_path && (
-                <Image
-                  src={getImageUrl(items[0].poster_path)}
-                  alt={title}
-                  fill
-                  className="object-cover object-top opacity-60"
-                  sizes="50vw"
-                />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-              <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                <Icon className="w-6 h-6" />
-                <div>
-                  <h3 className="text-lg mb-1">{title}</h3>
-                  <p className="text-sm text-gray-200">{items.length} movies</p>
-                </div>
-              </div>
-            </Link>
-          ))}
-
-          {/* Custom Lists */}
-          {customLists.map((list) => {
-            const IconComponent = getIconComponent(list.icon);
-            const colorValue = getColorValue(list.color);
-            const firstItem = list.items[0];
-
-            return (
+        {layout === 'grid' ? (
+          <div className="grid grid-cols-2 gap-3">
+            {/* System Lists - Grid View */}
+            {lists.map(({ slug, title, items, icon: Icon, color }) => (
               <Link
-                key={`custom-${list.slug}`}
-                href={`/lists/${list.slug}`}
-                className="relative aspect-square rounded-lg overflow-hidden"
-                style={{ backgroundColor: `${colorValue}30` }}
+                key={slug}
+                href={`/movies/${slug}`}
+                className={`relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br ${color}`}
               >
-                {firstItem?.poster_path && (
+                {items[0]?.poster_path && (
                   <Image
-                    src={getImageUrl(firstItem.poster_path)}
-                    alt={list.name}
+                    src={getImageUrl(items[0].poster_path)}
+                    alt={title}
                     fill
                     className="object-cover object-top opacity-60"
                     sizes="50vw"
@@ -205,25 +207,143 @@ export default function AllMoviesListsPage() {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                 <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                  <IconComponent className="w-6 h-6" style={{ color: colorValue }} />
+                  <Icon className="w-6 h-6" />
                   <div>
-                    <h3 className="text-lg mb-1">{list.name}</h3>
-                    <p className="text-sm text-gray-200">{list.item_count} movies</p>
+                    <h3 className="text-lg mb-1">{title}</h3>
+                    <p className="text-sm text-gray-200">{items.length} movies</p>
                   </div>
                 </div>
               </Link>
-            );
-          })}
+            ))}
 
-          {/* Create New List Card */}
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="relative aspect-square rounded-lg overflow-hidden border-2 border-dashed border-zinc-700 hover:border-zinc-500 transition flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white"
-          >
-            <Plus className="w-8 h-8" />
-            <span className="text-sm">Create List</span>
-          </button>
-        </div>
+            {/* Custom Lists - Grid View */}
+            {customLists.map((list) => {
+              const IconComponent = getIconComponent(list.icon);
+              const colorValue = getColorValue(list.color);
+              const firstItem = list.items[0];
+
+              return (
+                <Link
+                  key={`custom-${list.slug}`}
+                  href={`/lists/${list.slug}`}
+                  className="relative aspect-square rounded-lg overflow-hidden"
+                  style={{ backgroundColor: `${colorValue}30` }}
+                >
+                  {firstItem?.poster_path && (
+                    <Image
+                      src={getImageUrl(firstItem.poster_path)}
+                      alt={list.name}
+                      fill
+                      className="object-cover object-top opacity-60"
+                      sizes="50vw"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                    <IconComponent className="w-6 h-6" style={{ color: colorValue }} />
+                    <div>
+                      <h3 className="text-lg mb-1">{list.name}</h3>
+                      <p className="text-sm text-gray-200">{list.item_count} movies</p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+
+            {/* Create New List Card - Grid View */}
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="relative aspect-square rounded-lg overflow-hidden border-2 border-dashed border-zinc-700 hover:border-zinc-500 transition flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white"
+            >
+              <Plus className="w-8 h-8" />
+              <span className="text-sm">Create List</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {/* System Lists - List View */}
+            {lists.map(({ slug, title, items, icon: Icon, color }) => (
+              <Link
+                key={slug}
+                href={`/movies/${slug}`}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition"
+              >
+                {/* Poster thumbnail */}
+                <div className="relative w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden bg-zinc-800">
+                  {items[0]?.poster_path ? (
+                    <Image
+                      src={getImageUrl(items[0].poster_path)}
+                      alt={title}
+                      fill
+                      className="object-cover"
+                      sizes="48px"
+                    />
+                  ) : (
+                    <div className={`w-full h-full bg-gradient-to-br ${color} flex items-center justify-center`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-sm line-clamp-1">{title}</h3>
+                  <p className="text-xs text-gray-400">{items.length} movies</p>
+                </div>
+                <Icon className="w-5 h-5 text-gray-500 flex-shrink-0" />
+              </Link>
+            ))}
+
+            {/* Custom Lists - List View */}
+            {customLists.map((list) => {
+              const IconComponent = getIconComponent(list.icon);
+              const colorValue = getColorValue(list.color);
+              const firstItem = list.items[0];
+
+              return (
+                <Link
+                  key={`custom-${list.slug}`}
+                  href={`/lists/${list.slug}`}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition"
+                >
+                  {/* Poster thumbnail */}
+                  <div className="relative w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden bg-zinc-800">
+                    {firstItem?.poster_path ? (
+                      <Image
+                        src={getImageUrl(firstItem.poster_path)}
+                        alt={list.name}
+                        fill
+                        className="object-cover"
+                        sizes="48px"
+                      />
+                    ) : (
+                      <div
+                        className="w-full h-full flex items-center justify-center"
+                        style={{ backgroundColor: `${colorValue}20` }}
+                      >
+                        <IconComponent className="w-5 h-5" style={{ color: colorValue }} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm line-clamp-1">{list.name}</h3>
+                    <p className="text-xs text-gray-400">{list.item_count} movies</p>
+                  </div>
+                  <IconComponent className="w-5 h-5 flex-shrink-0" style={{ color: colorValue }} />
+                </Link>
+              );
+            })}
+
+            {/* Create New List - List View */}
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="w-full flex items-center gap-3 p-2 rounded-lg border-2 border-dashed border-zinc-700 hover:border-zinc-500 transition text-gray-400 hover:text-white"
+            >
+              <div className="w-12 h-[68px] rounded-md bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                <Plus className="w-5 h-5" />
+              </div>
+              <span className="font-medium text-sm">Create List</span>
+            </button>
+          </div>
+        )}
       </main>
 
       {/* Settings Sheet */}
