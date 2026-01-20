@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2 } from 'lucide-react';
 import IconPicker, { getIconComponent } from './IconPicker';
 import ColorPicker, { getColorValue } from './ColorPicker';
@@ -19,6 +20,11 @@ export default function CreateListModal({ isOpen, onClose, onCreated }: CreateLi
   const [isShared, setIsShared] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,12 +75,12 @@ export default function CreateListModal({ isOpen, onClose, onCreated }: CreateLi
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const IconComponent = getIconComponent(icon);
   const colorValue = getColorValue(color);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div
@@ -208,6 +214,7 @@ export default function CreateListModal({ isOpen, onClose, onCreated }: CreateLi
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -82,6 +83,13 @@ export default function CollaboratorsSettingsPage() {
   const [editingCollaboration, setEditingCollaboration] = useState<Collaboration | null>(null);
   const [editLists, setEditLists] = useState<string[]>([]);
   const [editLoading, setEditLoading] = useState(false);
+
+  // Portal mount state
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -388,7 +396,7 @@ export default function CollaboratorsSettingsPage() {
       </main>
 
       {/* Invite Modal */}
-      {showInviteModal && (
+      {showInviteModal && mounted && createPortal(
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
           <div
             className="absolute inset-0 bg-black/60"
@@ -491,11 +499,12 @@ export default function CollaboratorsSettingsPage() {
               {inviteUrl ? 'Done' : 'Cancel'}
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Shared Lists Modal */}
-      {editingCollaboration && (
+      {editingCollaboration && mounted && createPortal(
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
           <div
             className="absolute inset-0 bg-black/60"
@@ -557,7 +566,8 @@ export default function CollaboratorsSettingsPage() {
               Cancel
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

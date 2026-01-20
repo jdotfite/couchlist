@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2, Trash2, Users, Link as LinkIcon, UserPlus, UserMinus, Copy, Check, Search, Send, Clock, Mail } from 'lucide-react';
 import IconPicker, { getIconComponent } from './IconPicker';
 import ColorPicker, { getColorValue } from './ColorPicker';
@@ -90,6 +91,13 @@ export default function EditListModal({
   const [sendingInvite, setSendingInvite] = useState<number | null>(null);
   const [cancelingInvite, setCancelingInvite] = useState<number | null>(null);
   const [inviteMessage, setInviteMessage] = useState('');
+
+  // Portal mount state
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (list) {
@@ -365,12 +373,12 @@ export default function EditListModal({
     onClose();
   };
 
-  if (!isOpen || !list) return null;
+  if (!isOpen || !list || !mounted) return null;
 
   const IconComponent = getIconComponent(icon);
   const colorValue = getColorValue(color);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div
@@ -815,6 +823,7 @@ export default function EditListModal({
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
