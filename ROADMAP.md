@@ -315,7 +315,9 @@ Inline expand showing:
 - [ ] Email digest options
 
 ### Integrations
-- [ ] Import from Letterboxd/Trakt/IMDb
+- [x] Import from Letterboxd (ZIP export with diary, ratings, watchlist) ✅
+- [ ] Import from Trakt (JSON export)
+- [ ] Import from IMDb (CSV export)
 - [ ] Calendar integration (release dates)
 - [ ] Streaming availability (JustWatch API)
 - [ ] Share to social media with custom cards
@@ -400,6 +402,7 @@ These are ideas to consider but not yet prioritized:
 - [x] Custom list sharing (invite via link, add from connections, collaborator management)
 - [x] In-app collaboration invites (user search, pending invites, notifications, privacy settings)
 - [x] Episode tracking MVP (progress bar, season pills, episode list sheet, mark watched)
+- [x] Letterboxd import (ZIP export with diary, ratings, watchlist, conflict resolution)
 
 ---
 
@@ -677,6 +680,153 @@ ALTER TABLE custom_list_collaborators
 3. **Activity Notifications** - When collaborator adds/removes items from shared lists
 4. **Real-time Presence** - Show who's viewing a list (like Notion)
 5. **Invite History** - See past invites sent/received
+
+---
+
+## External Data Import System
+
+### Implementation Status: Letterboxd ✅ Complete
+
+**Goal:** Allow users to import their movie history from other tracking services
+
+### Supported Sources
+
+| Source | Status | Format | Notes |
+|--------|--------|--------|-------|
+| Letterboxd | ✅ Complete | ZIP export | diary.csv, ratings.csv, watched.csv, watchlist.csv |
+| Trakt | 🔲 Planned | JSON | 1-10 rating scale, includes TV shows |
+| IMDb | 🔲 Planned | CSV | Can match via IMDb IDs |
+| Generic CSV | 🔲 Planned | CSV | User-defined column mapping |
+
+### Features Implemented
+
+1. **File Upload**
+   - Drag-and-drop ZIP upload
+   - 10MB file size limit
+   - File type validation
+
+2. **Letterboxd Parser**
+   - Extracts and parses all CSV files from ZIP
+   - Priority order: diary.csv > ratings.csv > watched.csv > watchlist.csv
+   - Deduplicates by title+year, keeping most complete entry
+   - Extracts: title, year, rating, watched date, rewatch flag, tags
+
+3. **TMDb Matching**
+   - Fuzzy search with confidence scoring
+   - Exact match: title + year both match
+   - Fuzzy match: high similarity score
+   - Failed: no good match found
+   - Rate limited: 35 requests per 10 seconds
+
+4. **Conflict Resolution**
+   - **Skip**: Keep existing data, ignore duplicates
+   - **Overwrite**: Replace existing rating with imported
+   - **Keep Higher Rating**: Only update if imported rating is higher
+
+5. **Rating Conversion**
+   - Letterboxd 0.5-5 scale → FlickLog 1-5 scale
+   - Formula: `Math.round(letterboxdRating)` clamped to 1-5
+
+6. **Progress Tracking**
+   - Real-time progress updates via polling
+   - Shows: imported / skipped / not found counts
+   - Background processing (non-blocking)
+
+7. **Results Summary**
+   - Final statistics
+   - List of failed items with reasons
+   - View library button
+
+### Database Schema
+
+```sql
+-- Track import operations
+CREATE TABLE import_jobs (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  source VARCHAR(30) NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending',
+  total_items INTEGER DEFAULT 0,
+  processed_items INTEGER DEFAULT 0,
+  successful_items INTEGER DEFAULT 0,
+  failed_items INTEGER DEFAULT 0,
+  skipped_items INTEGER DEFAULT 0,
+  error_message TEXT,
+  started_at TIMESTAMP,
+  completed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Track individual item results
+CREATE TABLE import_job_items (
+  id SERIAL PRIMARY KEY,
+  import_job_id INTEGER NOT NULL REFERENCES import_jobs(id),
+  source_title VARCHAR(500) NOT NULL,
+  source_year INTEGER,
+  source_rating DECIMAL(3,1),
+  source_status VARCHAR(30),
+  tmdb_id INTEGER,
+  matched_title VARCHAR(500),
+  match_confidence VARCHAR(20),
+  status VARCHAR(20) DEFAULT 'pending',
+  result_action VARCHAR(30),
+  error_message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/import/upload` | POST | Upload file and start import |
+| `/api/import/jobs` | GET | List user's import jobs |
+| `/api/import/jobs/[id]` | GET | Get job details with items |
+| `/api/import/jobs/[id]` | DELETE | Delete import job |
+
+### UI Flow
+
+1. **Source Selection** → Choose Letterboxd (more sources later)
+2. **File Upload** → Drag-drop or click to upload ZIP
+3. **Configuration** → Select what to import, conflict strategy
+4. **Processing** → Real-time progress with counts
+5. **Complete** → Summary with failed items list
+
+### Files Created
+
+```
+lib/import/
+├── parsers/
+│   └── letterboxd.ts    # ZIP/CSV parser
+├── tmdb-matcher.ts      # TMDb search with scoring
+├── rate-limiter.ts      # API rate limiting
+└── processor.ts         # Batch processing logic
+
+app/api/import/
+├── upload/route.ts      # File upload endpoint
+└── jobs/
+    ├── route.ts         # List jobs
+    └── [id]/route.ts    # Job details
+
+components/import/
+├── FileUploadZone.tsx   # Drag-drop upload
+├── ImportConfigForm.tsx # Configuration options
+├── ImportProgress.tsx   # Real-time progress
+└── ImportSummary.tsx    # Results display
+
+app/settings/import/
+└── page.tsx             # Multi-step wizard
+```
+
+### Adding New Import Sources
+
+To add a new source (e.g., Trakt):
+
+1. Create parser: `lib/import/parsers/trakt.ts`
+2. Update `ImportSource` type in `types/import.ts`
+3. Add source to UI in `app/settings/import/page.tsx`
+4. Handle source-specific rating conversion
+5. For JSON/different formats, adjust the processor as needed
 
 ---
 
