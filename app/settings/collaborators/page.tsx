@@ -395,7 +395,7 @@ export default function CollaboratorsSettingsPage() {
             onClick={() => setShowInviteModal(false)}
           />
 
-          <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 max-h-[85vh] overflow-y-auto mb-16 sm:mb-0">
+          <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-2">Invite to Collaborate</h2>
             <p className="text-gray-400 text-sm mb-6">
               Share this link with someone to collaborate on your lists.
@@ -502,7 +502,7 @@ export default function CollaboratorsSettingsPage() {
             onClick={() => setEditingCollaboration(null)}
           />
 
-          <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 max-h-[85vh] overflow-y-auto mb-16 sm:mb-0">
+          <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-2">Edit Shared Lists</h2>
             <p className="text-gray-400 text-sm mb-6">
               Choose which lists to share with{' '}

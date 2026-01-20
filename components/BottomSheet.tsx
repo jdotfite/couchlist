@@ -35,8 +35,8 @@ export default function BottomSheet({ isOpen, onClose, children }: BottomSheetPr
         onClick={onClose}
       />
 
-      {/* Bottom Sheet - positioned above bottom nav on mobile */}
-      <div className="fixed bottom-16 sm:bottom-0 left-0 right-0 z-[70] bg-zinc-900 rounded-t-2xl sm:rounded-t-2xl animate-slide-up">
+      {/* Bottom Sheet - layers above nav (z-70 > nav's z-50) */}
+      <div className="fixed bottom-0 left-0 right-0 z-[70] bg-zinc-900 rounded-t-2xl animate-slide-up">
         {/* Drag Handle */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-12 h-1 bg-zinc-600 rounded-full" />

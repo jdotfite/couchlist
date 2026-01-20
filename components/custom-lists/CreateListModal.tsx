@@ -82,8 +82,8 @@ export default function CreateListModal({ isOpen, onClose, onCreated }: CreateLi
         onClick={handleClose}
       />
 
-      {/* Modal - positioned above bottom nav on mobile */}
-      <div className="relative w-full max-w-lg bg-zinc-900 rounded-t-2xl sm:rounded-2xl max-h-[85vh] overflow-y-auto mb-16 sm:mb-0">
+      {/* Modal */}
+      <div className="relative w-full max-w-lg bg-zinc-900 rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-zinc-900 px-4 py-4 border-b border-zinc-800 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Create New List</h2>
