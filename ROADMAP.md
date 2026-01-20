@@ -157,6 +157,14 @@
 - [ ] Database backups
 - [ ] CI/CD pipeline improvements
 
+### Recommended Libraries
+- [ ] **SWR or TanStack Query** - Data fetching with auto-caching, revalidation, loading/error states
+- [ ] **Zod** - Schema validation for API routes, pairs well with TypeScript
+- [ ] **@upstash/ratelimit** - Serverless-friendly rate limiting for Vercel
+- [ ] **sonner** - Clean toast notifications for user feedback
+- [ ] **fuse.js** - Client-side fuzzy search for library filtering
+- [ ] **framer-motion** - Smooth animations and page transitions
+
 ---
 
 ## Ideas Backlog
