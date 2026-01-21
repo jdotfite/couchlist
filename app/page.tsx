@@ -261,7 +261,7 @@ export default function Home() {
           mediaId={selectedItem.id}
           mediaType={selectedItem.media_type}
           title={selectedItem.title || selectedItem.name || 'Unknown'}
-          posterPath={selectedItem.poster_path}
+          posterPath={selectedItem.poster_path || ''}
         />
       )}
     </div>

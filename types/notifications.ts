@@ -32,6 +32,7 @@ export interface NotificationData {
   episode_number?: number;
   episode_name?: string;
   air_date?: string;
+  tmdb_id?: number;
   // For invites
   invite_id?: number;
   invite_code?: string;

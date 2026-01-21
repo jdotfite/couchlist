@@ -381,7 +381,7 @@ export async function getUsersTrackingShow(mediaId: number): Promise<number[]> {
       AND um.status IN ('watching', 'watchlist', 'onhold')
   `;
 
-  return result.rows.map((row: { user_id: number }) => row.user_id);
+  return result.rows.map((row) => row.user_id as number);
 }
 
 export async function getShowsWithAlertsEnabled(userId: number): Promise<number[]> {
@@ -396,5 +396,5 @@ export async function getShowsWithAlertsEnabled(userId: number): Promise<number[
       AND (sas.alerts_enabled IS NULL OR sas.alerts_enabled = true)
   `;
 
-  return result.rows.map((row: { media_id: number }) => row.media_id);
+  return result.rows.map((row) => row.media_id as number);
 }
