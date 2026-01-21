@@ -8,10 +8,11 @@ import Link from 'next/link';
 import ProfileMenu from '@/components/ProfileMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import { getImageUrl } from '@/lib/tmdb';
-import { Plus, Play, List, CheckCircle2, LayoutGrid } from 'lucide-react';
+import { Plus, Play, List, CheckCircle2, LayoutGrid, Settings2 } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
+import ListCardSettingsSheet from '@/components/ListCardSettingsSheet';
 import LibraryDashboardSkeleton from '@/components/LibraryDashboardSkeleton';
-import { useListPreferences } from '@/hooks/useListPreferences';
+import { useListPreferences, type ListCardSettings } from '@/hooks/useListPreferences';
 
 interface LibraryItem {
   id: number;
@@ -64,7 +65,8 @@ export default function MoviesPage() {
   const [isLoading, setIsLoading] = useState(() => !initialCache);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { getListName } = useListPreferences();
+  const [cardSettingsOpen, setCardSettingsOpen] = useState<string | null>(null);
+  const { getListName, getListCardSettings, updateListCardSettings } = useListPreferences();
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -198,6 +200,47 @@ export default function MoviesPage() {
     return <LibraryDashboardSkeleton />;
   }
 
+  // Dashboard list data
+  const dashboardLists = [
+    { slug: 'watching', title: getListName('watching') || 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900', colorHex: '#10b981' },
+    { slug: 'watchlist', title: getListName('watchlist') || 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900', colorHex: '#3b82f6' },
+    { slug: 'finished', title: getListName('finished') || 'Finished', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker', colorHex: '#8b5ef4' },
+  ];
+
+  // Helper to get cover image based on settings
+  const getListCoverInfo = (listSlug: string, items: LibraryItem[]) => {
+    const settings = getListCardSettings(listSlug);
+
+    if (settings.coverType === 'color') {
+      return { type: 'color' as const, showIcon: settings.showIcon };
+    }
+
+    if (settings.coverType === 'specific_item' && settings.coverMediaId) {
+      const item = items.find(i => i.media_id === settings.coverMediaId);
+      if (item?.poster_path) {
+        return { type: 'image' as const, posterPath: item.poster_path };
+      }
+    }
+
+    // Default: last_added (first item)
+    if (items[0]?.poster_path) {
+      return { type: 'image' as const, posterPath: items[0].poster_path };
+    }
+
+    return { type: 'color' as const, showIcon: true };
+  };
+
+  const handleOpenCardSettings = (e: React.MouseEvent, listSlug: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCardSettingsOpen(listSlug);
+  };
+
+  const handleSaveCardSettings = async (settings: Partial<ListCardSettings>) => {
+    if (!cardSettingsOpen) return false;
+    return await updateListCardSettings(cardSettingsOpen, settings);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
@@ -216,80 +259,43 @@ export default function MoviesPage() {
         <section className="mb-8">
           <h2 className="text-lg font-semibold mb-3">Your Lists</h2>
           <div className="grid grid-cols-2 gap-2">
-            <Link
-              href="/movies/watching"
-              className="flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
-            >
-              <div className="relative w-16 h-16 flex-shrink-0">
-                {watchingItem?.poster_path ? (
-                  <Image
-                    src={getImageUrl(watchingItem.poster_path)}
-                    alt="Watching"
-                    fill
-                    className="object-cover object-top"
-                    sizes="64px"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-emerald-900 flex items-center justify-center">
-                    <Play className="w-6 h-6 text-white/80" />
-                  </div>
-                )}
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">{getListName('watching') || 'Watching'}</h3>
-                <p className="text-xs text-gray-400">{watchingItems.length} movies</p>
-              </div>
-            </Link>
+            {dashboardLists.map(({ slug, title, items, icon: Icon, color, colorHex }) => {
+              const coverInfo = getListCoverInfo(slug, items);
 
-            <Link
-              href="/movies/watchlist"
-              className="flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
-            >
-              <div className="relative w-16 h-16 flex-shrink-0">
-                {watchlistItem?.poster_path ? (
-                  <Image
-                    src={getImageUrl(watchlistItem.poster_path)}
-                    alt="Watchlist"
-                    fill
-                    className="object-cover object-top"
-                    sizes="64px"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-900 flex items-center justify-center">
-                    <List className="w-6 h-6 text-white/80" />
+              return (
+                <Link
+                  key={slug}
+                  href={`/movies/${slug}`}
+                  className="group flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
+                >
+                  <div className={`relative w-16 h-16 flex-shrink-0 bg-gradient-to-br ${color}`}>
+                    {coverInfo.type === 'image' ? (
+                      <Image
+                        src={getImageUrl(coverInfo.posterPath)}
+                        alt={title}
+                        fill
+                        className="object-cover object-top"
+                        sizes="64px"
+                      />
+                    ) : coverInfo.showIcon ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Icon className="w-6 h-6 text-white/80" />
+                      </div>
+                    ) : null}
+                    <button
+                      onClick={(e) => handleOpenCardSettings(e, slug)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Settings2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                )}
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">{getListName('watchlist') || 'Watchlist'}</h3>
-                <p className="text-xs text-gray-400">{watchlistItems.length} movies</p>
-              </div>
-            </Link>
-
-            <Link
-              href="/movies/finished"
-              className="flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
-            >
-              <div className="relative w-16 h-16 flex-shrink-0">
-                {finishedItem?.poster_path ? (
-                  <Image
-                    src={getImageUrl(finishedItem.poster_path)}
-                    alt="Finished"
-                    fill
-                    className="object-cover object-top"
-                    sizes="64px"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-brand-primary to-brand-primary-darker flex items-center justify-center">
-                    <CheckCircle2 className="w-6 h-6 text-white/80" />
+                  <div>
+                    <h3 className="font-semibold text-sm">{title}</h3>
+                    <p className="text-xs text-gray-400">{items.length} movies</p>
                   </div>
-                )}
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">{getListName('finished') || 'Finished'}</h3>
-                <p className="text-xs text-gray-400">{watchedItems.length} movies</p>
-              </div>
-            </Link>
+                </Link>
+              );
+            })}
 
             <Link
               href="/movies/all"
@@ -530,6 +536,31 @@ export default function MoviesPage() {
           posterPath={selectedItem.poster_path}
         />
       )}
+
+      {/* List Card Settings Sheet */}
+      {cardSettingsOpen && (() => {
+        const listData = dashboardLists.find(l => l.slug === cardSettingsOpen);
+        if (!listData) return null;
+        const settings = getListCardSettings(cardSettingsOpen);
+        return (
+          <ListCardSettingsSheet
+            isOpen={true}
+            onClose={() => setCardSettingsOpen(null)}
+            listType={cardSettingsOpen}
+            listKind="system"
+            listName={listData.title}
+            listColor={listData.colorHex}
+            listIcon={listData.icon}
+            items={listData.items.map(i => ({
+              mediaId: i.media_id,
+              posterPath: i.poster_path,
+              title: i.title,
+            }))}
+            settings={settings}
+            onSave={handleSaveCardSettings}
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -410,39 +410,50 @@ export default function AllMoviesListsPage() {
         </>) : (
           <div className="space-y-1">
             {/* System Lists - List View */}
-            {lists.map(({ slug, title, items, icon: Icon, color }) => {
+            {lists.map(({ slug, title, items, icon: Icon, color, colorHex }) => {
               const isShared = sharedLists.includes(slug);
+              const coverInfo = getListCoverInfo(slug, items, colorHex);
+
               return (
-                <Link
-                  key={slug}
-                  href={`/movies/${slug}`}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition"
-                >
-                  {/* Poster thumbnail */}
-                  <div className="relative w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden bg-zinc-800">
-                    {items[0]?.poster_path ? (
-                      <Image
-                        src={getImageUrl(items[0].poster_path)}
-                        alt={title}
-                        fill
-                        className="object-cover"
-                        sizes="48px"
-                      />
-                    ) : (
-                      <div className={`w-full h-full bg-gradient-to-br ${color} flex items-center justify-center`}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-sm line-clamp-1">{title}</h3>
-                      {isShared && <Users className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />}
+                <div key={slug} className="group flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition">
+                  <Link
+                    href={`/movies/${slug}`}
+                    className="flex items-center gap-3 flex-1 min-w-0"
+                  >
+                    {/* Poster thumbnail */}
+                    <div className={`relative w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden bg-gradient-to-br ${color}`}>
+                      {coverInfo.type === 'image' ? (
+                        <Image
+                          src={getImageUrl(coverInfo.posterPath)}
+                          alt={title}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                        />
+                      ) : coverInfo.showIcon ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Icon className="w-5 h-5" />
+                        </div>
+                      ) : null}
                     </div>
-                    <p className="text-xs text-gray-400">{items.length} movies</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                </Link>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-medium text-sm line-clamp-1">{title}</h3>
+                        {isShared && <Users className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />}
+                      </div>
+                      <p className="text-xs text-gray-400">{items.length} movies</p>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={(e) => handleOpenCardSettings(e, slug, 'system')}
+                    className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-opacity flex-shrink-0"
+                  >
+                    <Settings2 className="w-4 h-4 text-gray-400" />
+                  </button>
+                  <Link href={`/movies/${slug}`}>
+                    <ChevronRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                  </Link>
+                </div>
               );
             })}
 
@@ -450,39 +461,59 @@ export default function AllMoviesListsPage() {
             {customLists.map((list) => {
               const IconComponent = getIconComponent(list.icon);
               const colorValue = getColorValue(list.color);
-              const firstItem = list.items[0];
+              const coverType = (list as any).cover_type || 'last_added';
+              const coverMediaId = (list as any).cover_media_id;
+              const showIcon = (list as any).show_icon !== false;
+
+              // Determine cover
+              let coverImage: string | null = null;
+              if (coverType === 'specific_item' && coverMediaId) {
+                const item = list.items.find(i => i.media_id === coverMediaId);
+                coverImage = item?.poster_path || null;
+              } else if (coverType === 'last_added') {
+                coverImage = list.items[0]?.poster_path || null;
+              }
 
               return (
-                <Link
-                  key={`custom-${list.slug}`}
-                  href={`/lists/${list.slug}`}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition"
-                >
-                  {/* Poster thumbnail */}
-                  <div className="relative w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden bg-zinc-800">
-                    {firstItem?.poster_path ? (
-                      <Image
-                        src={getImageUrl(firstItem.poster_path)}
-                        alt={list.name}
-                        fill
-                        className="object-cover"
-                        sizes="48px"
-                      />
-                    ) : (
-                      <div
-                        className="w-full h-full flex items-center justify-center"
-                        style={{ backgroundColor: `${colorValue}20` }}
-                      >
-                        <IconComponent className="w-5 h-5" style={{ color: colorValue }} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-sm line-clamp-1">{list.name}</h3>
-                    <p className="text-xs text-gray-400">{list.item_count} movies</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                </Link>
+                <div key={`custom-${list.slug}`} className="group flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition">
+                  <Link
+                    href={`/lists/${list.slug}`}
+                    className="flex items-center gap-3 flex-1 min-w-0"
+                  >
+                    {/* Poster thumbnail */}
+                    <div
+                      className="relative w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden"
+                      style={{ backgroundColor: `${colorValue}20` }}
+                    >
+                      {coverImage ? (
+                        <Image
+                          src={getImageUrl(coverImage)}
+                          alt={list.name}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                        />
+                      ) : (coverType === 'color' ? showIcon : true) ? (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <IconComponent className="w-5 h-5" style={{ color: colorValue }} />
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm line-clamp-1">{list.name}</h3>
+                      <p className="text-xs text-gray-400">{list.item_count} movies</p>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={(e) => handleOpenCardSettings(e, list.slug, 'custom')}
+                    className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-opacity flex-shrink-0"
+                  >
+                    <Settings2 className="w-4 h-4 text-gray-400" />
+                  </button>
+                  <Link href={`/lists/${list.slug}`}>
+                    <ChevronRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                  </Link>
+                </div>
               );
             })}
 
