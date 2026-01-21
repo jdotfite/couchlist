@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/sync-shows",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-alerts",
+      "schedule": "0 8,18 * * *"
+    }
+  ]
+}

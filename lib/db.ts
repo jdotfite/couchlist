@@ -566,6 +566,115 @@ export async function initDb() {
       ON collaborators(target_user_id);
     `;
 
+    // User notification settings table - global defaults for show alerts
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_notification_settings (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        alert_new_season BOOLEAN DEFAULT true,
+        alert_season_premiere BOOLEAN DEFAULT true,
+        alert_episode_airing BOOLEAN DEFAULT false,
+        alert_season_finale BOOLEAN DEFAULT true,
+        alert_show_ended BOOLEAN DEFAULT true,
+        premiere_advance_days INTEGER DEFAULT 1,
+        quiet_hours_enabled BOOLEAN DEFAULT false,
+        quiet_hours_start TIME DEFAULT '22:00',
+        quiet_hours_end TIME DEFAULT '08:00',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_notification_settings_user
+      ON user_notification_settings(user_id);
+    `;
+
+    // User show alert settings table - per-show overrides
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_show_alert_settings (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+        alerts_enabled BOOLEAN DEFAULT true,
+        alert_new_season BOOLEAN,
+        alert_season_premiere BOOLEAN,
+        alert_episode_airing BOOLEAN,
+        alert_season_finale BOOLEAN,
+        premiere_advance_days INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, media_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_show_alert_settings_user
+      ON user_show_alert_settings(user_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_show_alert_settings_media
+      ON user_show_alert_settings(media_id);
+    `;
+
+    // TV show metadata table - cached TMDb data for alerts
+    await sql`
+      CREATE TABLE IF NOT EXISTS tv_show_metadata (
+        id SERIAL PRIMARY KEY,
+        media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+        tmdb_id INTEGER NOT NULL,
+        status VARCHAR(50),
+        number_of_seasons INTEGER,
+        next_episode_to_air_date DATE,
+        next_episode_season INTEGER,
+        next_episode_number INTEGER,
+        next_episode_name VARCHAR(200),
+        last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(media_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_tv_show_metadata_next_air
+      ON tv_show_metadata(next_episode_to_air_date);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_tv_show_metadata_tmdb
+      ON tv_show_metadata(tmdb_id);
+    `;
+
+    // Notifications table - unified notification storage
+    await sql`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        type VARCHAR(30) NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        message TEXT,
+        media_id INTEGER REFERENCES media(id),
+        data JSONB,
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_unread
+      ON notifications(user_id, is_read);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_notifications_type
+      ON notifications(type);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_created
+      ON notifications(user_id, created_at DESC);
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },

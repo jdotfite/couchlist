@@ -14,6 +14,7 @@ import FilmReelSpinner from '@/components/FilmReelSpinner';
 import NotesSection from '@/components/NotesSection';
 import WatchProviders from '@/components/WatchProviders';
 import TVProgressSection from '@/components/episodes/TVProgressSection';
+import ShowAlertToggle from '@/components/tv/ShowAlertToggle';
 
 type MediaDetails = MovieDetails | TVShowDetails;
 
@@ -103,8 +104,8 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
           <h1 className="text-2xl text-red-500 mb-4">
             {mediaType === 'movie' ? 'Movie' : 'TV show'} not found
           </h1>
-          <Link href="/discover" className="text-blue-500 hover:underline">
-            Back to discover
+          <Link href="/search" className="text-blue-500 hover:underline">
+            Back to search
           </Link>
         </div>
       </div>
@@ -231,6 +232,17 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
             </div>
           )}
         </div>
+
+        {/* Show Alerts Toggle - TV only */}
+        {!isMovie(media) && session?.user && (
+          <div className="pt-2">
+            <ShowAlertToggle
+              mediaId={media.id}
+              showTitle={media.name}
+              isLoggedIn={!!session?.user}
+            />
+          </div>
+        )}
 
         {/* Episode Tracking - TV only */}
         {!isMovie(media) && (

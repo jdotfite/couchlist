@@ -1,5 +1,6 @@
 import { sql } from '@vercel/postgres';
 import crypto from 'crypto';
+import { createNotification } from './show-alerts';
 
 // Types
 export interface Collaborator {
@@ -214,6 +215,29 @@ export async function acceptInvite(
       `;
       duplicatesCount += parseInt(tagDuplicates.rows[0]?.count || '0', 10);
     }
+  }
+
+  // Create notification for the inviter
+  try {
+    const accepterResult = await sql`
+      SELECT name FROM users WHERE id = ${userId}
+    `;
+    const accepterName = accepterResult.rows[0]?.name || 'Someone';
+
+    await createNotification({
+      user_id: collaboration.owner_id,
+      type: 'collab_accepted',
+      title: `${accepterName} accepted your invite`,
+      message: `You're now sharing lists together`,
+      data: {
+        accepter_name: accepterName,
+        accepter_id: userId,
+        shared_lists: selectedLists,
+      },
+    });
+  } catch (notifError) {
+    // Don't fail the invite acceptance if notification fails
+    console.error('Failed to create acceptance notification:', notifError);
   }
 
   return { success: true, duplicatesCount };
@@ -544,6 +568,68 @@ export async function declineDirectInvite(
 
   if (result.rows.length === 0) {
     return { success: false, error: 'Invite not found' };
+  }
+
+  return { success: true };
+}
+
+// Get pending link-based invites created by a user
+export async function getPendingLinkInvites(userId: number): Promise<{
+  id: number;
+  inviteCode: string;
+  sharedLists: string[];
+  createdAt: Date;
+  expiresAt: Date;
+}[]> {
+  const result = await sql`
+    SELECT
+      c.id,
+      c.invite_code,
+      c.created_at,
+      c.invite_expires_at
+    FROM collaborators c
+    WHERE c.owner_id = ${userId}
+    AND c.status = 'pending'
+    AND c.target_user_id IS NULL
+    AND c.invite_expires_at > NOW()
+    ORDER BY c.created_at DESC
+  `;
+
+  const invites = [];
+  for (const row of result.rows) {
+    const listsResult = await sql`
+      SELECT list_type FROM shared_lists
+      WHERE collaborator_id = ${row.id}
+    `;
+
+    invites.push({
+      id: row.id,
+      inviteCode: row.invite_code,
+      sharedLists: listsResult.rows.map(r => r.list_type),
+      createdAt: row.created_at,
+      expiresAt: row.invite_expires_at,
+    });
+  }
+
+  return invites;
+}
+
+// Revoke a pending invite
+export async function revokeInvite(
+  inviteId: number,
+  userId: number
+): Promise<{ success: boolean; error?: string }> {
+  const result = await sql`
+    UPDATE collaborators
+    SET status = 'revoked'
+    WHERE id = ${inviteId}
+    AND owner_id = ${userId}
+    AND status = 'pending'
+    RETURNING id
+  `;
+
+  if (result.rows.length === 0) {
+    return { success: false, error: 'Invite not found or already used' };
   }
 
   return { success: true };

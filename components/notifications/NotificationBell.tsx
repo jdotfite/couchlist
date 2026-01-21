@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Bell } from 'lucide-react';
 import NotificationCenter from './NotificationCenter';
 
@@ -8,24 +8,44 @@ export default function NotificationBell() {
   const [count, setCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
+  const fetchCount = useCallback(async () => {
+    try {
+      // Fetch counts from both unified notifications and pending invites
+      const [notificationsRes, invitesRes, collabRes] = await Promise.all([
+        fetch('/api/notifications/count'),
+        fetch('/api/invites/pending?countOnly=true'),
+        fetch('/api/collaborators/direct-invites'),
+      ]);
+
+      let totalCount = 0;
+
+      if (notificationsRes.ok) {
+        const data = await notificationsRes.json();
+        totalCount += data.count || 0;
+      }
+
+      if (invitesRes.ok) {
+        const data = await invitesRes.json();
+        totalCount += data.count || 0;
+      }
+
+      if (collabRes.ok) {
+        const data = await collabRes.json();
+        totalCount += (data.invites || []).length;
+      }
+
+      setCount(totalCount);
+    } catch (error) {
+      console.error('Failed to fetch notification count:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchCount();
     // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchCount, 30000);
     return () => clearInterval(interval);
-  }, []);
-
-  const fetchCount = async () => {
-    try {
-      const response = await fetch('/api/invites/pending?countOnly=true');
-      if (response.ok) {
-        const data = await response.json();
-        setCount(data.count || 0);
-      }
-    } catch (error) {
-      console.error('Failed to fetch notification count:', error);
-    }
-  };
+  }, [fetchCount]);
 
   const handleOpen = () => {
     setIsOpen(true);

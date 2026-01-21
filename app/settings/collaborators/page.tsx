@@ -24,6 +24,7 @@ import {
   Sparkles,
   Share2,
   Settings,
+  Link2,
 } from 'lucide-react';
 
 interface Collaboration {
@@ -37,6 +38,15 @@ interface Collaboration {
   };
   sharedLists: string[];
   isOwner: boolean;
+}
+
+interface PendingInvite {
+  id: number;
+  inviteCode: string;
+  inviteUrl: string;
+  sharedLists: string[];
+  createdAt: string;
+  expiresAt: string;
 }
 
 const listIcons: Record<string, React.ReactNode> = {
@@ -66,6 +76,7 @@ export default function CollaboratorsSettingsPage() {
   const router = useRouter();
 
   const [collaborations, setCollaborations] = useState<Collaboration[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,10 +85,11 @@ export default function CollaboratorsSettingsPage() {
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [selectedLists, setSelectedLists] = useState<string[]>(['watchlist', 'watching', 'finished']);
+  const [selectedLists, setSelectedLists] = useState<string[]>([]);
 
   // Remove confirmation
   const [removingId, setRemovingId] = useState<number | null>(null);
+  const [revokingInviteId, setRevokingInviteId] = useState<number | null>(null);
 
   // Edit shared lists modal
   const [editingCollaboration, setEditingCollaboration] = useState<Collaboration | null>(null);
@@ -94,6 +106,7 @@ export default function CollaboratorsSettingsPage() {
   useEffect(() => {
     if (status === 'authenticated') {
       fetchCollaborations();
+      fetchPendingInvites();
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }
@@ -117,6 +130,39 @@ export default function CollaboratorsSettingsPage() {
     }
   };
 
+  const fetchPendingInvites = async () => {
+    try {
+      const response = await fetch('/api/collaborators/pending-invites');
+      const data = await response.json();
+
+      if (response.ok) {
+        setPendingInvites(data.invites || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch pending invites:', err);
+    }
+  };
+
+  const revokeInvite = async (inviteId: number) => {
+    setRevokingInviteId(inviteId);
+    try {
+      const response = await fetch(`/api/collaborators/pending-invites/${inviteId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setPendingInvites(prev => prev.filter(inv => inv.id !== inviteId));
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to revoke invite');
+      }
+    } catch (err) {
+      setError('Failed to revoke invite');
+    } finally {
+      setRevokingInviteId(null);
+    }
+  };
+
   const createInvite = async () => {
     setInviteLoading(true);
     setError(null);
@@ -136,6 +182,8 @@ export default function CollaboratorsSettingsPage() {
       }
 
       setInviteUrl(data.inviteUrl);
+      // Refresh pending invites list
+      fetchPendingInvites();
     } catch (err) {
       setError('Failed to create invite');
     } finally {
@@ -242,7 +290,7 @@ export default function CollaboratorsSettingsPage() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
         <div className="flex items-center gap-3">
-          <Link href="/shows" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
+          <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
           </Link>
           <div className="flex-1">
@@ -273,8 +321,82 @@ export default function CollaboratorsSettingsPage() {
           </div>
         )}
 
+        {/* Pending Invites */}
+        {pendingInvites.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Pending Invites ({pendingInvites.length})
+            </h2>
+            <div className="space-y-3">
+              {pendingInvites.map((invite) => {
+                const expiresAt = new Date(invite.expiresAt);
+                const daysLeft = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+                return (
+                  <div
+                    key={invite.id}
+                    className="bg-zinc-900 border border-zinc-800 rounded-xl p-4"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                          <Link2 className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-sm">Invite Link</h3>
+                          <p className="text-xs text-gray-500">
+                            Expires in {daysLeft} day{daysLeft !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => revokeInvite(invite.id)}
+                        disabled={revokingInviteId === invite.id}
+                        className="p-2 hover:bg-zinc-800 rounded-lg transition text-gray-400 hover:text-red-400 disabled:opacity-50"
+                        title="Revoke invite"
+                      >
+                        {revokingInviteId === invite.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Shared lists */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {invite.sharedLists.map(listType => (
+                        <span
+                          key={listType}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 rounded-lg text-xs"
+                        >
+                          {listIcons[listType]}
+                          {listLabels[listType]}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Copy link button */}
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(invite.inviteUrl);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="w-full py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                      Copy Link
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Empty state */}
-        {collaborations.length === 0 && (
+        {collaborations.length === 0 && pendingInvites.length === 0 && (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-gray-500" />
@@ -405,8 +527,14 @@ export default function CollaboratorsSettingsPage() {
 
           <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-2">Invite to Collaborate</h2>
-            <p className="text-gray-400 text-sm mb-6">
+            <p className="text-gray-400 text-sm mb-4">
               Share this link with someone to collaborate on your lists.
+            </p>
+            <p className="text-xs text-gray-500 mb-6">
+              Want to share a custom list instead?{' '}
+              <Link href="/lists" className="text-brand-primary hover:underline" onClick={() => setShowInviteModal(false)}>
+                Go to My Lists
+              </Link>
             </p>
 
             {!inviteUrl ? (

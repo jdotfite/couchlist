@@ -244,10 +244,10 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
           <div className="text-center py-12">
             <p className="text-gray-400 mb-4">This list is empty</p>
             <Link
-              href="/discover"
+              href="/search"
               className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary-light rounded-lg transition"
             >
-              Discover content to add
+              Search for content to add
             </Link>
           </div>
         ) : layout === 'list' ? (

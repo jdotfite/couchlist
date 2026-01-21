@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
-import { X, Tv, Film, Compass, Users, Settings, LogOut, List, ChevronRight } from 'lucide-react';
+import { X, Home, Search, Library, Users, Settings, LogOut, List, ChevronRight, User } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 import { useEffect, useState } from 'react';
 
@@ -101,30 +101,30 @@ export default function Sidebar() {
         {/* Menu Items */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           <Link
-            href="/shows"
+            href="/"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
           >
-            <Tv className="w-5 h-5" />
-            <span className="font-medium">TV Shows</span>
+            <Home className="w-5 h-5" />
+            <span className="font-medium">Home</span>
           </Link>
 
           <Link
-            href="/movies"
+            href="/search"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
           >
-            <Film className="w-5 h-5" />
-            <span className="font-medium">Movies</span>
+            <Search className="w-5 h-5" />
+            <span className="font-medium">Search</span>
           </Link>
 
           <Link
-            href="/discover"
+            href="/library"
             onClick={() => setIsOpen(false)}
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
           >
-            <Compass className="w-5 h-5" />
-            <span className="font-medium">Discover</span>
+            <Library className="w-5 h-5" />
+            <span className="font-medium">Library</span>
           </Link>
 
           <Link
@@ -133,7 +133,7 @@ export default function Sidebar() {
             className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
           >
             <List className="w-5 h-5" />
-            <span className="font-medium">My Lists</span>
+            <span className="font-medium">Custom Lists</span>
           </Link>
 
           <Link
@@ -146,6 +146,15 @@ export default function Sidebar() {
           </Link>
 
           <div className="border-t border-zinc-800 my-2" />
+
+          <Link
+            href="/profile"
+            onClick={() => setIsOpen(false)}
+            className="flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition"
+          >
+            <User className="w-5 h-5" />
+            <span className="font-medium">Profile</span>
+          </Link>
 
           <Link
             href="/settings"

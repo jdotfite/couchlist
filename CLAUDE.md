@@ -28,22 +28,25 @@ app/
 │   ├── movie/[id]/              # Movie details from TMDb
 │   └── tv/[id]/                 # TV show details from TMDb
 ├── community/                   # Placeholder - not implemented
-├── discover/page.tsx            # Search & browse page
+├── discover/page.tsx            # REDIRECTS to /search
 ├── invite/[code]/page.tsx       # Accept collaboration invite
 ├── movie/[id]/page.tsx          # Movie detail page
 ├── tv/[id]/page.tsx             # TV show detail page
-├── movies/page.tsx              # User's movie library
-├── shows/page.tsx               # User's TV show library
+├── movies/page.tsx              # REDIRECTS to /library?type=movie
+├── shows/page.tsx               # REDIRECTS to /library?type=tv
+├── search/page.tsx              # Search & browse (unified)
+├── library/page.tsx             # Unified library (movies + TV)
+├── profile/page.tsx             # Profile tab (settings hub)
 ├── settings/
 │   ├── page.tsx                 # Settings hub
 │   ├── collaborators/page.tsx   # Manage shared lists
-│   └── lists/page.tsx           # Rename list names
+│   ├── lists/page.tsx           # Rename list names
+│   └── notifications/page.tsx   # Show alert preferences
 ├── add/page.tsx                 # Quick add page
-├── library/page.tsx             # Redirects to /shows
-└── page.tsx                     # Home (redirects to /shows)
+└── page.tsx                     # Home (search hero + lists + trending)
 
 components/
-├── BottomNav.tsx                # Mobile bottom navigation
+├── BottomNav.tsx                # Mobile bottom navigation (Home|Search|Library|Profile)
 ├── Sidebar.tsx                  # Desktop sidebar navigation
 ├── SearchBar.tsx                # Search input with debounce
 ├── SearchResults.tsx            # Search results grid
@@ -51,20 +54,40 @@ components/
 ├── ProfileMenu.tsx              # User profile dropdown
 ├── StatusModal.tsx              # Add/edit media status modal
 ├── TagSelector.tsx              # Tag selection UI
-└── InstallPrompt.tsx            # PWA install prompt
+├── InstallPrompt.tsx            # PWA install prompt
+├── home/
+│   ├── SearchHero.tsx           # Tappable search bar linking to /search
+│   ├── ContinueWatching.tsx     # Mixed movies + TV with type badges
+│   ├── ListsGrid.tsx            # Compact list cards for home
+│   ├── TrendingRow.tsx          # Trending content with add buttons
+│   └── HomePageSkeleton.tsx     # Loading skeleton for home
+├── notifications/
+│   ├── NotificationBell.tsx     # Bell icon with unread count
+│   └── NotificationCenter.tsx   # Slide-out notification panel
+└── tv/
+    └── ShowAlertToggle.tsx      # Per-show alert toggle
 
 lib/
 ├── db.ts                        # Database connection & schema
 ├── tmdb.ts                      # TMDb API helpers
 ├── auth.ts                      # NextAuth configuration
 ├── collaborators.ts             # Collaboration logic
-└── list-preferences.ts          # Custom list name logic
+├── list-preferences.ts          # Custom list name logic
+├── show-alerts.ts               # Notification settings & creation
+└── show-sync.ts                 # TMDb metadata sync with rate limiting
 
 hooks/
 ├── useAuth.ts                   # Authentication hook
 ├── useLibrary.ts                # Library data fetching hook
 ├── useMediaStatus.ts            # Media status management
-└── useListPreferences.ts        # Custom list names hook
+├── useListPreferences.ts        # Custom list names hook
+└── useNotificationSettings.ts   # Show alert settings hooks
+
+types/
+├── index.ts                     # TMDb API types
+├── episodes.ts                  # Episode tracking types
+├── import.ts                    # Import job types
+└── notifications.ts             # Notification & alert types
 ```
 
 ## Database Schema
@@ -104,6 +127,22 @@ hooks/
 **user_list_preferences** (custom list names)
 - id, user_id, list_type, display_name, created_at, updated_at
 
+### Notification Tables
+
+**user_notification_settings** (global alert preferences)
+- id, user_id, alert_new_season, alert_season_premiere, alert_episode_airing, alert_season_finale, alert_show_ended, premiere_advance_days, quiet_hours_enabled, quiet_hours_start, quiet_hours_end, created_at, updated_at
+
+**user_show_alert_settings** (per-show overrides)
+- id, user_id, media_id, alerts_enabled, alert_new_season, alert_season_premiere, alert_episode_airing, alert_season_finale, premiere_advance_days, created_at
+
+**tv_show_metadata** (cached TMDb show data)
+- id, media_id, tmdb_id, status, number_of_seasons, next_episode_to_air_date, next_episode_season, next_episode_number, next_episode_name, last_synced_at
+
+**notifications** (unified notification storage)
+- id, user_id, type, title, message, media_id, data (JSONB), is_read, created_at
+
+**Notification Types**: 'new_season', 'premiere', 'episode', 'finale', 'show_ended', 'invite', 'collab_invite', 'collab_accepted'
+
 ### Legacy Tables (still exist, may be redundant)
 - watchlist, watched, watching, onhold, dropped, rewatch, nostalgia, favorites
 
@@ -121,12 +160,20 @@ hooks/
 - Filter by media type (all/movies/TV)
 - Popular searches suggestions
 
+### Navigation (4-tab structure)
+- **Home** (`/`) - Search hero + Your Lists + Continue Watching + Trending
+- **Search** (`/search`) - Full search & browse functionality
+- **Library** (`/library`) - Unified view of all movies + TV
+- **Profile** (`/profile`) - User info + settings hub
+
 ### Library Views
-- Separate pages for movies (/movies) and TV shows (/shows)
+- Unified library at `/library` with movies + TV together
+- Filter by type (all, movies, TV shows)
 - Filter by status (all, watchlist, watching, finished, on hold, dropped)
 - Filter by tags (favorites, rewatch, classics)
 - Grid and list view options
 - Session caching for fast navigation
+- Old URLs redirect: `/shows` → `/library?type=tv`, `/movies` → `/library?type=movie`
 
 ### Detail Pages
 - Full movie/TV info from TMDb
@@ -152,6 +199,9 @@ hooks/
 - Edit which lists are shared after connecting
 - Remove collaboration (items stay with original owner)
 - "Shared" badge on collaborative list headers
+- **Pending invites**: See and manage pending invite links you've created
+- **Acceptance notifications**: Get notified when someone accepts your invite
+- **Custom lists**: Shared separately via per-list invites from `/lists`
 
 ### Custom List Names
 - Rename any of the 8 system lists (Settings → List Names)
@@ -159,6 +209,16 @@ hooks/
 - 50 character limit per name
 - Reset to default option
 - Per-user preferences (doesn't affect collaborators)
+
+### Show Alerts (New Season Alerts)
+- Get notified about TV shows you're tracking
+- **Alert types**: New season announced, season premiere, every episode (opt-in), season finale, show ended/canceled
+- **Timing options**: Day of, day before, or week before
+- **Quiet hours**: Pause notifications during specified hours
+- **Per-show overrides**: Customize alerts for individual shows from TV detail pages
+- **Smart defaults**: Premieres and finales enabled by default, not every episode
+- Unified notification center shows both invites and show alerts
+- Cron jobs sync TMDb metadata (every 6h) and generate alerts (8am/6pm)
 
 ## API Endpoints
 
@@ -178,7 +238,17 @@ hooks/
 | /api/collaborators/invite/[code] | GET | Get invite details |
 | /api/collaborators/accept/[code] | POST | Accept invite |
 | /api/collaborators/shared-lists | GET | Get shared list types |
+| /api/collaborators/pending-invites | GET | Get pending invite links |
+| /api/collaborators/pending-invites/[id] | DELETE | Revoke pending invite |
 | /api/list-preferences | GET/PATCH | Get/update custom list names |
+| /api/notification-settings | GET/PATCH | Get/update global alert settings |
+| /api/notification-settings/show/[mediaId] | GET/PATCH/DELETE | Per-show alert overrides |
+| /api/notifications | GET | List notifications (paginated) |
+| /api/notifications/count | GET | Get unread count |
+| /api/notifications/[id]/read | POST | Mark notification as read |
+| /api/notifications/read-all | POST | Mark all notifications as read |
+| /api/cron/sync-shows | GET/POST | TMDb metadata sync (cron) |
+| /api/cron/generate-alerts | GET/POST | Generate show alerts (cron) |
 
 ## Styling Conventions
 
@@ -198,6 +268,7 @@ GOOGLE_CLIENT_SECRET=
 POSTGRES_URL=
 TMDB_API_KEY=
 TMDB_ACCESS_TOKEN=
+CRON_SECRET=              # Optional: Secure cron endpoints
 ```
 
 ## Current Limitations

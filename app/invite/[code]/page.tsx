@@ -158,7 +158,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
 
       // Redirect after a short delay
       setTimeout(() => {
-        router.push('/shows');
+        router.push('/');
       }, 2000);
     } catch (err) {
       setError('Failed to accept invite');
@@ -215,7 +215,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
         <h1 className="text-2xl font-bold mb-2">Invalid Invite</h1>
         <p className="text-gray-400 mb-8 text-center">{error}</p>
         <Link
-          href="/shows"
+          href="/"
           className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
         >
           Go Home
@@ -236,7 +236,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
           This invite link has expired. Ask {invite.inviter.name} to send a new one.
         </p>
         <Link
-          href="/shows"
+          href="/"
           className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
         >
           Go Home
@@ -257,7 +257,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
           This invite has already been accepted.
         </p>
         <Link
-          href="/shows"
+          href="/"
           className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
         >
           Go Home
@@ -413,7 +413,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
 
         {/* Skip link */}
         <div className="text-center mt-4">
-          <Link href="/shows" className="text-sm text-gray-500 hover:text-gray-400">
+          <Link href="/" className="text-sm text-gray-500 hover:text-gray-400">
             Skip for now
           </Link>
         </div>

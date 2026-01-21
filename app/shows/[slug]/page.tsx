@@ -310,8 +310,8 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
             iconType={config.iconType}
             title={config.emptyMessage}
             subtitle={config.emptySubMessage}
-            actionLabel="Discover Shows"
-            actionHref="/discover?filter=tv"
+            actionLabel="Search Shows"
+            actionHref="/search?type=tv"
           />
         ) : layout === 'list' ? (
           <div className="space-y-1">

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Tv, Film, Compass, Users } from 'lucide-react';
+import { Home, Search, Library, User } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
 import { useEffect, useState } from 'react';
 
@@ -24,10 +24,10 @@ export default function BottomNav() {
   const shouldTransform = mounted && isOpen;
 
   const navItems = [
-    { href: '/shows', label: 'Shows', icon: Tv },
-    { href: '/movies', label: 'Movies', icon: Film },
-    { href: '/discover', label: 'Discover', icon: Compass },
-    { href: '/community', label: 'Community', icon: Users },
+    { href: '/', label: 'Home', icon: Home },
+    { href: '/search', label: 'Search', icon: Search },
+    { href: '/library', label: 'Library', icon: Library },
+    { href: '/profile', label: 'Profile', icon: User },
   ];
 
   return (
@@ -37,7 +37,9 @@ export default function BottomNav() {
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = item.href === '/'
+            ? pathname === '/'
+            : pathname === item.href || pathname.startsWith(item.href + '/');
           
           return (
             <Link

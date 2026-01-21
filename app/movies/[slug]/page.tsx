@@ -310,8 +310,8 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
             iconType={config.iconType}
             title={config.emptyMessage}
             subtitle={config.emptySubMessage}
-            actionLabel="Discover Movies"
-            actionHref="/discover?filter=movies"
+            actionLabel="Search Movies"
+            actionHref="/search?type=movies"
           />
         ) : layout === 'list' ? (
           <div className="space-y-1">

@@ -315,8 +315,8 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
             iconType={config.iconType}
             title={items.length === 0 ? config.emptyMessage : `No ${filter === 'movies' ? 'movies' : 'TV shows'} in this list`}
             subtitle={items.length === 0 ? config.emptySubMessage : 'Try changing the filter'}
-            actionLabel={items.length === 0 ? "Discover" : undefined}
-            actionHref={items.length === 0 ? "/discover" : undefined}
+            actionLabel={items.length === 0 ? "Search" : undefined}
+            actionHref={items.length === 0 ? "/search" : undefined}
           />
         ) : layout === 'list' ? (
           /* Spotify-style List View */
