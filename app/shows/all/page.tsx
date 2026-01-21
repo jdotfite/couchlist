@@ -5,14 +5,15 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft, Settings, Plus, Grid3X3, LayoutList, Users, ChevronRight, ChevronDown } from 'lucide-react';
+import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft, Settings, Plus, Grid3X3, LayoutList, Users, ChevronRight, ChevronDown, Settings2 } from 'lucide-react';
 import AllListsSkeleton from '@/components/AllListsSkeleton';
 import ListSettingsSheet from '@/components/ListSettingsSheet';
+import ListCardSettingsSheet from '@/components/ListCardSettingsSheet';
 import CreateListModal from '@/components/custom-lists/CreateListModal';
 import { getIconComponent } from '@/components/custom-lists/IconPicker';
 import { getColorValue } from '@/components/custom-lists/ColorPicker';
 import { getImageUrl } from '@/lib/tmdb';
-import { useListPreferences } from '@/hooks/useListPreferences';
+import { useListPreferences, type ListCardSettings } from '@/hooks/useListPreferences';
 
 interface LibraryItem {
   id: number;
@@ -57,7 +58,9 @@ export default function AllShowsListsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [layout, setLayout] = useState<'grid' | 'list'>('grid');
   const [showMoreLists, setShowMoreLists] = useState(false);
-  const { getListName, isListHidden, refetch: refetchPreferences } = useListPreferences();
+  const { getListName, isListHidden, getListCardSettings, updateListCardSettings, refetch: refetchPreferences } = useListPreferences();
+  const [cardSettingsOpen, setCardSettingsOpen] = useState<string | null>(null);
+  const [cardSettingsKind, setCardSettingsKind] = useState<'system' | 'custom'>('system');
 
   // Core lists that are always shown
   const CORE_LISTS = ['watching', 'watchlist', 'finished'];
@@ -143,16 +146,81 @@ export default function AllShowsListsPage() {
     return <AllListsSkeleton />;
   }
 
+  // Color values for system lists (hex)
+  const systemListColors: Record<string, string> = {
+    watching: '#10b981',
+    watchlist: '#3b82f6',
+    finished: '#8b5ef4',
+    onhold: '#eab308',
+    dropped: '#ef4444',
+    rewatch: '#06b6d4',
+    nostalgia: '#f59e0b',
+    favorites: '#ec4899',
+  };
+
   const allSystemLists = [
-    { slug: 'watching', title: getListName('watching') || 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900', isCore: true },
-    { slug: 'watchlist', title: getListName('watchlist') || 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900', isCore: true },
-    { slug: 'finished', title: getListName('finished') || 'Finished', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker', isCore: true },
-    { slug: 'onhold', title: getListName('onhold') || 'On Hold', items: onHoldItems, icon: PauseCircle, color: 'from-yellow-500 to-yellow-900', isCore: false },
-    { slug: 'dropped', title: getListName('dropped') || 'Dropped', items: droppedItems, icon: XCircle, color: 'from-red-600 to-red-900', isCore: false },
-    { slug: 'rewatch', title: getListName('rewatch') || 'Rewatch', items: rewatchItems, icon: RotateCcw, color: 'from-cyan-500 to-cyan-900', isCore: false },
-    { slug: 'nostalgia', title: getListName('nostalgia') || 'Classics', items: nostalgiaItems, icon: Sparkles, color: 'from-amber-500 to-amber-900', isCore: false },
-    { slug: 'favorites', title: getListName('favorites') || 'Favorites', items: favoritesItems, icon: Heart, color: 'from-pink-600 to-pink-900', isCore: false },
+    { slug: 'watching', title: getListName('watching') || 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900', colorHex: '#10b981', isCore: true },
+    { slug: 'watchlist', title: getListName('watchlist') || 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900', colorHex: '#3b82f6', isCore: true },
+    { slug: 'finished', title: getListName('finished') || 'Finished', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker', colorHex: '#8b5ef4', isCore: true },
+    { slug: 'onhold', title: getListName('onhold') || 'On Hold', items: onHoldItems, icon: PauseCircle, color: 'from-yellow-500 to-yellow-900', colorHex: '#eab308', isCore: false },
+    { slug: 'dropped', title: getListName('dropped') || 'Dropped', items: droppedItems, icon: XCircle, color: 'from-red-600 to-red-900', colorHex: '#ef4444', isCore: false },
+    { slug: 'rewatch', title: getListName('rewatch') || 'Rewatch', items: rewatchItems, icon: RotateCcw, color: 'from-cyan-500 to-cyan-900', colorHex: '#06b6d4', isCore: false },
+    { slug: 'nostalgia', title: getListName('nostalgia') || 'Classics', items: nostalgiaItems, icon: Sparkles, color: 'from-amber-500 to-amber-900', colorHex: '#f59e0b', isCore: false },
+    { slug: 'favorites', title: getListName('favorites') || 'Favorites', items: favoritesItems, icon: Heart, color: 'from-pink-600 to-pink-900', colorHex: '#ec4899', isCore: false },
   ];
+
+  // Helper to get the cover image for a list based on its settings
+  const getListCoverInfo = (listSlug: string, items: LibraryItem[], listColor: string) => {
+    const settings = getListCardSettings(listSlug);
+
+    if (settings.coverType === 'color') {
+      return { type: 'color' as const, showIcon: settings.showIcon };
+    }
+
+    if (settings.coverType === 'specific_item' && settings.coverMediaId) {
+      const item = items.find(i => i.media_id === settings.coverMediaId);
+      if (item?.poster_path) {
+        return { type: 'image' as const, posterPath: item.poster_path };
+      }
+    }
+
+    // Default: last_added (first item)
+    if (items[0]?.poster_path) {
+      return { type: 'image' as const, posterPath: items[0].poster_path };
+    }
+
+    return { type: 'color' as const, showIcon: true };
+  };
+
+  const handleOpenCardSettings = (e: React.MouseEvent, listSlug: string, kind: 'system' | 'custom') => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCardSettingsOpen(listSlug);
+    setCardSettingsKind(kind);
+  };
+
+  const handleSaveCardSettings = async (listSlug: string, settings: Partial<ListCardSettings>) => {
+    if (cardSettingsKind === 'system') {
+      return await updateListCardSettings(listSlug, settings);
+    } else {
+      // For custom lists, use the custom-lists API
+      const response = await fetch(`/api/custom-lists/${listSlug}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cover_type: settings.coverType,
+          cover_media_id: settings.coverMediaId,
+          show_icon: settings.showIcon,
+          display_info: settings.displayInfo,
+        }),
+      });
+      if (response.ok) {
+        fetchData(); // Refresh custom lists
+        return true;
+      }
+      return false;
+    }
+  };
 
   // Filter out hidden lists, then separate into visible and more lists
   const visibleSystemLists = allSystemLists.filter(list => !isListHidden(list.slug));
@@ -215,17 +283,20 @@ export default function AllShowsListsPage() {
         {layout === 'grid' ? (<>
           <div className="grid grid-cols-2 gap-3">
             {/* System Lists - Grid View */}
-            {lists.map(({ slug, title, items, icon: Icon, color }) => {
+            {lists.map(({ slug, title, items, icon: Icon, color, colorHex }) => {
               const isShared = sharedLists.includes(slug);
+              const coverInfo = getListCoverInfo(slug, items, colorHex);
+              const settings = getListCardSettings(slug);
+
               return (
                 <Link
                   key={slug}
                   href={`/shows/${slug}`}
-                  className={`relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br ${color}`}
+                  className={`group relative aspect-square rounded-lg overflow-hidden bg-gradient-to-br ${color}`}
                 >
-                  {items[0]?.poster_path && (
+                  {coverInfo.type === 'image' && (
                     <Image
-                      src={getImageUrl(items[0].poster_path)}
+                      src={getImageUrl(coverInfo.posterPath)}
                       alt={title}
                       fill
                       className="object-cover object-top opacity-60"
@@ -235,12 +306,24 @@ export default function AllShowsListsPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                   <div className="absolute inset-0 p-4 flex flex-col justify-between">
                     <div className="flex items-center justify-between">
-                      <Icon className="w-6 h-6" />
-                      {isShared && (
-                        <div className="bg-black/50 rounded-full p-1.5">
-                          <Users className="w-4 h-4" />
-                        </div>
+                      {(coverInfo.type === 'color' && coverInfo.showIcon) || coverInfo.type === 'image' ? (
+                        <Icon className="w-6 h-6" />
+                      ) : (
+                        <div />
                       )}
+                      <div className="flex items-center gap-1">
+                        {isShared && (
+                          <div className="bg-black/50 rounded-full p-1.5">
+                            <Users className="w-4 h-4" />
+                          </div>
+                        )}
+                        <button
+                          onClick={(e) => handleOpenCardSettings(e, slug, 'system')}
+                          className="bg-black/50 rounded-full p-1.5 opacity-0 group-hover:opacity-100 md:opacity-0 transition-opacity"
+                        >
+                          <Settings2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <h3 className="text-lg mb-1">{title}</h3>
@@ -255,18 +338,29 @@ export default function AllShowsListsPage() {
             {customLists.map((list) => {
               const IconComponent = getIconComponent(list.icon);
               const colorValue = getColorValue(list.color);
-              const firstItem = list.items[0];
+              const coverType = (list as any).cover_type || 'last_added';
+              const coverMediaId = (list as any).cover_media_id;
+              const showIcon = (list as any).show_icon !== false;
+
+              // Determine cover
+              let coverImage: string | null = null;
+              if (coverType === 'specific_item' && coverMediaId) {
+                const item = list.items.find(i => i.media_id === coverMediaId);
+                coverImage = item?.poster_path || null;
+              } else if (coverType === 'last_added') {
+                coverImage = list.items[0]?.poster_path || null;
+              }
 
               return (
                 <Link
                   key={`custom-${list.slug}`}
                   href={`/lists/${list.slug}`}
-                  className="relative aspect-square rounded-lg overflow-hidden"
+                  className="group relative aspect-square rounded-lg overflow-hidden"
                   style={{ backgroundColor: `${colorValue}30` }}
                 >
-                  {firstItem?.poster_path && (
+                  {coverImage && (
                     <Image
-                      src={getImageUrl(firstItem.poster_path)}
+                      src={getImageUrl(coverImage)}
                       alt={list.name}
                       fill
                       className="object-cover object-top opacity-60"
@@ -275,7 +369,18 @@ export default function AllShowsListsPage() {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                   <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                    <IconComponent className="w-6 h-6" style={{ color: colorValue }} />
+                    <div className="flex items-center justify-between">
+                      {(coverType === 'color' ? showIcon : true) && (
+                        <IconComponent className="w-6 h-6" style={{ color: colorValue }} />
+                      )}
+                      {coverType === 'color' && !showIcon && <div />}
+                      <button
+                        onClick={(e) => handleOpenCardSettings(e, list.slug, 'custom')}
+                        className="bg-black/50 rounded-full p-1.5 opacity-0 group-hover:opacity-100 md:opacity-0 transition-opacity"
+                      >
+                        <Settings2 className="w-4 h-4" />
+                      </button>
+                    </div>
                     <div>
                       <h3 className="text-lg mb-1">{list.name}</h3>
                       <p className="text-sm text-gray-200">{list.item_count} shows</p>
@@ -444,6 +549,62 @@ export default function AllShowsListsPage() {
         onClose={() => setIsCreateOpen(false)}
         onCreated={handleListCreated}
       />
+
+      {/* List Card Settings Sheet */}
+      {cardSettingsOpen && (() => {
+        if (cardSettingsKind === 'system') {
+          const listData = allSystemLists.find(l => l.slug === cardSettingsOpen);
+          if (!listData) return null;
+          const settings = getListCardSettings(cardSettingsOpen);
+          return (
+            <ListCardSettingsSheet
+              isOpen={true}
+              onClose={() => setCardSettingsOpen(null)}
+              listType={cardSettingsOpen}
+              listKind="system"
+              listName={listData.title}
+              listColor={listData.colorHex}
+              listIcon={listData.icon}
+              items={listData.items.map(i => ({
+                mediaId: i.media_id,
+                posterPath: i.poster_path,
+                title: i.title,
+              }))}
+              settings={settings}
+              onSave={(newSettings) => handleSaveCardSettings(cardSettingsOpen, newSettings)}
+            />
+          );
+        } else {
+          const listData = customLists.find(l => l.slug === cardSettingsOpen);
+          if (!listData) return null;
+          const colorValue = getColorValue(listData.color);
+          const IconComponent = getIconComponent(listData.icon);
+          const settings: ListCardSettings = {
+            coverType: (listData as any).cover_type || 'last_added',
+            coverMediaId: (listData as any).cover_media_id,
+            showIcon: (listData as any).show_icon !== false,
+            displayInfo: (listData as any).display_info || 'none',
+          };
+          return (
+            <ListCardSettingsSheet
+              isOpen={true}
+              onClose={() => setCardSettingsOpen(null)}
+              listType={cardSettingsOpen}
+              listKind="custom"
+              listName={listData.name}
+              listColor={colorValue}
+              listIcon={IconComponent}
+              items={listData.items.map(i => ({
+                mediaId: i.media_id,
+                posterPath: i.poster_path,
+                title: i.title,
+              }))}
+              settings={settings}
+              onSave={(newSettings) => handleSaveCardSettings(cardSettingsOpen, newSettings)}
+            />
+          );
+        }
+      })()}
     </div>
   );
 }

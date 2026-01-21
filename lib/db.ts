@@ -166,6 +166,43 @@ export async function initDb() {
       // Might already be nullable
     }
 
+    // Add list card settings columns to user_list_preferences
+    try {
+      await sql`
+        ALTER TABLE user_list_preferences
+        ADD COLUMN IF NOT EXISTS cover_type VARCHAR(20) DEFAULT 'last_added';
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE user_list_preferences
+        ADD COLUMN IF NOT EXISTS cover_media_id INTEGER REFERENCES media(id);
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE user_list_preferences
+        ADD COLUMN IF NOT EXISTS show_icon BOOLEAN DEFAULT true;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE user_list_preferences
+        ADD COLUMN IF NOT EXISTS display_info VARCHAR(20) DEFAULT 'none';
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
     await sql`
       CREATE INDEX IF NOT EXISTS idx_user_list_preferences_user
       ON user_list_preferences(user_id);
@@ -193,6 +230,43 @@ export async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_custom_lists_user
       ON custom_lists(user_id);
     `;
+
+    // Add list card settings columns to custom_lists
+    try {
+      await sql`
+        ALTER TABLE custom_lists
+        ADD COLUMN IF NOT EXISTS cover_type VARCHAR(20) DEFAULT 'last_added';
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE custom_lists
+        ADD COLUMN IF NOT EXISTS cover_media_id INTEGER REFERENCES media(id);
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE custom_lists
+        ADD COLUMN IF NOT EXISTS show_icon BOOLEAN DEFAULT true;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE custom_lists
+        ADD COLUMN IF NOT EXISTS display_info VARCHAR(20) DEFAULT 'none';
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
 
     // Custom list items - junction table linking media to custom lists
     await sql`

@@ -50,6 +50,9 @@ export const AVAILABLE_COLORS = [
 
 export type ColorName = typeof AVAILABLE_COLORS[number]['name'];
 
+export type CoverType = 'last_added' | 'color' | 'specific_item';
+export type DisplayInfo = 'rating' | 'tmdb_rating' | 'year' | 'status' | 'none';
+
 export interface CustomList {
   id: number;
   user_id: number;
@@ -63,6 +66,10 @@ export interface CustomList {
   created_at: Date;
   updated_at: Date;
   item_count?: number;
+  cover_type?: CoverType;
+  cover_media_id?: number;
+  show_icon?: boolean;
+  display_info?: DisplayInfo;
 }
 
 export interface CustomListItem {
@@ -279,6 +286,10 @@ export async function updateCustomList(
     icon?: string;
     color?: string;
     is_shared?: boolean;
+    cover_type?: CoverType;
+    cover_media_id?: number | null;
+    show_icon?: boolean;
+    display_info?: DisplayInfo;
   }
 ): Promise<{ success: boolean; list?: CustomList; error?: string }> {
   await ensureDb();
@@ -315,6 +326,14 @@ export async function updateCustomList(
     return { success: false, error: 'Invalid color' };
   }
 
+  if (updates.cover_type !== undefined && !['last_added', 'color', 'specific_item'].includes(updates.cover_type)) {
+    return { success: false, error: 'Invalid cover type' };
+  }
+
+  if (updates.display_info !== undefined && !['rating', 'tmdb_rating', 'year', 'status', 'none'].includes(updates.display_info)) {
+    return { success: false, error: 'Invalid display info type' };
+  }
+
   try {
     const result = await sql`
       UPDATE custom_lists
@@ -324,6 +343,10 @@ export async function updateCustomList(
         icon = COALESCE(${updates.icon}, icon),
         color = COALESCE(${updates.color}, color),
         is_shared = COALESCE(${updates.is_shared}, is_shared),
+        cover_type = COALESCE(${updates.cover_type}, cover_type),
+        cover_media_id = CASE WHEN ${updates.cover_media_id !== undefined} THEN ${updates.cover_media_id} ELSE cover_media_id END,
+        show_icon = COALESCE(${updates.show_icon !== undefined ? updates.show_icon : null}, show_icon),
+        display_info = COALESCE(${updates.display_info}, display_info),
         updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ${userId} AND slug = ${slug}
       RETURNING *

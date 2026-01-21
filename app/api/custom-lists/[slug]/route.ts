@@ -48,7 +48,7 @@ export async function PATCH(
 
     const { slug } = await params;
     const body = await request.json();
-    const { name, description, icon, color, is_shared } = body;
+    const { name, description, icon, color, is_shared, cover_type, cover_media_id, show_icon, display_info } = body;
 
     const result = await updateCustomList(Number(session.user.id), slug, {
       name,
@@ -56,6 +56,10 @@ export async function PATCH(
       icon,
       color,
       is_shared,
+      cover_type,
+      cover_media_id,
+      show_icon,
+      display_info,
     });
 
     if (!result.success) {

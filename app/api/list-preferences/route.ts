@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { setListPreference, setListHidden, getAllListsWithNames } from '@/lib/list-preferences';
+import { setListPreference, setListHidden, getAllListsWithNames, setListCardSettings } from '@/lib/list-preferences';
 
 // GET /api/list-preferences - Get all list preferences for current user
 export async function GET() {
@@ -23,7 +23,7 @@ export async function GET() {
   }
 }
 
-// PATCH /api/list-preferences - Update a list preference (name or hidden state)
+// PATCH /api/list-preferences - Update a list preference (name, hidden state, or card settings)
 export async function PATCH(request: Request) {
   try {
     const session = await auth();
@@ -33,7 +33,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { listType, displayName, isHidden } = body;
+    const { listType, displayName, isHidden, coverType, coverMediaId, showIcon, displayInfo } = body;
 
     if (!listType) {
       return NextResponse.json(
@@ -48,6 +48,26 @@ export async function PATCH(request: Request) {
         Number(session.user.id),
         listType,
         isHidden
+      );
+
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    // Handle card settings update
+    if (coverType !== undefined || coverMediaId !== undefined || showIcon !== undefined || displayInfo !== undefined) {
+      const result = await setListCardSettings(
+        Number(session.user.id),
+        listType,
+        {
+          coverType,
+          coverMediaId,
+          showIcon,
+          displayInfo,
+        }
       );
 
       if (!result.success) {
