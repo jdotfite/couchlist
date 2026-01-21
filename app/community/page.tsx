@@ -19,6 +19,8 @@ import {
   X,
   Send,
   Clock,
+  Link2,
+  Trash2,
 } from 'lucide-react';
 import ProfileMenu from '@/components/ProfileMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
@@ -39,6 +41,28 @@ interface Connection {
   connectedAt: string;
 }
 
+interface PendingLinkInvite {
+  id: number;
+  inviteCode: string;
+  inviteUrl: string;
+  sharedLists: string[];
+  createdAt: string;
+  expiresAt: string;
+  type: 'link';
+}
+
+interface PendingDirectInvite {
+  id: number;
+  targetUserId: number;
+  targetName: string;
+  targetUsername: string | null;
+  targetImage: string | null;
+  sharedLists: string[];
+  createdAt: string;
+  expiresAt: string;
+  type: 'direct';
+}
+
 export default function CommunityPage() {
   const { status } = useSession();
   const router = useRouter();
@@ -56,6 +80,10 @@ export default function CommunityPage() {
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [sendingDirectInvite, setSendingDirectInvite] = useState<number | null>(null);
   const [sentInviteUserId, setSentInviteUserId] = useState<number | null>(null);
+  const [pendingLinkInvites, setPendingLinkInvites] = useState<PendingLinkInvite[]>([]);
+  const [pendingDirectInvites, setPendingDirectInvites] = useState<PendingDirectInvite[]>([]);
+  const [isLoadingPending, setIsLoadingPending] = useState(true);
+  const [revokingInviteId, setRevokingInviteId] = useState<number | null>(null);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -63,6 +91,7 @@ export default function CommunityPage() {
     if (status === 'authenticated') {
       fetchConnections();
       fetchUsername();
+      fetchPendingInvites();
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }
@@ -94,6 +123,40 @@ export default function CommunityPage() {
       console.error('Failed to fetch connections:', error);
     } finally {
       setIsLoadingConnections(false);
+    }
+  };
+
+  const fetchPendingInvites = async () => {
+    setIsLoadingPending(true);
+    try {
+      const response = await fetch('/api/collaborators/pending-invites');
+      if (response.ok) {
+        const data = await response.json();
+        setPendingLinkInvites(data.invites || []);
+        setPendingDirectInvites(data.directInvites || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch pending invites:', error);
+    } finally {
+      setIsLoadingPending(false);
+    }
+  };
+
+  const revokeInvite = async (inviteId: number) => {
+    setRevokingInviteId(inviteId);
+    try {
+      const response = await fetch(`/api/collaborators/pending-invites/${inviteId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        // Remove from local state
+        setPendingLinkInvites((prev) => prev.filter((i) => i.id !== inviteId));
+        setPendingDirectInvites((prev) => prev.filter((i) => i.id !== inviteId));
+      }
+    } catch (error) {
+      console.error('Failed to revoke invite:', error);
+    } finally {
+      setRevokingInviteId(null);
     }
   };
 
@@ -189,6 +252,8 @@ export default function CommunityPage() {
             u.id === user.id ? { ...u, hasPendingInvite: true } : u
           )
         );
+        // Refresh pending invites to show the new one
+        fetchPendingInvites();
         setTimeout(() => setSentInviteUserId(null), 3000);
       } else {
         const data = await response.json();
@@ -428,6 +493,112 @@ export default function CommunityPage() {
             </div>
           )}
         </section>
+
+        {/* Pending Invites Section */}
+        {!isLoadingPending && (pendingDirectInvites.length > 0 || pendingLinkInvites.length > 0) && (
+          <section>
+            <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-yellow-500" />
+              Pending Invites
+              <span className="text-sm font-normal text-gray-400">
+                ({pendingDirectInvites.length + pendingLinkInvites.length})
+              </span>
+            </h2>
+
+            <div className="space-y-2">
+              {/* Direct invites (sent to specific users) */}
+              {pendingDirectInvites.map((invite) => (
+                <div
+                  key={`direct-${invite.id}`}
+                  className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500">
+                      {invite.targetImage ? (
+                        <img src={invite.targetImage} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-white font-semibold">
+                          {invite.targetName?.charAt(0).toUpperCase() || '?'}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        {invite.targetUsername && (
+                          <span className="text-gray-400">@{invite.targetUsername}</span>
+                        )}
+                        <span className="text-white font-medium">{invite.targetName}</span>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        Invite sent · Waiting for response
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => revokeInvite(invite.id)}
+                    disabled={revokingInviteId === invite.id}
+                    className="flex items-center gap-1 text-sm text-gray-400 hover:text-red-400 px-3 py-1.5 rounded-full hover:bg-zinc-800 transition disabled:opacity-50"
+                    title="Cancel invite"
+                  >
+                    {revokingInviteId === invite.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin-fast" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              ))}
+
+              {/* Link invites (shareable links) */}
+              {pendingLinkInvites.map((invite) => (
+                <div
+                  key={`link-${invite.id}`}
+                  className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center">
+                      <Link2 className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">Invite Link</span>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(invite.inviteUrl);
+                        // Brief visual feedback could be added here
+                      }}
+                      className="flex items-center gap-1 text-sm text-gray-400 hover:text-white px-3 py-1.5 rounded-full hover:bg-zinc-800 transition"
+                      title="Copy link"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => revokeInvite(invite.id)}
+                      disabled={revokingInviteId === invite.id}
+                      className="flex items-center gap-1 text-sm text-gray-400 hover:text-red-400 px-3 py-1.5 rounded-full hover:bg-zinc-800 transition disabled:opacity-50"
+                      title="Revoke invite"
+                    >
+                      {revokingInviteId === invite.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin-fast" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Coming Soon Section */}
         <section>

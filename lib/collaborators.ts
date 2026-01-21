@@ -17,6 +17,7 @@ export interface Collaborator {
 export interface CollaboratorWithUser extends Collaborator {
   owner_name: string;
   owner_email: string;
+  owner_image: string | null;
   collaborator_name: string | null;
   collaborator_email: string | null;
 }
@@ -37,7 +38,7 @@ export function generateInviteCode(): string {
 // Create a new collaboration invite
 export async function createInvite(
   ownerId: number,
-  lists: string[] = ['watchlist', 'watching', 'finished']
+  lists: string[] = []
 ): Promise<{ inviteCode: string; expiresAt: Date }> {
   const inviteCode = generateInviteCode();
   const expiresAt = new Date();
@@ -73,6 +74,7 @@ export async function getInviteByCode(inviteCode: string): Promise<{
       c.*,
       owner.name as owner_name,
       owner.email as owner_email,
+      owner.profile_image as owner_image,
       collab.name as collaborator_name,
       collab.email as collaborator_email
     FROM collaborators c
@@ -310,22 +312,53 @@ export async function removeCollaboration(
   collaborationId: number,
   userId: number
 ): Promise<{ success: boolean; error?: string }> {
-  // Verify user is part of this collaboration
+  // Verify user is part of this collaboration and get details
   const result = await sql`
-    SELECT * FROM collaborators
-    WHERE id = ${collaborationId}
-    AND (owner_id = ${userId} OR collaborator_id = ${userId})
+    SELECT c.*,
+           owner.name as owner_name,
+           collab.name as collaborator_name
+    FROM collaborators c
+    JOIN users owner ON c.owner_id = owner.id
+    LEFT JOIN users collab ON c.collaborator_id = collab.id
+    WHERE c.id = ${collaborationId}
+    AND (c.owner_id = ${userId} OR c.collaborator_id = ${userId})
   `;
 
   if (result.rows.length === 0) {
     return { success: false, error: 'Collaboration not found' };
   }
 
+  const collaboration = result.rows[0];
+
+  // Determine who is the other person and who ended it
+  const isOwner = collaboration.owner_id === userId;
+  const otherUserId = isOwner ? collaboration.collaborator_id : collaboration.owner_id;
+  const enderName = isOwner ? collaboration.owner_name : collaboration.collaborator_name;
+
   // Delete the collaboration (cascades to shared_lists)
   await sql`
     DELETE FROM collaborators
     WHERE id = ${collaborationId}
   `;
+
+  // Notify the other person that the connection was ended
+  if (otherUserId) {
+    try {
+      await createNotification({
+        user_id: otherUserId,
+        type: 'collab_ended',
+        title: `${enderName} ended your connection`,
+        message: 'You are no longer sharing lists together',
+        data: {
+          ender_name: enderName,
+          ender_id: userId,
+        },
+      });
+    } catch (notifError) {
+      // Don't fail the removal if notification fails
+      console.error('Failed to create disconnect notification:', notifError);
+    }
+  }
 
   return { success: true };
 }
@@ -391,7 +424,7 @@ export async function getSharedListTypes(userId: number): Promise<string[]> {
 export async function createDirectInvite(
   ownerId: number,
   targetUserId: number,
-  lists: string[] = ['watchlist', 'watching', 'finished'],
+  lists: string[] = [],
   message?: string
 ): Promise<{ success: boolean; error?: string; inviteId?: number }> {
   // Check if user is trying to invite themselves
@@ -605,6 +638,57 @@ export async function getPendingLinkInvites(userId: number): Promise<{
     invites.push({
       id: row.id,
       inviteCode: row.invite_code,
+      sharedLists: listsResult.rows.map(r => r.list_type),
+      createdAt: row.created_at,
+      expiresAt: row.invite_expires_at,
+    });
+  }
+
+  return invites;
+}
+
+// Get pending direct invites sent BY a user (to specific users)
+export async function getPendingSentDirectInvites(userId: number): Promise<{
+  id: number;
+  targetUserId: number;
+  targetName: string;
+  targetUsername: string | null;
+  targetImage: string | null;
+  sharedLists: string[];
+  createdAt: Date;
+  expiresAt: Date;
+}[]> {
+  const result = await sql`
+    SELECT
+      c.id,
+      c.target_user_id,
+      c.created_at,
+      c.invite_expires_at,
+      u.name as target_name,
+      u.username as target_username,
+      u.profile_image as target_image
+    FROM collaborators c
+    JOIN users u ON c.target_user_id = u.id
+    WHERE c.owner_id = ${userId}
+    AND c.status = 'pending'
+    AND c.target_user_id IS NOT NULL
+    AND c.invite_expires_at > NOW()
+    ORDER BY c.created_at DESC
+  `;
+
+  const invites = [];
+  for (const row of result.rows) {
+    const listsResult = await sql`
+      SELECT list_type FROM shared_lists
+      WHERE collaborator_id = ${row.id}
+    `;
+
+    invites.push({
+      id: row.id,
+      targetUserId: row.target_user_id,
+      targetName: row.target_name,
+      targetUsername: row.target_username,
+      targetImage: row.target_image,
       sharedLists: listsResult.rows.map(r => r.list_type),
       createdAt: row.created_at,
       expiresAt: row.invite_expires_at,

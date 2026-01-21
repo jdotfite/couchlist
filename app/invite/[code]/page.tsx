@@ -23,6 +23,7 @@ interface InviteDetails {
   inviter: {
     id: number;
     name: string;
+    image: string | null;
   };
   sharedLists: string[];
   expiresAt: string;
@@ -314,8 +315,14 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
       <div className="max-w-md mx-auto pt-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="w-8 h-8 text-brand-primary" />
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500">
+            {invite?.inviter.image ? (
+              <img src={invite.inviter.image} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl font-bold text-white">
+                {invite?.inviter.name?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            )}
           </div>
           <h1 className="text-2xl font-bold mb-2">
             {invite?.inviter.name} invited you!

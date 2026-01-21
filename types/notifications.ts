@@ -8,7 +8,8 @@ export type NotificationType =
   | 'show_ended'
   | 'invite'
   | 'collab_invite'
-  | 'collab_accepted';
+  | 'collab_accepted'
+  | 'collab_ended';
 
 export interface Notification {
   id: number;
@@ -42,6 +43,9 @@ export interface NotificationData {
   list_name?: string;
   custom_list_id?: number;
   shared_lists?: string[];
+  // For connection ended
+  ender_name?: string;
+  ender_id?: number;
 }
 
 export interface GlobalNotificationSettings {

@@ -67,7 +67,20 @@ interface CollabAcceptedNotification {
   createdAt: string;
 }
 
-type NotificationItem = CustomListInvite | CollaborationInvite | ShowAlertNotification | CollabAcceptedNotification;
+interface CollabEndedNotification {
+  type: 'collab_ended';
+  id: number;
+  title: string;
+  message: string | null;
+  data: {
+    ender_name?: string;
+    ender_id?: number;
+  } | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+type NotificationItem = CustomListInvite | CollaborationInvite | ShowAlertNotification | CollabAcceptedNotification | CollabEndedNotification;
 
 const LIST_LABELS: Record<string, string> = {
   watchlist: 'Watchlist',
@@ -153,9 +166,23 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
           }));
         allNotifications.push(...collabAccepted);
 
+        // Handle collab_ended notifications
+        const collabEnded = notifications
+          .filter((n: Record<string, unknown>) => n.type === 'collab_ended')
+          .map((n: Record<string, unknown>) => ({
+            type: 'collab_ended' as const,
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            data: n.data,
+            isRead: n.is_read,
+            createdAt: n.created_at,
+          }));
+        allNotifications.push(...collabEnded);
+
         // Handle show alerts
         const showAlerts = notifications
-          .filter((n: Record<string, unknown>) => !['invite', 'collab_invite', 'collab_accepted'].includes(n.type as string))
+          .filter((n: Record<string, unknown>) => !['invite', 'collab_invite', 'collab_accepted', 'collab_ended'].includes(n.type as string))
           .map((n: Record<string, unknown>) => ({
             type: 'show_alert' as const,
             id: n.id,
@@ -181,7 +208,7 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
       setNotifications(allNotifications);
       // Count unread items
       const unreadCount = allNotifications.filter(n => {
-        if (n.type === 'show_alert' || n.type === 'collab_accepted') return !n.isRead;
+        if (n.type === 'show_alert' || n.type === 'collab_accepted' || n.type === 'collab_ended') return !n.isRead;
         return true; // Invites are always "unread"
       }).length;
       onCountChange(unreadCount);
@@ -277,11 +304,11 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
       if (response.ok) {
         setNotifications(prev =>
           prev.map(n =>
-            (n.type === 'show_alert' || n.type === 'collab_accepted') ? { ...n, isRead: true } : n
+            (n.type === 'show_alert' || n.type === 'collab_accepted' || n.type === 'collab_ended') ? { ...n, isRead: true } : n
           )
         );
         // Update count to only invites
-        const inviteCount = notifications.filter(n => n.type !== 'show_alert' && n.type !== 'collab_accepted').length;
+        const inviteCount = notifications.filter(n => n.type !== 'show_alert' && n.type !== 'collab_accepted' && n.type !== 'collab_ended').length;
         onCountChange(inviteCount);
       }
     } catch (error) {
@@ -328,7 +355,7 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
     }
   };
 
-  const hasUnreadAlerts = notifications.some(n => (n.type === 'show_alert' || n.type === 'collab_accepted') && !n.isRead);
+  const hasUnreadAlerts = notifications.some(n => (n.type === 'show_alert' || n.type === 'collab_accepted' || n.type === 'collab_ended') && !n.isRead);
 
   if (!isOpen) return null;
 
@@ -560,6 +587,69 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
                                 </span>
                               ))}
                             </div>
+                          )}
+
+                          <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                            <Clock className="w-3 h-3" />
+                            {formatTimeAgo(notification.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Render collab ended notifications
+                if (notification.type === 'collab_ended') {
+                  const key = `collab_ended-${notification.id}`;
+
+                  return (
+                    <div
+                      key={key}
+                      className={`p-4 hover:bg-zinc-800/50 transition ${
+                        notification.isRead ? 'opacity-60' : ''
+                      }`}
+                      onClick={() => {
+                        if (!notification.isRead) {
+                          fetch(`/api/notifications/${notification.id}/read`, { method: 'POST' });
+                          setNotifications(prev =>
+                            prev.map(n =>
+                              n.type === 'collab_ended' && n.id === notification.id
+                                ? { ...n, isRead: true }
+                                : n
+                            )
+                          );
+                        }
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Icon */}
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
+                            <XCircle className="w-5 h-5 text-red-400" />
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-red-400" />
+                            <span className="text-xs font-medium text-gray-400 uppercase">
+                              Connection Ended
+                            </span>
+                            {!notification.isRead && (
+                              <span className="w-2 h-2 bg-[#8b5ef4] rounded-full" />
+                            )}
+                          </div>
+
+                          <p className="text-sm font-medium text-white mt-1">
+                            {notification.title}
+                          </p>
+
+                          {notification.message && (
+                            <p className="text-sm text-gray-400 mt-0.5">
+                              {notification.message}
+                            </p>
                           )}
 
                           <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">

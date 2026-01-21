@@ -4,9 +4,21 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Search, Loader2, X, ArrowLeft, Film, Tv } from 'lucide-react';
 import SearchResults from '@/components/SearchResults';
+import TrendingRow from '@/components/home/TrendingRow';
+import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import { Movie, TVShow, SearchResponse } from '@/types';
 import Image from 'next/image';
 import Link from 'next/link';
+
+interface TrendingItem {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  media_type: 'movie' | 'tv';
+  release_date?: string;
+  first_air_date?: string;
+}
 
 const categories = [
   { id: 'trending_movies', label: 'Trending Movies', type: 'movies' },
@@ -17,16 +29,6 @@ const categories = [
   { id: 'top_rated_tv', label: 'Top Rated TV', type: 'tv' },
 ];
 
-const popularSearches = [
-  { name: 'Breaking Bad', type: 'tv' },
-  { name: 'The Office', type: 'tv' },
-  { name: 'Inception', type: 'movies' },
-  { name: 'Stranger Things', type: 'tv' },
-  { name: 'The Dark Knight', type: 'movies' },
-  { name: 'Game of Thrones', type: 'tv' },
-  { name: 'Interstellar', type: 'movies' },
-  { name: 'The Mandalorian', type: 'tv' },
-];
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -41,6 +43,10 @@ export default function SearchPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'movies' | 'tv'>(initialFilter as 'all' | 'movies' | 'tv');
   const [categoryImages, setCategoryImages] = useState<Record<string, string>>({});
+  const [trendingAll, setTrendingAll] = useState<TrendingItem[]>([]);
+  const [popularAll, setPopularAll] = useState<TrendingItem[]>([]);
+  const [selectedItem, setSelectedItem] = useState<TrendingItem | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // Auto-focus on mount
   useEffect(() => {
@@ -50,7 +56,7 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    const fetchCategoryImages = async () => {
+    const fetchTrendingData = async () => {
       try {
         const response = await fetch('/api/trending');
         const data = await response.json();
@@ -61,12 +67,32 @@ export default function SearchPage() {
           'trending': data.trendingMovies[1]?.poster_path || data.trendingTV[0]?.poster_path || '',
           'top_rated': data.topRatedMovies[0]?.poster_path || '',
         });
+
+        // Combine movies and TV, interleaved for variety
+        const trending = [...(data.trendingMovies || []), ...(data.trendingTV || [])];
+        const popular = [...(data.popularMovies || []), ...(data.popularTV || [])];
+
+        // Shuffle to mix content types
+        const shuffleMix = (arr: TrendingItem[]) => {
+          const result: TrendingItem[] = [];
+          const movies = arr.filter(i => i.media_type === 'movie');
+          const tv = arr.filter(i => i.media_type === 'tv');
+          const maxLen = Math.max(movies.length, tv.length);
+          for (let i = 0; i < maxLen; i++) {
+            if (movies[i]) result.push(movies[i]);
+            if (tv[i]) result.push(tv[i]);
+          }
+          return result;
+        };
+
+        setTrendingAll(shuffleMix(trending).slice(0, 15));
+        setPopularAll(shuffleMix(popular).slice(0, 15));
       } catch (error) {
-        console.error('Failed to fetch category images:', error);
+        console.error('Failed to fetch trending data:', error);
       }
     };
 
-    fetchCategoryImages();
+    fetchTrendingData();
   }, []);
 
   // Debounced search
@@ -136,8 +162,9 @@ export default function SearchPage() {
     }
   };
 
-  const handlePopularSearch = (searchTerm: string) => {
-    setQuery(searchTerm);
+  const handleAddClick = (item: TrendingItem) => {
+    setSelectedItem(item);
+    setIsSheetOpen(true);
   };
 
   const handleClear = () => {
@@ -341,28 +368,22 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Popular Searches - Default View */}
+        {/* Trending Now - Default View */}
         {!hasSearched && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-3">Popular Searches</h2>
-            <div className="space-y-2">
-              {popularSearches
-                .filter(item => filter === 'all' || item.type === filter)
-                .map((item) => (
-                <button
-                  key={item.name}
-                  onClick={() => handlePopularSearch(item.name)}
-                  className="w-full bg-zinc-900 hover:bg-zinc-800 rounded-lg p-4 text-left transition flex items-center gap-3"
-                >
-                  <Search className="w-4 h-4 text-gray-500" />
-                  <span>{item.name}</span>
-                  <span className="ml-auto text-xs text-gray-500 capitalize">
-                    {item.type === 'tv' ? 'TV' : 'Movie'}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
+          <TrendingRow
+            title="Trending Now"
+            items={filter === 'all' ? trendingAll : trendingAll.filter(i => filter === 'movies' ? i.media_type === 'movie' : i.media_type === 'tv')}
+            onAddClick={handleAddClick}
+          />
+        )}
+
+        {/* Popular - Default View */}
+        {!hasSearched && (
+          <TrendingRow
+            title="Popular"
+            items={filter === 'all' ? popularAll : popularAll.filter(i => filter === 'movies' ? i.media_type === 'movie' : i.media_type === 'tv')}
+            onAddClick={handleAddClick}
+          />
         )}
 
         {/* Quick Links - Default View */}
@@ -388,6 +409,18 @@ export default function SearchPage() {
           </section>
         )}
       </main>
+
+      {/* Media Options Sheet */}
+      {selectedItem && (
+        <MediaOptionsSheet
+          isOpen={isSheetOpen}
+          onClose={() => setIsSheetOpen(false)}
+          mediaId={selectedItem.id}
+          mediaType={selectedItem.media_type}
+          title={selectedItem.title || selectedItem.name || 'Unknown'}
+          posterPath={selectedItem.poster_path || ''}
+        />
+      )}
     </div>
   );
 }

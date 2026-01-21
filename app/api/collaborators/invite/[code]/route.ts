@@ -31,6 +31,7 @@ export async function GET(
       inviter: {
         id: collaboration.owner_id,
         name: collaboration.owner_name,
+        image: collaboration.owner_image,
       },
       sharedLists,
       expiresAt: collaboration.invite_expires_at,

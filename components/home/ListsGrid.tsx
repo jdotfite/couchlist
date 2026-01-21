@@ -31,7 +31,7 @@ export default function ListsGrid({ lists }: ListsGridProps) {
         {lists.map(({ slug, title, count, posterPath, icon: Icon, color }) => (
           <Link
             key={slug}
-            href={slug === 'all' ? '/library' : `/library?status=${slug}`}
+            href={slug === 'all' ? '/library' : `/library/${slug}`}
             className="group flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden hover:bg-zinc-800 transition"
           >
             <div className={`relative w-16 h-16 flex-shrink-0 bg-gradient-to-br ${color}`}>

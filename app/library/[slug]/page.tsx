@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star } from 'lucide-react';
+import { MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star, ChevronLeft, Film, Tv } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
-import ProfileMenu from '@/components/ProfileMenu';
 import EmptyState from '@/components/EmptyState';
 import MediaListSkeleton from '@/components/MediaListSkeleton';
+import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import { getImageUrl } from '@/lib/tmdb';
+import { useListPreferences } from '@/hooks/useListPreferences';
 
 interface ListItem {
   id: number;
@@ -115,12 +117,16 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
 export default function ListPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
   const { data: session, status } = useSession();
+  const router = useRouter();
+  const { getListName } = useListPreferences();
   const [items, setItems] = useState<ListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [layout, setLayout] = useState<LayoutType>('list');
+  const [layout, setLayout] = useState<LayoutType>('grid');
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'movies' | 'tv'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('added-desc');
 
   const config = listConfig[slug];
 
@@ -130,13 +136,26 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   const TAG_LISTS = ['favorites', 'rewatch', 'nostalgia'];
   const isTagList = TAG_LISTS.includes(slug);
 
-  // Filter items based on selected filter
-  const filteredItems = items.filter(item => {
-    if (filter === 'all') return true;
-    if (filter === 'movies') return item.media_type === 'movie';
-    if (filter === 'tv') return item.media_type === 'tv';
-    return true;
-  });
+  // Get display name from preferences or fallback to config
+  const displayName = getListName(slug) || config?.title || slug;
+
+  // Filter, search, and sort items
+  const filteredItems = useMemo(() => {
+    let result = items;
+
+    // Type filter
+    if (filter === 'movies') {
+      result = result.filter(item => item.media_type === 'movie');
+    } else if (filter === 'tv') {
+      result = result.filter(item => item.media_type === 'tv');
+    }
+
+    // Search filter
+    result = filterItems(result, searchQuery);
+
+    // Sort
+    return sortItems(result, sortBy);
+  }, [items, filter, searchQuery, sortBy]);
 
   useEffect(() => {
     if (status === 'authenticated' && config) {
@@ -239,55 +258,19 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
-      {/* Header with User Profile and Filter Pills */}
+      {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
-        <div
-          className="overflow-x-auto scrollbar-hide -mx-4"
-          style={{ scrollPaddingLeft: '1rem' }}
-        >
-          <div className="flex items-center gap-2 px-4">
-            {/* User Profile Circle */}
-            <ProfileMenu />
-
-            {/* Filter Pills */}
-            <button
-              onClick={() => setFilter('all')}
-              className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                filter === 'all' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setFilter('movies')}
-              className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                filter === 'movies' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
-              }`}
-            >
-              Movies
-            </button>
-            <button
-              onClick={() => setFilter('tv')}
-              className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                filter === 'tv' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
-              }`}
-            >
-              TV Shows
-            </button>
-            <div className="flex-shrink-0 w-1" />
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => router.push('/library')}
+            className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold truncate">{displayName}</h1>
+            <p className="text-xs text-gray-400">{items.length} items</p>
           </div>
-        </div>
-      </header>
-
-      {/* Title Section */}
-      <div className="px-4 pt-4 pb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl">{config.title}</h1>
-            <p className="text-gray-400 text-sm">{filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}</p>
-          </div>
-
-          {/* Layout Toggle */}
           <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
             <button
               onClick={() => setLayout('list')}
@@ -295,7 +278,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                 layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
-              <List className="w-5 h-5" />
+              <List className="w-4 h-4" />
             </button>
             <button
               onClick={() => setLayout('grid')}
@@ -303,14 +286,65 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                 layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
               }`}
             >
-              <Grid3X3 className="w-5 h-5" />
+              <Grid3X3 className="w-4 h-4" />
             </button>
           </div>
         </div>
-      </div>
 
-      <main className="px-4">
-        {filteredItems.length === 0 ? (
+        {/* Type Filter Pills */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setFilter('all')}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+              filter === 'all' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setFilter('movies')}
+            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              filter === 'movies' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+            }`}
+          >
+            <Film className="w-4 h-4" />
+            Movies
+          </button>
+          <button
+            onClick={() => setFilter('tv')}
+            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              filter === 'tv' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
+            }`}
+          >
+            <Tv className="w-4 h-4" />
+            TV Shows
+          </button>
+        </div>
+      </header>
+
+      <main className="px-4 pt-4">
+        {/* Sort and Search Bar */}
+        {items.length > 0 && (
+          <SortFilterBar
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            resultCount={searchQuery ? filteredItems.length : undefined}
+            placeholder={`Search ${displayName.toLowerCase()}...`}
+          />
+        )}
+        {filteredItems.length === 0 && searchQuery ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">No results found for "{searchQuery}"</p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mt-2 text-brand-primary hover:underline"
+            >
+              Clear search
+            </button>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <EmptyState
             iconType={config.iconType}
             title={items.length === 0 ? config.emptyMessage : `No ${filter === 'movies' ? 'movies' : 'TV shows'} in this list`}
@@ -319,7 +353,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
             actionHref={items.length === 0 ? "/search" : undefined}
           />
         ) : layout === 'list' ? (
-          /* Spotify-style List View */
+          /* List View */
           <div className="space-y-1">
             {filteredItems.map((item) => (
               <div
@@ -338,6 +372,13 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                     className="object-cover"
                     sizes="56px"
                   />
+                  <div className="absolute bottom-1 left-1 w-5 h-5 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
+                    {item.media_type === 'movie' ? (
+                      <Film className="w-3 h-3 text-white" />
+                    ) : (
+                      <Tv className="w-3 h-3 text-white" />
+                    )}
+                  </div>
                 </Link>
 
                 {/* Info */}
@@ -346,10 +387,12 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                   className="flex-1 min-w-0"
                 >
                   <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
-                  <p className="text-xs text-gray-400 capitalize">{item.media_type}</p>
+                  <p className="text-xs text-gray-400 capitalize">
+                    {item.media_type === 'tv' ? 'TV Show' : 'Movie'}
+                  </p>
                 </Link>
 
-                {/* Saved Indicator (Spotify-style position) */}
+                {/* Favorite Indicator */}
                 {item.is_favorite && (
                   <Heart className="w-5 h-5 text-pink-500 flex-shrink-0" />
                 )}
@@ -366,7 +409,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
           </div>
         ) : (
           /* Grid View */
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             {filteredItems.map((item) => (
               <div key={item.id} className="group relative">
                 <Link href={`/${item.media_type}/${item.media_id}`}>
@@ -376,36 +419,31 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                       alt={item.title}
                       fill
                       className="object-cover group-hover:opacity-75 transition"
-                      sizes="50vw"
+                      sizes="33vw"
                     />
-                  </div>
-
-                  <div className="space-y-1">
-                    <h3 className="font-semibold text-sm line-clamp-2 leading-tight">
-                      {item.title}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs text-gray-400 capitalize">{item.media_type}</p>
-                      {item.rating && (
-                        <div className="flex items-center gap-0.5">
-                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs text-yellow-400">{item.rating}</span>
-                        </div>
+                    <div className="absolute top-2 left-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
+                      {item.media_type === 'movie' ? (
+                        <Film className="w-3.5 h-3.5 text-white" />
+                      ) : (
+                        <Tv className="w-3.5 h-3.5 text-white" />
                       )}
                     </div>
                   </div>
+                  <h3 className="font-semibold text-xs line-clamp-2 leading-tight">
+                    {item.title}
+                  </h3>
                 </Link>
 
                 {item.is_favorite && (
-                  <div className="absolute top-2 left-2 w-8 h-8 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center z-10">
-                    <Heart className="w-4 h-4 text-pink-500" />
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center z-10">
+                    <Heart className="w-3.5 h-3.5 text-pink-500" />
                   </div>
                 )}
 
-                {/* Options Button */}
+                {/* Options Button (visible on hover) */}
                 <button
                   onClick={() => openOptionsSheet(item)}
-                  className="absolute top-2 right-2 w-8 h-8 bg-black/75 hover:bg-zinc-700 backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                  className="absolute bottom-12 right-1 w-7 h-7 bg-black/75 hover:bg-zinc-700 backdrop-blur-sm rounded-full flex items-center justify-center transition z-10 opacity-0 group-hover:opacity-100"
                 >
                   <MoreVertical className="w-4 h-4" />
                 </button>

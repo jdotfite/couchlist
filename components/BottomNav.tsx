@@ -31,7 +31,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 bg-gradient-to-b from-transparent via-black/80 via-40% to-black/95 z-50 transition-transform duration-300 ease-out ${
+    <nav className={`fixed bottom-0 left-0 right-0 bg-black/90 z-50 transition-transform duration-300 ease-out ${
       shouldTransform ? 'translate-x-[280px]' : 'translate-x-0'
     }`}>
       <div className="flex items-center justify-around h-16 px-2">

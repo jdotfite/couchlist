@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Users,
-  Plus,
+  UserPlus,
   Copy,
   Check,
   Trash2,
@@ -25,6 +25,8 @@ import {
   Share2,
   Settings,
   Link2,
+  Search,
+  AtSign,
 } from 'lucide-react';
 
 interface Collaboration {
@@ -82,10 +84,18 @@ export default function CollaboratorsSettingsPage() {
 
   // Invite modal state
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteTab, setInviteTab] = useState<'search' | 'link'>('search');
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedLists, setSelectedLists] = useState<string[]>([]);
+
+  // User search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<{ id: number; name: string; username: string | null; image: string | null }[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; username: string | null } | null>(null);
+  const [directInviteSent, setDirectInviteSent] = useState(false);
 
   // Remove confirmation
   const [removingId, setRemovingId] = useState<number | null>(null);
@@ -226,6 +236,57 @@ export default function CollaboratorsSettingsPage() {
     );
   };
 
+  const searchUsers = async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const response = await fetch(`/api/connections?search=${encodeURIComponent(query)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.users || []);
+      }
+    } catch (err) {
+      console.error('Failed to search users:', err);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const sendDirectInvite = async () => {
+    if (!selectedUser || selectedLists.length === 0) return;
+
+    setInviteLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/collaborators/invite-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserId: selectedUser.id,
+          lists: selectedLists,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to send invite');
+        return;
+      }
+
+      setDirectInviteSent(true);
+    } catch (err) {
+      setError('Failed to send invite');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
   const openEditModal = (collab: Collaboration) => {
     setEditingCollaboration(collab);
     setEditLists(collab.sharedLists);
@@ -294,18 +355,9 @@ export default function CollaboratorsSettingsPage() {
             <ChevronLeft className="w-6 h-6" />
           </Link>
           <div className="flex-1">
-            <h1 className="text-xl font-bold">Shared Lists</h1>
-            <p className="text-xs text-gray-400">Collaborate with others</p>
+            <h1 className="text-xl font-bold">Connections</h1>
+            <p className="text-xs text-gray-400">Share lists with friends</p>
           </div>
-          <button
-            onClick={() => {
-              setShowInviteModal(true);
-              setInviteUrl(null);
-            }}
-            className="p-2 bg-brand-primary hover:bg-brand-primary-light rounded-full transition"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
         </div>
       </header>
 
@@ -395,26 +447,34 @@ export default function CollaboratorsSettingsPage() {
           </div>
         )}
 
+        {/* Invite to Collaborate Button - always visible */}
+        <button
+          onClick={() => {
+            setShowInviteModal(true);
+            setInviteUrl(null);
+            setSelectedLists([]);
+            setSelectedUser(null);
+            setSearchQuery('');
+            setSearchResults([]);
+            setDirectInviteSent(false);
+            setInviteTab('search');
+          }}
+          className="w-full mb-6 p-4 border-2 border-dashed border-zinc-700 hover:border-brand-primary rounded-xl transition flex items-center justify-center gap-3 text-gray-400 hover:text-white group"
+        >
+          <UserPlus className="w-5 h-5 group-hover:text-brand-primary transition" />
+          <span className="font-medium">Invite to Collaborate</span>
+        </button>
+
         {/* Empty state */}
         {collaborations.length === 0 && pendingInvites.length === 0 && (
-          <div className="text-center py-12">
+          <div className="text-center py-8">
             <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-gray-500" />
             </div>
-            <h2 className="text-lg font-semibold mb-2">No shared lists yet</h2>
-            <p className="text-gray-400 mb-6 max-w-xs mx-auto">
-              Invite someone to collaborate on your movie and TV show lists.
+            <h2 className="text-lg font-semibold mb-2">No connections yet</h2>
+            <p className="text-gray-400 max-w-xs mx-auto">
+              Invite friends to share your movie and TV show lists together.
             </p>
-            <button
-              onClick={() => {
-                setShowInviteModal(true);
-                setInviteUrl(null);
-              }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-primary hover:bg-brand-primary-light rounded-full font-semibold transition"
-            >
-              <Share2 className="w-4 h-4" />
-              Invite Someone
-            </button>
           </div>
         )}
 
@@ -487,19 +547,19 @@ export default function CollaboratorsSettingsPage() {
                   {removingId === collaboration.id && (
                     <div className="mt-4 pt-4 border-t border-zinc-700">
                       <p className="text-sm text-gray-300 mb-3">
-                        Stop sharing lists with {partnerName}?
+                        End connection with {partnerName}?
                       </p>
                       <ul className="text-xs text-gray-500 mb-4 space-y-1">
-                        <li>• You'll stop seeing each other's items</li>
-                        <li>• Items already in your lists will stay</li>
-                        <li>• Nothing gets deleted</li>
+                        <li>• You'll no longer see each other's items</li>
+                        <li>• Items already in your library stay yours</li>
+                        <li>• {partnerName} will be notified</li>
                       </ul>
                       <div className="flex gap-2">
                         <button
                           onClick={() => removeCollaboration(collaboration.id)}
                           className="flex-1 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-sm font-medium transition"
                         >
-                          Stop Sharing
+                          End Connection
                         </button>
                         <button
                           onClick={() => setRemovingId(null)}
@@ -526,19 +586,193 @@ export default function CollaboratorsSettingsPage() {
           />
 
           <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-2">Invite to Collaborate</h2>
-            <p className="text-gray-400 text-sm mb-4">
-              Share this link with someone to collaborate on your lists.
-            </p>
-            <p className="text-xs text-gray-500 mb-6">
-              Want to share a custom list instead?{' '}
-              <Link href="/lists" className="text-brand-primary hover:underline" onClick={() => setShowInviteModal(false)}>
-                Go to My Lists
-              </Link>
-            </p>
+            <h2 className="text-xl font-bold mb-4">Invite to Collaborate</h2>
 
-            {!inviteUrl ? (
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => setInviteTab('search')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition ${
+                  inviteTab === 'search'
+                    ? 'bg-brand-primary text-white'
+                    : 'bg-zinc-800 text-gray-400 hover:text-white'
+                }`}
+              >
+                <Search className="w-4 h-4" />
+                Find User
+              </button>
+              <button
+                onClick={() => setInviteTab('link')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition ${
+                  inviteTab === 'link'
+                    ? 'bg-brand-primary text-white'
+                    : 'bg-zinc-800 text-gray-400 hover:text-white'
+                }`}
+              >
+                <Link2 className="w-4 h-4" />
+                Share Link
+              </button>
+            </div>
+
+            {/* Search User Tab */}
+            {inviteTab === 'search' && !directInviteSent && (
               <>
+                {/* User search */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        searchUsers(e.target.value);
+                      }}
+                      placeholder="Search by name or @username"
+                      className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary"
+                    />
+                  </div>
+
+                  {/* Search results */}
+                  {searchLoading && (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    </div>
+                  )}
+
+                  {!searchLoading && searchResults.length > 0 && (
+                    <div className="mt-2 bg-zinc-800 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+                      {searchResults.map(user => (
+                        <button
+                          key={user.id}
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setSearchQuery(user.name);
+                            setSearchResults([]);
+                          }}
+                          className="w-full flex items-center gap-3 p-3 hover:bg-zinc-700 transition"
+                        >
+                          <div className="w-8 h-8 bg-brand-primary/20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-brand-primary font-semibold text-sm">
+                              {user.name?.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <p className="text-sm font-medium">{user.name}</p>
+                            {user.username && (
+                              <p className="text-xs text-gray-500">@{user.username}</p>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && (
+                    <p className="text-center text-gray-500 text-sm py-4">No users found</p>
+                  )}
+                </div>
+
+                {/* Selected user */}
+                {selectedUser && (
+                  <div className="mb-4 p-3 bg-brand-primary/10 border border-brand-primary rounded-lg flex items-center gap-3">
+                    <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-brand-primary font-semibold">
+                        {selectedUser.name?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{selectedUser.name}</p>
+                      {selectedUser.username && (
+                        <p className="text-xs text-gray-400">@{selectedUser.username}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedUser(null);
+                        setSearchQuery('');
+                      }}
+                      className="p-1 hover:bg-zinc-700 rounded"
+                    >
+                      <XCircle className="w-4 h-4 text-gray-400" />
+                    </button>
+                  </div>
+                )}
+
+                {/* List selection */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium mb-3">Select lists to share</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(listLabels).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => toggleListSelection(key)}
+                        className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition ${
+                          selectedLists.includes(key)
+                            ? 'bg-brand-primary/10 border-brand-primary'
+                            : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                          selectedLists.includes(key)
+                            ? 'bg-brand-primary border-brand-primary'
+                            : 'border-zinc-600'
+                        }`}>
+                          {selectedLists.includes(key) && <Check className="w-3 h-3" />}
+                        </div>
+                        {listIcons[key]}
+                        <span className="flex-1 text-left">{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={sendDirectInvite}
+                  disabled={inviteLoading || !selectedUser || selectedLists.length === 0}
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-light disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                >
+                  {inviteLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-5 h-5" />
+                      Send Invite
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+
+            {/* Direct invite sent success */}
+            {inviteTab === 'search' && directInviteSent && (
+              <div className="text-center py-6">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check className="w-8 h-8 text-green-500" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
+                <p className="text-gray-400 text-sm mb-4">
+                  {selectedUser?.name} will see your invitation in their notifications.
+                </p>
+                <button
+                  onClick={() => setShowInviteModal(false)}
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-light rounded-xl font-semibold transition"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+
+            {/* Share Link Tab */}
+            {inviteTab === 'link' && !inviteUrl && (
+              <>
+                <p className="text-gray-400 text-sm mb-4">
+                  Create a link to share with anyone. They can accept using this link.
+                </p>
+
                 {/* List selection */}
                 <div className="mb-6">
                   <h3 className="text-sm font-medium mb-3">Select lists to share</h3>
@@ -574,20 +808,22 @@ export default function CollaboratorsSettingsPage() {
                 >
                   {inviteLoading ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
+                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
                       Creating...
                     </>
                   ) : (
                     <>
-                      <Share2 className="w-5 h-5" />
+                      <Link2 className="w-5 h-5" />
                       Create Invite Link
                     </>
                   )}
                 </button>
               </>
-            ) : (
+            )}
+
+            {/* Link created success */}
+            {inviteTab === 'link' && inviteUrl && (
               <>
-                {/* Invite URL */}
                 <div className="mb-6">
                   <div className="bg-zinc-800 rounded-lg p-3 mb-3">
                     <p className="text-sm text-gray-300 break-all font-mono">
@@ -624,7 +860,7 @@ export default function CollaboratorsSettingsPage() {
               onClick={() => setShowInviteModal(false)}
               className="w-full mt-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-semibold transition"
             >
-              {inviteUrl ? 'Done' : 'Cancel'}
+              {(inviteTab === 'link' && inviteUrl) || (inviteTab === 'search' && directInviteSent) ? 'Done' : 'Cancel'}
             </button>
           </div>
         </div>,

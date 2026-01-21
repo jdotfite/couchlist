@@ -3,14 +3,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import ProfileMenu from '@/components/ProfileMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import SearchHero from '@/components/home/SearchHero';
 import ContinueWatching from '@/components/home/ContinueWatching';
 import ListsGrid, { DEFAULT_LISTS } from '@/components/home/ListsGrid';
-import TrendingRow from '@/components/home/TrendingRow';
 import HomePageSkeleton from '@/components/home/HomePageSkeleton';
-import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import { useListPreferences } from '@/hooks/useListPreferences';
 import { Play, List, CheckCircle2, LayoutGrid } from 'lucide-react';
 
@@ -22,22 +21,10 @@ interface LibraryItem {
   poster_path: string | null;
 }
 
-interface TrendingItem {
-  id: number;
-  title?: string;
-  name?: string;
-  poster_path: string | null;
-  media_type: 'movie' | 'tv';
-  release_date?: string;
-  first_air_date?: string;
-}
-
 interface HomeCache {
   watchingItems: LibraryItem[];
   watchlistItems: LibraryItem[];
   finishedItems: LibraryItem[];
-  trendingAll: TrendingItem[];
-  popularAll: TrendingItem[];
 }
 
 export default function Home() {
@@ -59,11 +46,7 @@ export default function Home() {
   const [watchingItems, setWatchingItems] = useState<LibraryItem[]>(() => initialCache?.watchingItems || []);
   const [watchlistItems, setWatchlistItems] = useState<LibraryItem[]>(() => initialCache?.watchlistItems || []);
   const [finishedItems, setFinishedItems] = useState<LibraryItem[]>(() => initialCache?.finishedItems || []);
-  const [trendingAll, setTrendingAll] = useState<TrendingItem[]>(() => initialCache?.trendingAll || []);
-  const [popularAll, setPopularAll] = useState<TrendingItem[]>(() => initialCache?.popularAll || []);
   const [isLoading, setIsLoading] = useState(() => !initialCache);
-  const [selectedItem, setSelectedItem] = useState<TrendingItem | null>(null);
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -117,43 +100,6 @@ export default function Home() {
     }
   };
 
-  const fetchTrending = async () => {
-    try {
-      const response = await fetch('/api/trending');
-      if (!response.ok) throw new Error('Failed to fetch trending');
-      const data = await response.json();
-
-      // Combine movies and TV, interleaved for variety
-      const trending = [...(data.trendingMovies || []), ...(data.trendingTV || [])];
-      const popular = [...(data.popularMovies || []), ...(data.popularTV || [])];
-
-      // Shuffle to mix content types
-      const shuffleMix = (arr: TrendingItem[]) => {
-        const result: TrendingItem[] = [];
-        const movies = arr.filter(i => i.media_type === 'movie');
-        const tv = arr.filter(i => i.media_type === 'tv');
-        const maxLen = Math.max(movies.length, tv.length);
-        for (let i = 0; i < maxLen; i++) {
-          if (movies[i]) result.push(movies[i]);
-          if (tv[i]) result.push(tv[i]);
-        }
-        return result;
-      };
-
-      const nextState = {
-        trendingAll: shuffleMix(trending).slice(0, 15),
-        popularAll: shuffleMix(popular).slice(0, 15),
-      };
-
-      setTrendingAll(nextState.trendingAll);
-      setPopularAll(nextState.popularAll);
-      return nextState;
-    } catch (error) {
-      console.error('Failed to fetch trending:', error);
-      return null;
-    }
-  };
-
   const writeCache = (cache: HomeCache) => {
     if (typeof window === 'undefined') return;
     try {
@@ -162,15 +108,10 @@ export default function Home() {
   };
 
   const refreshCache = async () => {
-    const [libraryData, trendingData] = await Promise.all([fetchLibrary(), fetchTrending()]);
-    if (libraryData && trendingData) {
-      writeCache({ ...libraryData, ...trendingData });
+    const libraryData = await fetchLibrary();
+    if (libraryData) {
+      writeCache(libraryData);
     }
-  };
-
-  const handleAddClick = (item: TrendingItem) => {
-    setSelectedItem(item);
-    setIsSheetOpen(true);
   };
 
   if (status === 'loading' || status === 'unauthenticated' || isLoading) {
@@ -220,7 +161,14 @@ export default function Home() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <ProfileMenu />
-            <h1 className="text-2xl font-bold">FlickLog</h1>
+            <Image
+              src="/logo-flicklog.svg"
+              alt="FlickLog"
+              width={105}
+              height={27}
+              className="h-7 w-auto"
+              priority
+            />
           </div>
           <NotificationBell />
         </div>
@@ -235,35 +183,7 @@ export default function Home() {
 
         {/* Continue Watching */}
         <ContinueWatching items={watchingItems} />
-
-        {/* Trending Now */}
-        <TrendingRow
-          title="Trending Now"
-          items={trendingAll}
-          seeAllLink="/search"
-          onAddClick={handleAddClick}
-        />
-
-        {/* Popular */}
-        <TrendingRow
-          title="Popular"
-          items={popularAll}
-          seeAllLink="/search"
-          onAddClick={handleAddClick}
-        />
       </main>
-
-      {/* Media Options Sheet */}
-      {selectedItem && (
-        <MediaOptionsSheet
-          isOpen={isSheetOpen}
-          onClose={() => setIsSheetOpen(false)}
-          mediaId={selectedItem.id}
-          mediaType={selectedItem.media_type}
-          title={selectedItem.title || selectedItem.name || 'Unknown'}
-          posterPath={selectedItem.poster_path || ''}
-        />
-      )}
     </div>
   );
 }
