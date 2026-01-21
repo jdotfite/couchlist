@@ -216,14 +216,17 @@ export default function ProfileImageUpload({
         <p className="text-sm text-red-400 text-center">{error}</p>
       )}
 
-      {/* Crop Modal */}
+      {/* Crop Modal - Portal to body to escape any parent stacking contexts */}
       {isModalOpen && imageSrc && (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col overflow-hidden">
-          {/* Header */}
-          <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-zinc-800 bg-black">
+        <div
+          className="fixed top-0 left-0 right-0 bottom-0 bg-black flex flex-col"
+          style={{ zIndex: 9999, height: '100dvh' }}
+        >
+          {/* Header - 60px */}
+          <div className="h-[60px] flex items-center justify-between px-4 border-b border-zinc-800 bg-black">
             <button
               onClick={handleCancel}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors p-2"
             >
               <X className="w-6 h-6" />
             </button>
@@ -237,8 +240,11 @@ export default function ProfileImageUpload({
             </button>
           </div>
 
-          {/* Cropper area - takes remaining space */}
-          <div className="flex-1 relative min-h-0">
+          {/* Cropper area - explicit height calculation */}
+          <div
+            className="relative bg-zinc-900"
+            style={{ height: 'calc(100dvh - 60px - 100px)' }}
+          >
             <Cropper
               image={imageSrc}
               crop={crop}
@@ -252,8 +258,8 @@ export default function ProfileImageUpload({
             />
           </div>
 
-          {/* Zoom controls - fixed at bottom */}
-          <div className="flex-shrink-0 p-4 border-t border-zinc-800 bg-black" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          {/* Zoom controls - 100px */}
+          <div className="h-[100px] px-4 py-3 border-t border-zinc-800 bg-black">
             <div className="flex items-center justify-center gap-4 max-w-xs mx-auto">
               <button
                 onClick={() => setZoom(Math.max(1, zoom - 0.1))}
@@ -277,12 +283,11 @@ export default function ProfileImageUpload({
                 <ZoomIn className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-gray-500 text-center mt-2">
-              Drag to reposition, pinch or use slider to zoom
+            <p className="text-xs text-gray-500 text-center mt-1">
+              Drag to reposition, use slider to zoom
             </p>
-            {/* Error in modal */}
             {error && (
-              <p className="text-sm text-red-400 text-center mt-2">{error}</p>
+              <p className="text-sm text-red-400 text-center mt-1">{error}</p>
             )}
           </div>
         </div>
