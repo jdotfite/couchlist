@@ -4,7 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Loader2, Check, AlertCircle, User, Eye, Users, Shield, X, Link as LinkIcon } from 'lucide-react';
+import { ChevronLeft, Loader2, Check, AlertCircle, User, Eye, Users, Shield, X, Link as LinkIcon, Camera } from 'lucide-react';
+import ProfileImageUpload from '@/components/ProfileImageUpload';
+import { useProfileImage } from '@/hooks/useProfileImage';
 
 interface PrivacySettings {
   discoverability: 'everyone' | 'connections_only' | 'nobody';
@@ -15,9 +17,11 @@ interface PrivacySettings {
 type AvailabilityStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 export default function PrivacySettingsPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const { updateProfileImage: updateGlobalProfileImage } = useProfileImage();
 
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [username, setUsername] = useState('');
   const [originalUsername, setOriginalUsername] = useState('');
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -46,9 +50,10 @@ export default function PrivacySettingsPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [usernameRes, privacyRes] = await Promise.all([
+      const [usernameRes, privacyRes, profileImageRes] = await Promise.all([
         fetch('/api/users/username'),
         fetch('/api/users/privacy'),
+        fetch('/api/users/profile-image'),
       ]);
 
       if (usernameRes.ok) {
@@ -64,6 +69,11 @@ export default function PrivacySettingsPage() {
           show_in_search: data.show_in_search !== false,
           allow_invites_from: data.allow_invites_from || 'everyone',
         });
+      }
+
+      if (profileImageRes.ok) {
+        const data = await profileImageRes.json();
+        setProfileImage(data.profileImage || null);
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error);
@@ -219,6 +229,35 @@ export default function PrivacySettingsPage() {
     }
   };
 
+  const handleImageChange = async (imageData: string | null) => {
+    if (imageData === null) {
+      // Delete image
+      const response = await fetch('/api/users/profile-image', {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setProfileImage(null);
+        updateGlobalProfileImage(null);
+      } else {
+        throw new Error('Failed to delete image');
+      }
+    } else {
+      // Upload new image
+      const response = await fetch('/api/users/profile-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageData }),
+      });
+      if (response.ok) {
+        setProfileImage(imageData);
+        updateGlobalProfileImage(imageData);
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to upload image');
+      }
+    }
+  };
+
   const getAvailabilityIcon = () => {
     switch (availabilityStatus) {
       case 'checking':
@@ -263,6 +302,24 @@ export default function PrivacySettingsPage() {
       </header>
 
       <main className="px-4 pt-6 space-y-8">
+        {/* Profile Photo Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Camera className="w-5 h-5 text-brand-primary" />
+            <h2 className="text-lg font-semibold">Profile Photo</h2>
+          </div>
+          <div className="bg-zinc-900 rounded-xl p-6">
+            <ProfileImageUpload
+              currentImage={profileImage}
+              userName={session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
+              onImageChange={handleImageChange}
+            />
+            <p className="text-xs text-gray-500 text-center mt-4">
+              JPEG, PNG, WebP, or GIF. Max 5MB. Images are cropped to 200x200px.
+            </p>
+          </div>
+        </section>
+
         {/* Username Section */}
         <section>
           <div className="flex items-center justify-between mb-4">

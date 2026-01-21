@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { X, Home, Search, Library, Users, Settings, LogOut, List, ChevronRight, User } from 'lucide-react';
 import { useSidebar } from './SidebarContext';
+import { useProfileImage } from '@/hooks/useProfileImage';
 import { useEffect, useState } from 'react';
 
 export default function Sidebar() {
   const { isOpen, setIsOpen } = useSidebar();
   const { data: session } = useSession();
+  const { profileImage, clearCache } = useProfileImage();
   const [mounted, setMounted] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
 
@@ -72,8 +74,12 @@ export default function Sidebar() {
           </button>
 
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold text-lg">
-              {userInitials}
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-bold text-lg overflow-hidden">
+              {profileImage ? (
+                <img src={profileImage} alt="" className="w-full h-full object-cover" />
+              ) : (
+                userInitials
+              )}
             </div>
             <div>
               <h2 className="text-lg">{userName}</h2>
@@ -171,6 +177,7 @@ export default function Sidebar() {
           <button
             onClick={() => {
               setIsOpen(false);
+              clearCache();
               signOut({ callbackUrl: '/' });
             }}
             className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 rounded-lg transition text-left text-gray-400 hover:text-white"

@@ -4,13 +4,13 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   ChevronRight, Bell, Shield, Share2, Upload, Download,
   LogOut, Settings, BarChart3, Film, Tv
 } from 'lucide-react';
 import ProfileMenu from '@/components/ProfileMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import { useProfileImage } from '@/hooks/useProfileImage';
 
 interface LibraryCounts {
   movies: number;
@@ -21,6 +21,7 @@ interface LibraryCounts {
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { profileImage } = useProfileImage();
   const [counts, setCounts] = useState<LibraryCounts>({ movies: 0, tv: 0, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -98,16 +99,11 @@ export default function ProfilePage() {
         <div className="bg-zinc-900 rounded-2xl p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
             {/* Avatar */}
-            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-brand-primary/20 flex-shrink-0">
-              {session?.user?.image ? (
-                <Image
-                  src={session.user.image}
-                  alt={session.user.name || 'Profile'}
-                  fill
-                  className="object-cover"
-                />
+            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex-shrink-0">
+              {profileImage ? (
+                <img src={profileImage} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-brand-primary">
+                <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-white">
                   {session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || '?'}
                 </div>
               )}

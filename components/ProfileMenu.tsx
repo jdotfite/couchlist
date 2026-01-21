@@ -3,10 +3,12 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useSidebar } from './SidebarContext';
+import { useProfileImage } from '@/hooks/useProfileImage';
 
 export default function ProfileMenu() {
   const { setIsOpen } = useSidebar();
   const { data: session } = useSession();
+  const { profileImage } = useProfileImage();
 
   if (!session?.user) {
     return (
@@ -32,8 +34,12 @@ export default function ProfileMenu() {
       onClick={() => setIsOpen(true)}
       className="flex-shrink-0"
     >
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-semibold text-xs hover:scale-110 transition-transform">
-        {userInitials}
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center font-semibold text-xs hover:scale-110 transition-transform overflow-hidden">
+        {profileImage ? (
+          <img src={profileImage} alt="" className="w-full h-full object-cover" />
+        ) : (
+          userInitials
+        )}
       </div>
     </button>
   );

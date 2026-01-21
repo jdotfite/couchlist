@@ -675,6 +675,16 @@ export async function initDb() {
       ON notifications(user_id, created_at DESC);
     `;
 
+    // Add profile_image column to users table for avatar uploads
+    try {
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS profile_image TEXT;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },
