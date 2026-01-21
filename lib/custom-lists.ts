@@ -905,14 +905,12 @@ export async function getCustomListsWithMediaType(
 
     const items = itemsResult.rows as CustomListItem[];
 
-    // Only show lists that have at least 1 item of the specified media type
-    if (items.length > 0) {
-      listsWithItems.push({
-        ...list,
-        item_count: items.length,
-        items,
-      });
-    }
+    // Include all lists, even if empty for this media type
+    listsWithItems.push({
+      ...list,
+      item_count: items.length,
+      items,
+    });
   }
 
   return listsWithItems;

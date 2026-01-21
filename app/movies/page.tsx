@@ -8,7 +8,7 @@ import Link from 'next/link';
 import ProfileMenu from '@/components/ProfileMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import { getImageUrl } from '@/lib/tmdb';
-import { Plus } from 'lucide-react';
+import { Plus, Play, List, CheckCircle2, LayoutGrid } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import LibraryDashboardSkeleton from '@/components/LibraryDashboardSkeleton';
 import { useListPreferences } from '@/hooks/useListPreferences';
@@ -230,7 +230,9 @@ export default function MoviesPage() {
                     sizes="64px"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-emerald-900" />
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-emerald-900 flex items-center justify-center">
+                    <Play className="w-6 h-6 text-white/80" />
+                  </div>
                 )}
               </div>
               <div>
@@ -253,7 +255,9 @@ export default function MoviesPage() {
                     sizes="64px"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-900" />
+                  <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-900 flex items-center justify-center">
+                    <List className="w-6 h-6 text-white/80" />
+                  </div>
                 )}
               </div>
               <div>
@@ -276,7 +280,9 @@ export default function MoviesPage() {
                     sizes="64px"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-brand-primary to-brand-primary-darker" />
+                  <div className="w-full h-full bg-gradient-to-br from-brand-primary to-brand-primary-darker flex items-center justify-center">
+                    <CheckCircle2 className="w-6 h-6 text-white/80" />
+                  </div>
                 )}
               </div>
               <div>
@@ -299,7 +305,9 @@ export default function MoviesPage() {
                     sizes="64px"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-zinc-600 to-zinc-800" />
+                  <div className="w-full h-full bg-gradient-to-br from-zinc-600 to-zinc-800 flex items-center justify-center">
+                    <LayoutGrid className="w-6 h-6 text-white/80" />
+                  </div>
                 )}
               </div>
               <div>
