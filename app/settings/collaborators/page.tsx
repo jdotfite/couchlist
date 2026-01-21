@@ -51,6 +51,15 @@ interface PendingInvite {
   expiresAt: string;
 }
 
+interface CustomList {
+  id: number;
+  slug: string;
+  name: string;
+  icon: string;
+  color: string;
+  item_count?: number;
+}
+
 const listIcons: Record<string, React.ReactNode> = {
   watchlist: <Clock className="w-4 h-4 text-blue-500" />,
   watching: <Play className="w-4 h-4 text-green-500" />,
@@ -79,6 +88,7 @@ export default function CollaboratorsSettingsPage() {
 
   const [collaborations, setCollaborations] = useState<Collaboration[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,6 +106,7 @@ export default function CollaboratorsSettingsPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; username: string | null } | null>(null);
   const [directInviteSent, setDirectInviteSent] = useState(false);
+  const [selectedCustomLists, setSelectedCustomLists] = useState<number[]>([]);
 
   // Remove confirmation
   const [removingId, setRemovingId] = useState<number | null>(null);
@@ -117,6 +128,7 @@ export default function CollaboratorsSettingsPage() {
     if (status === 'authenticated') {
       fetchCollaborations();
       fetchPendingInvites();
+      fetchCustomLists();
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }
@@ -150,6 +162,19 @@ export default function CollaboratorsSettingsPage() {
       }
     } catch (err) {
       console.error('Failed to fetch pending invites:', err);
+    }
+  };
+
+  const fetchCustomLists = async () => {
+    try {
+      const response = await fetch('/api/custom-lists');
+      const data = await response.json();
+
+      if (response.ok) {
+        setCustomLists(data.lists || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch custom lists:', err);
     }
   };
 
@@ -236,6 +261,14 @@ export default function CollaboratorsSettingsPage() {
     );
   };
 
+  const toggleCustomListSelection = (listId: number) => {
+    setSelectedCustomLists(prev =>
+      prev.includes(listId)
+        ? prev.filter(id => id !== listId)
+        : [...prev, listId]
+    );
+  };
+
   const searchUsers = async (query: string) => {
     if (!query.trim() || query.length < 2) {
       setSearchResults([]);
@@ -257,7 +290,7 @@ export default function CollaboratorsSettingsPage() {
   };
 
   const sendDirectInvite = async () => {
-    if (!selectedUser || selectedLists.length === 0) return;
+    if (!selectedUser || (selectedLists.length === 0 && selectedCustomLists.length === 0)) return;
 
     setInviteLoading(true);
     setError(null);
@@ -269,6 +302,7 @@ export default function CollaboratorsSettingsPage() {
         body: JSON.stringify({
           targetUserId: selectedUser.id,
           lists: selectedLists,
+          customListIds: selectedCustomLists,
         }),
       });
 
@@ -453,6 +487,7 @@ export default function CollaboratorsSettingsPage() {
             setShowInviteModal(true);
             setInviteUrl(null);
             setSelectedLists([]);
+            setSelectedCustomLists([]);
             setSelectedUser(null);
             setSearchQuery('');
             setSearchResults([]);
@@ -699,9 +734,9 @@ export default function CollaboratorsSettingsPage() {
                   </div>
                 )}
 
-                {/* List selection */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium mb-3">Select lists to share</h3>
+                {/* System Lists selection */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium mb-3">System Lists</h3>
                   <div className="grid grid-cols-2 gap-2">
                     {Object.entries(listLabels).map(([key, label]) => (
                       <button
@@ -727,9 +762,42 @@ export default function CollaboratorsSettingsPage() {
                   </div>
                 </div>
 
+                {/* Custom Lists selection */}
+                {customLists.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium mb-3">Custom Lists</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {customLists.map((list) => (
+                        <button
+                          key={list.id}
+                          onClick={() => toggleCustomListSelection(list.id)}
+                          className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition ${
+                            selectedCustomLists.includes(list.id)
+                              ? 'bg-brand-primary/10 border-brand-primary'
+                              : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            selectedCustomLists.includes(list.id)
+                              ? 'bg-brand-primary border-brand-primary'
+                              : 'border-zinc-600'
+                          }`}>
+                            {selectedCustomLists.includes(list.id) && <Check className="w-3 h-3" />}
+                          </div>
+                          <span className="flex-1 text-left truncate">{list.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {customLists.length === 0 && (
+                  <div className="mb-6" />
+                )}
+
                 <button
                   onClick={sendDirectInvite}
-                  disabled={inviteLoading || !selectedUser || selectedLists.length === 0}
+                  disabled={inviteLoading || !selectedUser || (selectedLists.length === 0 && selectedCustomLists.length === 0)}
                   className="w-full py-3 bg-brand-primary hover:bg-brand-primary-light disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
                 >
                   {inviteLoading ? (
@@ -773,9 +841,9 @@ export default function CollaboratorsSettingsPage() {
                   Create a link to share with anyone. They can accept using this link.
                 </p>
 
-                {/* List selection */}
-                <div className="mb-6">
-                  <h3 className="text-sm font-medium mb-3">Select lists to share</h3>
+                {/* System Lists selection */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium mb-3">System Lists</h3>
                   <div className="grid grid-cols-2 gap-2">
                     {Object.entries(listLabels).map(([key, label]) => (
                       <button
@@ -801,9 +869,42 @@ export default function CollaboratorsSettingsPage() {
                   </div>
                 </div>
 
+                {/* Custom Lists selection */}
+                {customLists.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium mb-3">Custom Lists</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {customLists.map((list) => (
+                        <button
+                          key={list.id}
+                          onClick={() => toggleCustomListSelection(list.id)}
+                          className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition ${
+                            selectedCustomLists.includes(list.id)
+                              ? 'bg-brand-primary/10 border-brand-primary'
+                              : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
+                          }`}
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            selectedCustomLists.includes(list.id)
+                              ? 'bg-brand-primary border-brand-primary'
+                              : 'border-zinc-600'
+                          }`}>
+                            {selectedCustomLists.includes(list.id) && <Check className="w-3 h-3" />}
+                          </div>
+                          <span className="flex-1 text-left truncate">{list.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {customLists.length === 0 && (
+                  <div className="mb-6" />
+                )}
+
                 <button
                   onClick={createInvite}
-                  disabled={inviteLoading || selectedLists.length === 0}
+                  disabled={inviteLoading || (selectedLists.length === 0 && selectedCustomLists.length === 0)}
                   className="w-full py-3 bg-brand-primary hover:bg-brand-primary-light disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
                 >
                   {inviteLoading ? (
