@@ -468,6 +468,19 @@ export async function getPendingDirectInvites(userId: number): Promise<{
   return invites;
 }
 
+// Get count of pending direct invites for a user
+export async function getPendingDirectInviteCount(userId: number): Promise<number> {
+  const result = await sql`
+    SELECT COUNT(*)::int as count
+    FROM collaborators
+    WHERE target_user_id = ${userId}
+    AND status = 'pending'
+    AND invite_expires_at > NOW()
+  `;
+
+  return result.rows[0]?.count || 0;
+}
+
 // Accept a direct invite
 export async function acceptDirectInvite(
   inviteId: number,

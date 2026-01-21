@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getPendingInvites, getPendingInviteCount } from '@/lib/invites';
+import { getPendingDirectInviteCount } from '@/lib/collaborators';
 
 // GET /api/invites/pending - Get pending invites for the current user
 export async function GET(request: Request) {
@@ -17,8 +18,12 @@ export async function GET(request: Request) {
     const userId = Number(session.user.id);
 
     if (countOnly) {
-      const count = await getPendingInviteCount(userId);
-      return NextResponse.json({ count });
+      // Count both custom list invites and direct collaboration invites
+      const [customListCount, directInviteCount] = await Promise.all([
+        getPendingInviteCount(userId),
+        getPendingDirectInviteCount(userId),
+      ]);
+      return NextResponse.json({ count: customListCount + directInviteCount });
     }
 
     const invites = await getPendingInvites(userId);

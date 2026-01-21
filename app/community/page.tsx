@@ -21,6 +21,7 @@ import {
   Clock,
 } from 'lucide-react';
 import ProfileMenu from '@/components/ProfileMenu';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 interface UserSearchResult {
   id: number;
@@ -226,9 +227,7 @@ export default function CommunityPage() {
             <ProfileMenu />
             <h1 className="text-2xl font-bold">Community</h1>
           </div>
-          <button className="p-2 hover:bg-zinc-800 rounded-full transition relative">
-            <Bell className="w-6 h-6" />
-          </button>
+<NotificationBell />
         </div>
       </header>
 
