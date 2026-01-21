@@ -216,14 +216,14 @@ export default function ProfileImageUpload({
         <p className="text-sm text-red-400 text-center">{error}</p>
       )}
 
-      {/* Crop Modal - Portal to body to escape any parent stacking contexts */}
+      {/* Crop Modal */}
       {isModalOpen && imageSrc && (
         <div
           className="fixed top-0 left-0 right-0 bottom-0 bg-black flex flex-col"
           style={{ zIndex: 9999, height: '100dvh' }}
         >
-          {/* Header - 60px */}
-          <div className="h-[60px] flex items-center justify-between px-4 border-b border-zinc-800 bg-black">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-black">
             <button
               onClick={handleCancel}
               className="text-gray-400 hover:text-white transition-colors p-2"
@@ -240,11 +240,25 @@ export default function ProfileImageUpload({
             </button>
           </div>
 
-          {/* Cropper area - explicit height calculation */}
-          <div
-            className="relative bg-zinc-900"
-            style={{ height: 'calc(100dvh - 60px - 100px)' }}
-          >
+          {/* Zoom controls - right below header */}
+          <div className="px-4 pb-3 bg-black">
+            <div className="flex items-center justify-center gap-3 max-w-xs mx-auto">
+              <ZoomOut className="w-4 h-4 text-gray-500" />
+              <input
+                type="range"
+                value={zoom}
+                min={1}
+                max={3}
+                step={0.1}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="flex-1 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+              />
+              <ZoomIn className="w-4 h-4 text-gray-500" />
+            </div>
+          </div>
+
+          {/* Cropper area - fills remaining space */}
+          <div className="flex-1 relative bg-zinc-900">
             <Cropper
               image={imageSrc}
               crop={crop}
@@ -258,38 +272,12 @@ export default function ProfileImageUpload({
             />
           </div>
 
-          {/* Zoom controls - 100px */}
-          <div className="h-[100px] px-4 py-3 border-t border-zinc-800 bg-black">
-            <div className="flex items-center justify-center gap-4 max-w-xs mx-auto">
-              <button
-                onClick={() => setZoom(Math.max(1, zoom - 0.1))}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
-              >
-                <ZoomOut className="w-5 h-5" />
-              </button>
-              <input
-                type="range"
-                value={zoom}
-                min={1}
-                max={3}
-                step={0.1}
-                onChange={(e) => setZoom(Number(e.target.value))}
-                className="flex-1 h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-brand-primary"
-              />
-              <button
-                onClick={() => setZoom(Math.min(3, zoom + 0.1))}
-                className="p-2 text-gray-400 hover:text-white transition-colors"
-              >
-                <ZoomIn className="w-5 h-5" />
-              </button>
+          {/* Error display at bottom if needed */}
+          {error && (
+            <div className="px-4 py-3 bg-black">
+              <p className="text-sm text-red-400 text-center">{error}</p>
             </div>
-            <p className="text-xs text-gray-500 text-center mt-1">
-              Drag to reposition, use slider to zoom
-            </p>
-            {error && (
-              <p className="text-sm text-red-400 text-center mt-1">{error}</p>
-            )}
-          </div>
+          )}
         </div>
       )}
     </div>
