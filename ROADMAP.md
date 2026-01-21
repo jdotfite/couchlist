@@ -313,10 +313,57 @@ Inline expand showing:
 - [ ] AI-powered recommendations based on ratings
 
 ### Notifications
-- [ ] New season/movie releases for favorites
-- [ ] Friend activity notifications
-- [ ] Watchlist reminders
-- [ ] Email digest options
+
+#### New Season Alerts (Priority)
+Track upcoming seasons for shows users are watching or have in their library.
+
+**TMDb Data Sources:**
+- `/tv/{id}` - `next_episode_to_air`, `last_episode_to_air`, `status`
+- `/tv/{id}/season/{season}` - Season air dates, episode count
+- Polling: Check shows weekly or use TMDb's changes endpoint
+
+**Alert Trigger Options (User Configurable):**
+- [ ] When new season is announced (TMDb adds season info)
+- [ ] One week before first episode airs
+- [ ] Day of first episode premiere
+- [ ] When season is fully released (for streaming drops)
+
+**Database Schema:**
+```sql
+CREATE TABLE user_alert_preferences (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  media_id INTEGER REFERENCES media(id),
+  alert_type VARCHAR(30) NOT NULL, -- 'season_announced', 'week_before', 'premiere_day', 'fully_released'
+  enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, media_id, alert_type)
+);
+
+CREATE TABLE notifications (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  type VARCHAR(30) NOT NULL, -- 'new_season', 'premiere', 'invite', 'collaborator_activity'
+  title TEXT NOT NULL,
+  body TEXT,
+  media_id INTEGER REFERENCES media(id),
+  data JSONB, -- Flexible metadata (season number, air date, etc.)
+  read BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Implementation:**
+- [ ] Background job to poll TMDb for season updates (Vercel Cron or external)
+- [ ] Global default alert preferences in user settings
+- [ ] Per-show override in show detail page
+- [ ] Notification center displays all notification types
+- [ ] Push notifications (web push API) - optional enhancement
+
+#### Other Notifications
+- [ ] Friend activity notifications (when collaborator adds items)
+- [ ] Watchlist reminders ("You added X 30 days ago")
+- [ ] Email digest options (daily/weekly summary)
 
 ### Integrations
 - [x] Import from Letterboxd (ZIP export with diary, ratings, watchlist) ✅

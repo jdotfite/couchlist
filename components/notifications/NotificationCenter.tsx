@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, XCircle, Clock, User, List, Users } from 'lucide-react';
 import Image from 'next/image';
 
@@ -163,16 +164,19 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
 
   if (!isOpen) return null;
 
-  return (
+  // Use portal to render at document body level, escaping any stacking contexts
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 z-40"
+        className="fixed inset-0 bg-black/70 z-[100]"
         onClick={onClose}
       />
 
       {/* Sheet */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-zinc-900 z-50 shadow-xl flex flex-col animate-slide-in-right">
+      <div className="fixed right-0 top-0 h-full w-full max-w-md bg-zinc-900 z-[110] shadow-xl flex flex-col animate-slide-in-right">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <h2 className="text-lg font-semibold text-white">Notifications</h2>
@@ -197,7 +201,7 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
                 <Check className="w-8 h-8 text-gray-500" />
               </div>
               <p className="text-gray-400">You're all caught up!</p>
-              <p className="text-gray-500 text-sm mt-1">No pending invitations</p>
+              <p className="text-gray-500 text-sm mt-1">New alerts will appear here</p>
             </div>
           ) : (
             <div className="divide-y divide-zinc-800">
@@ -311,6 +315,7 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

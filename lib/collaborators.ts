@@ -436,8 +436,7 @@ export async function getPendingDirectInvites(userId: number): Promise<{
       c.invite_message,
       c.created_at,
       u.name as owner_name,
-      u.username as owner_username,
-      u.image as owner_image
+      u.username as owner_username
     FROM collaborators c
     JOIN users u ON c.owner_id = u.id
     WHERE c.target_user_id = ${userId}
@@ -458,7 +457,7 @@ export async function getPendingDirectInvites(userId: number): Promise<{
       ownerId: row.owner_id,
       ownerName: row.owner_name,
       ownerUsername: row.owner_username,
-      ownerImage: row.owner_image,
+      ownerImage: null, // users table doesn't have image column
       message: row.invite_message,
       sharedLists: listsResult.rows.map(r => r.list_type),
       createdAt: row.created_at,
@@ -477,7 +476,6 @@ export async function getPendingDirectInviteCount(userId: number): Promise<numbe
     AND status = 'pending'
     AND invite_expires_at > NOW()
   `;
-
   return result.rows[0]?.count || 0;
 }
 
