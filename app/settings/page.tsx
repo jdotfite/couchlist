@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Share2, ChevronRight, Shield, Download, Upload, Bell } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Shield, Download, Upload, Bell } from 'lucide-react';
 
 export default function SettingsPage() {
   const { status } = useSession();
@@ -62,20 +62,6 @@ export default function SettingsPage() {
             <div className="flex-1">
               <h3 className="font-semibold">Privacy & Profile</h3>
               <p className="text-sm text-gray-400">Manage your username and privacy settings</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-500" />
-          </Link>
-
-          <Link
-            href="/settings/sharing"
-            className="flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
-          >
-            <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Share2 className="w-5 h-5 text-brand-primary" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">Partner & Friends</h3>
-              <p className="text-sm text-gray-400">Share lists and suggestions with others</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-500" />
           </Link>
