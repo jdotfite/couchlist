@@ -660,11 +660,12 @@ export default function CollaboratorsSettingsPage() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        searchUsers(e.target.value);
+                        const value = e.target.value.toLowerCase();
+                        setSearchQuery(value);
+                        searchUsers(value);
                       }}
                       placeholder="Search by name or @username"
-                      className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary"
+                      className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary lowercase"
                     />
                   </div>
 
