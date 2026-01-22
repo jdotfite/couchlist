@@ -165,14 +165,18 @@ export default function LibraryPage() {
                     <p className="text-sm text-gray-400">{list.count} items</p>
                   </div>
 
-                  {/* Preview Posters */}
+                  {/* Preview Posters - stacked with rightmost on top */}
                   {list.items.length > 0 && (
-                    <div className="flex -space-x-2 mr-2">
+                    <div className="flex mr-2">
                       {list.items.slice(0, 3).map((item, index) => (
                         <div
                           key={index}
-                          className="relative w-8 h-12 rounded overflow-hidden border-2 border-zinc-900 flex-shrink-0"
-                          style={{ zIndex: 3 - index }}
+                          className="relative w-8 h-12 rounded overflow-hidden flex-shrink-0"
+                          style={{
+                            zIndex: index,
+                            marginLeft: index === 0 ? 0 : -16,
+                            boxShadow: index > 0 ? '-3px 0 6px rgba(0, 0, 0, 0.4)' : 'none',
+                          }}
                         >
                           {item.poster_path ? (
                             <Image
@@ -234,14 +238,18 @@ export default function LibraryPage() {
                         <p className="text-sm text-gray-400">{list.item_count} items</p>
                       </div>
 
-                      {/* Preview Posters */}
+                      {/* Preview Posters - stacked with rightmost on top */}
                       {list.items && list.items.length > 0 && (
-                        <div className="flex -space-x-2 mr-2">
+                        <div className="flex mr-2">
                           {list.items.slice(0, 3).map((item, index) => (
                             <div
                               key={index}
-                              className="relative w-8 h-12 rounded overflow-hidden border-2 border-zinc-900 flex-shrink-0"
-                              style={{ zIndex: 3 - index }}
+                              className="relative w-8 h-12 rounded overflow-hidden flex-shrink-0"
+                              style={{
+                                zIndex: index,
+                                marginLeft: index === 0 ? 0 : -16,
+                                boxShadow: index > 0 ? '-3px 0 6px rgba(0, 0, 0, 0.4)' : 'none',
+                              }}
                             >
                               {item.poster_path ? (
                                 <Image
