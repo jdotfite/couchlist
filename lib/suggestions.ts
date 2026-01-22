@@ -230,6 +230,17 @@ export async function getPendingSuggestions(
   return result.rows as FriendSuggestionWithDetails[];
 }
 
+export async function getSuggestionCount(userId: number): Promise<number> {
+  const result = await sql`
+    SELECT COUNT(*) as count
+    FROM friend_suggestions
+    WHERE to_user_id = ${userId}
+    AND status = 'pending'
+  `;
+
+  return parseInt(result.rows[0].count, 10);
+}
+
 export async function getPendingSuggestionsGrouped(
   userId: number
 ): Promise<GroupedSuggestions[]> {

@@ -1,120 +1,76 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import ProfileMenu from '@/components/ProfileMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import SearchHero from '@/components/home/SearchHero';
-import ContinueWatching from '@/components/home/ContinueWatching';
-import ListsGrid, { DEFAULT_LISTS } from '@/components/home/ListsGrid';
+import MediaRow from '@/components/home/MediaRow';
+import ListsGrid from '@/components/home/ListsGrid';
 import HomePageSkeleton from '@/components/home/HomePageSkeleton';
 import { useListPreferences } from '@/hooks/useListPreferences';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 import { Play, List, CheckCircle2, LayoutGrid } from 'lucide-react';
 
-interface LibraryItem {
-  id: number;
-  media_id: number;
-  media_type: 'movie' | 'tv';
-  title: string;
-  poster_path: string | null;
-}
-
-interface HomeCache {
-  watchingItems: LibraryItem[];
-  watchlistItems: LibraryItem[];
-  finishedItems: LibraryItem[];
-}
-
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const { getListName } = useListPreferences();
 
-  const initialCache = useMemo<HomeCache | null>(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = sessionStorage.getItem('flicklog-home-cache');
-      if (!raw) return null;
-      return JSON.parse(raw) as HomeCache;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const [watchingItems, setWatchingItems] = useState<LibraryItem[]>(() => initialCache?.watchingItems || []);
-  const [watchlistItems, setWatchlistItems] = useState<LibraryItem[]>(() => initialCache?.watchlistItems || []);
-  const [finishedItems, setFinishedItems] = useState<LibraryItem[]>(() => initialCache?.finishedItems || []);
-  const [isLoading, setIsLoading] = useState(() => !initialCache);
+  // Get state and actions from Zustand store
+  const {
+    watchingItems,
+    watchlistItems,
+    finishedItems,
+    customListsCount,
+    isLoading,
+    lastFetched,
+    fetchLibrary,
+    moveToFinished,
+    invalidate,
+  } = useLibraryStore();
 
   useEffect(() => {
     if (status === 'authenticated') {
-      const loadData = async () => {
-        if (initialCache) {
-          setIsLoading(false);
-          void refreshCache();
-          return;
-        }
-        setIsLoading(true);
-        await refreshCache();
-        setIsLoading(false);
-      };
-      loadData();
+      fetchLibrary();
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }
-  }, [status, router, initialCache]);
+  }, [status, router, fetchLibrary]);
 
-  const fetchLibrary = async () => {
+  const handleMarkWatched = async (item: typeof watchingItems[0]) => {
+    // Optimistically update UI via store
+    moveToFinished(item);
+
+    // Call API to update status
     try {
-      const [watchingRes, watchlistRes, finishedRes] = await Promise.all([
-        fetch('/api/watching'),
-        fetch('/api/watchlist'),
-        fetch('/api/watched'),
-      ]);
+      const response = await fetch('/api/watched', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          media_id: item.media_id,
+          media_type: item.media_type,
+          title: item.title,
+          poster_path: item.poster_path,
+        }),
+      });
 
-      const parseRes = async (res: Response) => {
-        if (!res.ok) return [];
-        const data = await res.json();
-        return data.items || [];
-      };
-
-      const watching = await parseRes(watchingRes);
-      const watchlist = await parseRes(watchlistRes);
-      const finished = await parseRes(finishedRes);
-
-      const nextState = {
-        watchingItems: watching,
-        watchlistItems: watchlist,
-        finishedItems: finished,
-      };
-
-      setWatchingItems(nextState.watchingItems);
-      setWatchlistItems(nextState.watchlistItems);
-      setFinishedItems(nextState.finishedItems);
-      return nextState;
+      if (!response.ok) {
+        // Revert on error by refetching
+        invalidate();
+        fetchLibrary();
+      }
     } catch (error) {
-      console.error('Failed to fetch library:', error);
-      return null;
+      console.error('Failed to mark as watched:', error);
+      invalidate();
+      fetchLibrary();
     }
   };
 
-  const writeCache = (cache: HomeCache) => {
-    if (typeof window === 'undefined') return;
-    try {
-      sessionStorage.setItem('flicklog-home-cache', JSON.stringify(cache));
-    } catch {}
-  };
-
-  const refreshCache = async () => {
-    const libraryData = await fetchLibrary();
-    if (libraryData) {
-      writeCache(libraryData);
-    }
-  };
-
-  if (status === 'loading' || status === 'unauthenticated' || isLoading) {
+  // Show skeleton while loading (only on first load)
+  if (status === 'loading' || status === 'unauthenticated' || (isLoading && !lastFetched)) {
     return <HomePageSkeleton />;
   }
 
@@ -146,8 +102,8 @@ export default function Home() {
     },
     {
       slug: 'all',
-      title: 'All Items',
-      count: watchingItems.length + watchlistItems.length + finishedItems.length,
+      title: 'All Lists',
+      count: 3 + customListsCount,
       posterPath: null,
       icon: LayoutGrid,
       color: 'from-zinc-600 to-zinc-800',
@@ -174,7 +130,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="px-4 pt-2">
+      <main className="px-4 pt-4">
         {/* Search Hero */}
         <SearchHero />
 
@@ -182,7 +138,29 @@ export default function Home() {
         <ListsGrid lists={listsData} />
 
         {/* Continue Watching */}
-        <ContinueWatching items={watchingItems} />
+        <MediaRow
+          title={getListName('watching') || 'Continue Watching'}
+          items={watchingItems}
+          seeAllHref="/library?status=watching"
+          addHref="/search"
+          onQuickAction={handleMarkWatched}
+        />
+
+        {/* Watchlist */}
+        <MediaRow
+          title={getListName('watchlist') || 'Watchlist'}
+          items={watchlistItems}
+          seeAllHref="/library?status=watchlist"
+          addHref="/search"
+        />
+
+        {/* Watched */}
+        <MediaRow
+          title={getListName('finished') || 'Watched'}
+          items={finishedItems}
+          seeAllHref="/library?status=finished"
+          addHref="/search"
+        />
       </main>
     </div>
   );

@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronRight, Loader2, Users, Mail, Check, XCircle, Plus } from 'lucide-react';
+import { ChevronRight, Users, Mail, Check, XCircle, Plus, Loader2 } from 'lucide-react';
+import ListsPageSkeleton from '@/components/skeletons/ListsPageSkeleton';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import Image from 'next/image';
 import CreateListModal from '@/components/custom-lists/CreateListModal';
@@ -136,11 +137,7 @@ export default function ListsPage() {
   };
 
   if (status === 'loading' || isLoading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin-fast text-gray-400" />
-      </div>
-    );
+    return <ListsPageSkeleton />;
   }
 
   const canCreateMore = lists.length < MAX_LISTS;
@@ -148,14 +145,14 @@ export default function ListsPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">My Lists</h1>
           <NotificationBell />
         </div>
       </header>
 
-      <main className="px-4 pt-6 pb-24">
+      <main className="px-4 pt-4 pb-24">
         {/* Pending Invites Banner */}
         {pendingInvites.length > 0 && (
           <div className="mb-6 space-y-3">
@@ -193,7 +190,7 @@ export default function ListsPage() {
                     <p className="text-sm">
                       <span className="font-medium">{invite.sender.name}</span>
                       {invite.sender.username && (
-                        <span className="text-gray-500 ml-1">@{invite.sender.username}</span>
+                        <span className="text-gray-400 ml-1">@{invite.sender.username}</span>
                       )}
                       <span className="text-gray-400"> invited you to collaborate on </span>
                       <span className="font-medium text-brand-primary">{invite.listName}</span>
@@ -235,7 +232,7 @@ export default function ListsPage() {
         )}
 
         {/* Info box */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-6">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 mb-6">
           <p className="text-sm text-gray-400">
             Create custom lists to organize your movies and TV shows.
             You can have up to {MAX_LISTS} custom lists.
@@ -271,9 +268,9 @@ export default function ListsPage() {
                   >
                     <div
                       className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: `${colorValue}20` }}
+                      style={{ backgroundColor: colorValue }}
                     >
-                      <IconComponent className="w-6 h-6" style={{ color: colorValue }} />
+                      <IconComponent className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -302,7 +299,7 @@ export default function ListsPage() {
 
         {/* List count */}
         {lists.length > 0 && (
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p className="text-center text-sm text-gray-400 mt-6">
             {lists.length} of {MAX_LISTS} lists used
           </p>
         )}
@@ -311,10 +308,10 @@ export default function ListsPage() {
         {lists.length > 0 && canCreateMore && (
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="w-full mt-4 py-3 border border-dashed border-zinc-700 hover:border-zinc-500 rounded-xl text-gray-400 hover:text-white transition flex items-center justify-center gap-2"
+            className="w-full mt-4 px-4 py-2.5 border border-dashed border-zinc-700 hover:border-zinc-500 rounded-xl text-gray-400 hover:text-white transition flex items-center gap-3"
           >
-            <Plus className="w-5 h-5" />
-            Create new list
+            <Plus className="w-5 h-5 flex-shrink-0" />
+            <span className="text-sm">Create new list</span>
           </button>
         )}
       </main>

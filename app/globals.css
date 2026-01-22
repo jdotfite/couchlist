@@ -34,6 +34,11 @@
   --color-surface-2: #18181b;
   --color-surface-3: #27272a;
   --color-surface-4: #3f3f46;
+
+  /* Text Colors - for Tailwind utilities */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
 }
 
 :root {
@@ -102,6 +107,55 @@
   --primary-light: rgb(var(--brand-primary-light) / 1);
   --primary-dark: rgb(var(--brand-primary-dark) / 1);
   --primary-darker: rgb(var(--brand-primary-darker) / 1);
+
+  /* ===========================================
+     Component Design Tokens
+     =========================================== */
+
+  /* Cards */
+  --card-bg: var(--surface-2);           /* bg-zinc-900 */
+  --card-bg-hover: var(--surface-3);     /* bg-zinc-800 */
+  --card-radius: 0.75rem;                /* rounded-xl (12px) */
+  --card-padding: 0.75rem;               /* p-3 (12px) */
+
+  /* Buttons */
+  --btn-primary-bg: #8b5ef4;
+  --btn-primary-hover: #7c4fe0;
+  --btn-radius: 0.75rem;                 /* rounded-xl */
+
+  /* Layout */
+  --page-padding-x: 1rem;                /* px-4 */
+  --page-padding-top: 1rem;              /* pt-4 */
+  --header-padding-y: 0.75rem;           /* py-3 */
+
+  /* Spacing Scale */
+  --space-1: 0.25rem;                    /* 4px */
+  --space-2: 0.5rem;                     /* 8px */
+  --space-3: 0.75rem;                    /* 12px */
+  --space-4: 1rem;                       /* 16px */
+  --space-6: 1.5rem;                     /* 24px */
+  --space-8: 2rem;                       /* 32px */
+
+  /* ===========================================
+     Spacing Scale - Use these patterns consistently:
+
+     space-y-2 (8px)  - Tight lists, form field groups
+     space-y-3 (12px) - Compact card/item lists
+     space-y-4 (16px) - Standard content spacing
+     space-y-6 (24px) - Section spacing on pages
+
+     mb-3 (12px) - Section header to content
+     mb-4 (16px) - Standard bottom margin
+     mb-6 (24px) - Large section separation
+
+     gap-2 (8px)  - Tight flex items (icons + text)
+     gap-3 (12px) - Standard flex items
+     gap-4 (16px) - Larger flex containers
+     =========================================== */
+  --section-gap: 1.5rem;                 /* 24px - space-y-6 */
+  --item-gap: 0.5rem;                    /* 8px - space-y-2 */
+  --item-gap-md: 0.75rem;                /* 12px - space-y-3 */
+  --item-gap-lg: 1rem;                   /* 16px - space-y-4 */
 }
 
 body {
@@ -221,4 +275,50 @@ h1, h2, h3, h4, h5, h6 {
 
 .animate-spin-fast {
   animation: spin-fast 0.5s linear infinite;
+}
+
+/* ===========================================
+   Design System Utility Classes
+   =========================================== */
+
+/* Text colors - Use these for consistent text styling */
+.text-secondary {
+  color: var(--text-secondary); /* zinc-400 / #a1a1aa */
+}
+
+.text-muted {
+  color: var(--text-muted); /* zinc-500 / #71717a - for very subtle text */
+}
+
+/* Card component - Use for elevated content containers */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+}
+
+.card-interactive {
+  transition: background-color 0.15s ease;
+}
+
+.card-interactive:hover {
+  background: var(--card-bg-hover);
+}
+
+/* ===========================================
+   Swipe to Dismiss Animations
+   =========================================== */
+
+.swipe-item {
+  transition: transform 0.2s ease-out;
+  background: var(--surface-2);
+}
+
+.swipe-item.swiping {
+  transition: none;
+}
+
+.swipe-item.dismissing {
+  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+  opacity: 0;
 }

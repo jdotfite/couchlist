@@ -1,20 +1,14 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import {
-  Check,
   Clock,
   Play,
-  PauseCircle,
-  XCircle,
   CheckCircle2,
   Heart,
-  RotateCcw,
-  Sparkles,
   Share2,
-  Info,
+  Send,
   Trash2,
   Loader2,
   ListPlus,
@@ -23,11 +17,12 @@ import BottomSheet from './BottomSheet';
 import { useMediaStatus, type MediaInfo, type MediaStatus } from '@/hooks/useMediaStatus';
 import { getImageUrl } from '@/lib/tmdb';
 import CustomListSelector from './custom-lists/CustomListSelector';
+import FriendSuggestionSheet from './suggestions/FriendSuggestionSheet';
 
 // Status lists are mutually exclusive
-const STATUS_LISTS = ['watchlist', 'watching', 'onhold', 'dropped', 'finished', 'watched'];
+const STATUS_LISTS = ['watchlist', 'watching', 'finished', 'watched'];
 // Tag lists can be combined with any status
-const TAG_LISTS = ['favorites', 'rewatch', 'nostalgia'];
+const TAG_LISTS = ['favorites'];
 
 interface StatusOption {
   key: string;
@@ -64,13 +59,9 @@ interface MediaOptionsSheetProps {
 const LIST_LABELS: Record<string, string> = {
   watchlist: 'Watchlist',
   watching: 'Watching',
-  onhold: 'On Hold',
-  dropped: 'Dropped',
   finished: 'Watched',
   watched: 'Watched',
   favorites: 'Favorites',
-  rewatch: 'Rewatch',
-  nostalgia: 'Classics',
 };
 
 export default function MediaOptionsSheet({
@@ -88,6 +79,8 @@ export default function MediaOptionsSheet({
   onTagToggle,
   onRemove,
 }: MediaOptionsSheetProps) {
+  const [suggestionSheetOpen, setSuggestionSheetOpen] = useState(false);
+
   const {
     status: fetchedStatus,
     isLoading,
@@ -183,11 +176,9 @@ export default function MediaOptionsSheet({
     // If no current status (item not in any list), show all "Add to" options
     if (!currentList) {
       return [
-        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
         { key: 'watching', label: 'Add to Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
-        { key: 'onhold', label: 'Add to On Hold', icon: <PauseCircle className="w-5 h-5" />, color: 'text-status-onhold' },
-        { key: 'dropped', label: 'Add to Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-status-dropped' },
+        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
+        { key: 'finished', label: 'Mark as Watched', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
       ];
     }
 
@@ -195,26 +186,11 @@ export default function MediaOptionsSheet({
     if (currentList === 'watchlist') {
       options.push(
         { key: 'watching', label: 'Start Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
-        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-status-dropped' },
+        { key: 'finished', label: 'Mark as Watched', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
       );
     } else if (currentList === 'watching') {
       options.push(
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
-        { key: 'onhold', label: 'Put On Hold', icon: <PauseCircle className="w-5 h-5" />, color: 'text-status-onhold' },
-        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-status-dropped' },
-        { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
-      );
-    } else if (currentList === 'onhold') {
-      options.push(
-        { key: 'watching', label: 'Resume Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
-        { key: 'dropped', label: 'Dropped', icon: <XCircle className="w-5 h-5" />, color: 'text-status-dropped' },
-        { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
-      );
-    } else if (currentList === 'dropped') {
-      options.push(
-        { key: 'watching', label: 'Try Again', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
+        { key: 'finished', label: 'Mark as Watched', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
         { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
       );
     } else if (currentList === 'finished' || currentList === 'watched') {
@@ -225,9 +201,9 @@ export default function MediaOptionsSheet({
     } else if (isTagList) {
       // From tag lists, show all status options
       options.push(
-        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
         { key: 'watching', label: 'Start Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
-        { key: 'finished', label: 'Mark as Finished', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
+        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
+        { key: 'finished', label: 'Mark as Watched', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
       );
     }
 
@@ -236,11 +212,10 @@ export default function MediaOptionsSheet({
 
   const statusOptions = getStatusOptions();
   const hasFavorite = effectiveStatus?.tags?.favorites ?? false;
-  const hasRewatch = effectiveStatus?.tags?.rewatch ?? false;
-  const hasClassics = effectiveStatus?.tags?.nostalgia ?? false;
   const removeLabel = currentList ? LIST_LABELS[currentList] || 'List' : '';
 
   return (
+    <>
     <BottomSheet isOpen={isOpen} onClose={onClose}>
       {/* Item Preview */}
       <div className="flex items-center gap-4 px-4 pb-4 border-b border-zinc-800">
@@ -309,26 +284,6 @@ export default function MediaOptionsSheet({
               <Heart className="w-5 h-5 text-tag-favorites" />
               <span className="flex-1 text-left text-white">{hasFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</span>
             </button>
-
-            <button
-              onClick={() => handleToggleTag('rewatch', hasRewatch)}
-              disabled={isUpdating}
-              className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
-            >
-              <RotateCcw className={`w-5 h-5 text-tag-rewatch`} />
-              <span className="flex-1 text-left text-white">{hasRewatch ? 'Remove from Rewatch' : 'Add to Rewatch'}</span>
-              {hasRewatch && <Check className="w-5 h-5 text-tag-rewatch" />}
-            </button>
-
-            <button
-              onClick={() => handleToggleTag('nostalgia', hasClassics)}
-              disabled={isUpdating}
-              className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
-            >
-              <Sparkles className={`w-5 h-5 text-tag-classics`} />
-              <span className="flex-1 text-left text-white">{hasClassics ? 'Remove from Classics' : 'Add to Classics'}</span>
-              {hasClassics && <Check className="w-5 h-5 text-tag-classics" />}
-            </button>
           </div>
 
           {/* Custom Lists */}
@@ -347,21 +302,20 @@ export default function MediaOptionsSheet({
 
           {/* Other Actions */}
           <div className="border-t border-zinc-800 mt-2">
-            <Link
-              href={`/${mediaType}/${mediaId}`}
-              onClick={onClose}
-              className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition"
-            >
-              <Info className="w-5 h-5 text-gray-400" />
-              <span className="text-white">View Details</span>
-            </Link>
-
             <button
               onClick={handleShare}
               className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition"
             >
               <Share2 className="w-5 h-5 text-gray-400" />
               <span className="text-white">Share</span>
+            </button>
+
+            <button
+              onClick={() => setSuggestionSheetOpen(true)}
+              className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition"
+            >
+              <Send className="w-5 h-5 text-[#8b5ef4]" />
+              <span className="text-white">Send to Friend</span>
             </button>
 
             {currentList && isStatusList && (
@@ -378,5 +332,16 @@ export default function MediaOptionsSheet({
         </div>
       )}
     </BottomSheet>
+
+      <FriendSuggestionSheet
+        isOpen={suggestionSheetOpen}
+        onClose={() => setSuggestionSheetOpen(false)}
+        mediaId={mediaId}
+        mediaType={mediaType}
+        title={title}
+        posterPath={posterPath}
+        releaseYear={releaseYear}
+      />
+    </>
   );
 }

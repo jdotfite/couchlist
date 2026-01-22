@@ -292,7 +292,7 @@ export default function PrivacySettingsPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
@@ -301,20 +301,20 @@ export default function PrivacySettingsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-6 space-y-8">
+      <main className="px-4 pt-4 space-y-6">
         {/* Profile Photo Section */}
         <section>
           <div className="flex items-center gap-2 mb-4">
             <Camera className="w-5 h-5 text-brand-primary" />
             <h2 className="text-lg font-semibold">Profile Photo</h2>
           </div>
-          <div className="bg-zinc-900 rounded-xl p-6">
+          <div className="card">
             <ProfileImageUpload
               currentImage={profileImage}
               userName={session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
               onImageChange={handleImageChange}
             />
-            <p className="text-xs text-gray-500 text-center mt-4">
+            <p className="text-xs text-gray-400 text-center mt-4">
               JPEG, PNG, WebP, or GIF. Max 5MB. Images are cropped to 200x200px.
             </p>
           </div>
@@ -334,19 +334,19 @@ export default function PrivacySettingsPage() {
               </span>
             )}
             {!originalUsername && (
-              <span className="text-sm text-gray-500 bg-zinc-800 px-2 py-1 rounded-full">
+              <span className="text-sm text-gray-400 bg-zinc-800 px-2 py-1 rounded-full">
                 Not set
               </span>
             )}
           </div>
-          <div className="bg-zinc-900 rounded-xl p-4 space-y-4">
+          <div className="card space-y-4">
             <p className="text-sm text-gray-400">
               Your username allows other users to find and invite you to collaborate on lists.
               It must be unique and can only contain letters, numbers, and underscores.
             </p>
             <div>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">@</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">@</span>
                 <input
                   type="text"
                   value={username}
@@ -510,7 +510,7 @@ export default function PrivacySettingsPage() {
         </section>
 
         {/* Info Box */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
           <p className="text-sm text-gray-400">
             <strong className="text-white">Note:</strong> Even if you disable appearing in search results,
             users who know your exact email address can still find you. To fully prevent invites,

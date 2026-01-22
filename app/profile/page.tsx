@@ -8,8 +8,9 @@ import Link from 'next/link';
 import {
   ChevronRight, Bell, Shield, Share2, Upload, Download,
   LogOut, Settings, Film, Tv, Heart, Users, UserPlus,
-  Search, Loader2, XCircle, X, Check, Trash2, MessageCircle
+  Search, Loader2, XCircle, X, Check, Trash2, MessageCircle, Camera, Info
 } from 'lucide-react';
+import ProfilePageSkeleton from '@/components/skeletons/ProfilePageSkeleton';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import { useProfileImage } from '@/hooks/useProfileImage';
 
@@ -28,13 +29,21 @@ interface Partner {
 }
 
 interface Friend {
-  collaboratorId: number;
-  oduserId: number;
+  // API returns these names
+  id?: number;
+  user_id?: number;
+  connected_at?: string;
+  suggestions_sent?: number;
+  suggestions_received?: number;
+  // Also support mapped names for backwards compatibility
+  collaboratorId?: number;
+  oduserId?: number;
+  connectedAt?: string;
+  // Common fields
   name: string;
   username: string | null;
   image: string | null;
-  connectedAt: string;
-  suggestionStats: {
+  suggestionStats?: {
     sent: number;
     received: number;
     pending: number;
@@ -44,11 +53,11 @@ interface Friend {
 interface PendingInvite {
   id: number;
   type: 'partner' | 'friend';
-  targetUser?: {
+  targetUser: {
     id: number;
     name: string;
     username: string | null;
-  };
+  } | null;
   createdAt: string;
   expiresAt: string;
 }
@@ -66,6 +75,7 @@ export default function ProfilePage() {
   const { profileImage } = useProfileImage();
   const [counts, setCounts] = useState<LibraryCounts>({ movies: 0, tv: 0, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [username, setUsername] = useState<string | null>(null);
 
   // Partner/Friends state
   const [partner, setPartner] = useState<Partner | null>(null);
@@ -76,6 +86,8 @@ export default function ProfilePage() {
   // Modal state
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [showFriendModal, setShowFriendModal] = useState(false);
+  const [showPartnerInfo, setShowPartnerInfo] = useState(false);
+  const [showFriendInfo, setShowFriendInfo] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Search state
@@ -87,8 +99,33 @@ export default function ProfilePage() {
   const [inviteSent, setInviteSent] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    show: boolean;
+    type: 'partner' | 'friend';
+    name: string;
+    id: number;
+  } | null>(null);
+  const [removeLoading, setRemoveLoading] = useState(false);
+
+  // Logout modal state
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Listen for connection-accepted events from notification center
+  useEffect(() => {
+    const handleConnectionAccepted = () => {
+      fetchSharingData();
+    };
+
+    window.addEventListener('connection-accepted', handleConnectionAccepted);
+    return () => {
+      window.removeEventListener('connection-accepted', handleConnectionAccepted);
+    };
   }, []);
 
   useEffect(() => {
@@ -101,8 +138,21 @@ export default function ProfilePage() {
     if (status === 'authenticated') {
       fetchCounts();
       fetchSharingData();
+      fetchUsername();
     }
   }, [status]);
+
+  const fetchUsername = async () => {
+    try {
+      const res = await fetch('/api/users/username');
+      if (res.ok) {
+        const data = await res.json();
+        setUsername(data.username || null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch username:', error);
+    }
+  };
 
   const fetchCounts = async () => {
     try {
@@ -277,25 +327,46 @@ export default function ProfilePage() {
     }
   };
 
-  const removePartner = async () => {
-    try {
-      const response = await fetch('/api/partners', { method: 'DELETE' });
-      if (response.ok) {
-        setPartner(null);
-      }
-    } catch (err) {
-      console.error('Failed to remove partner:', err);
-    }
+  const showRemovePartnerConfirm = () => {
+    if (!partner) return;
+    setConfirmModal({
+      show: true,
+      type: 'partner',
+      name: partner.name,
+      id: 0, // Not needed for partner
+    });
   };
 
-  const removeFriend = async (collaboratorId: number) => {
+  const showRemoveFriendConfirm = (friend: Friend) => {
+    setConfirmModal({
+      show: true,
+      type: 'friend',
+      name: friend.name,
+      id: friend.id || friend.collaboratorId || 0,
+    });
+  };
+
+  const confirmRemove = async () => {
+    if (!confirmModal) return;
+
+    setRemoveLoading(true);
     try {
-      const response = await fetch(`/api/friends/${collaboratorId}`, { method: 'DELETE' });
-      if (response.ok) {
-        setFriends(prev => prev.filter(f => f.collaboratorId !== collaboratorId));
+      if (confirmModal.type === 'partner') {
+        const response = await fetch('/api/partners', { method: 'DELETE' });
+        if (response.ok) {
+          setPartner(null);
+        }
+      } else {
+        const response = await fetch(`/api/friends/${confirmModal.id}`, { method: 'DELETE' });
+        if (response.ok) {
+          setFriends(prev => prev.filter(f => (f.id || f.collaboratorId) !== confirmModal.id));
+        }
       }
     } catch (err) {
-      console.error('Failed to remove friend:', err);
+      console.error('Failed to remove connection:', err);
+    } finally {
+      setRemoveLoading(false);
+      setConfirmModal(null);
     }
   };
 
@@ -308,15 +379,12 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
+    setLogoutLoading(true);
     await signOut({ callbackUrl: '/login' });
   };
 
   if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <ProfilePageSkeleton />;
   }
 
   const partnerPendingInvites = pendingInvites.filter(inv => inv.type === 'partner');
@@ -334,25 +402,35 @@ export default function ProfilePage() {
 
       <main className="px-4 pt-4">
         {/* Profile Card */}
-        <div className="bg-zinc-900 rounded-2xl p-6 mb-6">
+        <div className="card mb-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex-shrink-0">
-              {profileImage ? (
-                <img src={profileImage} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-white">
-                  {session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || '?'}
-                </div>
-              )}
-            </div>
+            <Link
+              href="/settings/privacy"
+              className="relative w-20 h-20 flex-shrink-0"
+            >
+              <div className="w-full h-full rounded-full overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500">
+                {profileImage ? (
+                  <img src={profileImage} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-white">
+                    {session?.user?.name?.[0]?.toUpperCase() || session?.user?.email?.[0]?.toUpperCase() || '?'}
+                  </div>
+                )}
+              </div>
+              <div className="absolute bottom-0 right-0 w-7 h-7 bg-brand-primary rounded-full flex items-center justify-center border-2 border-black">
+                <Camera className="w-3.5 h-3.5 text-white" />
+              </div>
+            </Link>
 
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-bold truncate">
                 {session?.user?.name || 'User'}
               </h2>
-              <p className="text-sm text-gray-400 truncate">
-                {session?.user?.email}
-              </p>
+              {username && (
+                <p className="text-sm text-gray-400 truncate">
+                  @{username}
+                </p>
+              )}
             </div>
           </div>
 
@@ -375,8 +453,8 @@ export default function ProfilePage() {
         </div>
 
         {/* Partner Section */}
-        <div className="bg-zinc-900 rounded-2xl p-4 mb-4">
-          <div className="flex items-center justify-between mb-3">
+        <div className="card mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Heart className="w-5 h-5 text-pink-500" />
               <h3 className="font-semibold">Partner</h3>
@@ -387,6 +465,24 @@ export default function ProfilePage() {
               </Link>
             )}
           </div>
+
+          <p className="text-xs text-gray-400 mb-3 flex items-start gap-1">
+            <span>Create shared watchlists with your partner—both of you can add and see the same items.</span>
+            <button
+              onClick={() => setShowPartnerInfo(!showPartnerInfo)}
+              className="text-gray-400 hover:text-gray-300 transition flex-shrink-0"
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
+          </p>
+
+          {showPartnerInfo && (
+            <div className="mb-3 p-3 bg-zinc-800 rounded-lg text-xs text-gray-300 space-y-2">
+              <p><strong className="text-white">Bi-directional sharing:</strong> Both you and your partner see the same shared lists. Items either of you add appear for both.</p>
+              <p><strong className="text-white">Watch together tracking:</strong> Mark movies as "watched together" to track your shared viewing history.</p>
+              <p><strong className="text-white">One partner limit:</strong> You can only have one partner at a time to keep lists focused.</p>
+            </div>
+          )}
 
           {sharingLoading ? (
             <div className="flex justify-center py-4">
@@ -406,27 +502,41 @@ export default function ProfilePage() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{partner.name}</p>
                 {partner.username && (
-                  <p className="text-xs text-gray-500">@{partner.username}</p>
+                  <p className="text-xs text-gray-400">@{partner.username}</p>
                 )}
               </div>
               <button
-                onClick={removePartner}
-                className="p-2 hover:bg-zinc-800 rounded-lg text-gray-500 hover:text-red-400 transition"
+                onClick={showRemovePartnerConfirm}
+                className="p-2 hover:bg-zinc-800 rounded-lg text-gray-400 hover:text-red-400 transition"
+                title="Remove partner"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           ) : partnerPendingInvites.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-xs text-gray-500 mb-2">Pending invite:</p>
               {partnerPendingInvites.map(inv => (
-                <div key={inv.id} className="flex items-center justify-between p-2 bg-zinc-800 rounded-lg">
-                  <span className="text-sm text-gray-300">
-                    Invite sent {new Date(inv.createdAt).toLocaleDateString()}
-                  </span>
+                <div key={inv.id} className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl">
+                  <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
+                    {inv.targetUser ? (
+                      <span className="text-pink-500 font-semibold">
+                        {inv.targetUser.name?.[0]?.toUpperCase()}
+                      </span>
+                    ) : (
+                      <UserPlus className="w-5 h-5 text-pink-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">
+                      {inv.targetUser ? inv.targetUser.name : 'Invite link created'}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Pending · Sent {new Date(inv.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
                   <button
                     onClick={() => cancelInvite(inv.id, 'partner')}
-                    className="text-xs text-red-400 hover:text-red-300"
+                    className="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-zinc-700 rounded-lg transition"
                   >
                     Cancel
                   </button>
@@ -448,25 +558,34 @@ export default function ProfilePage() {
         </div>
 
         {/* Friends Section */}
-        <div className="bg-zinc-900 rounded-2xl p-4 mb-6">
-          <div className="flex items-center justify-between mb-3">
+        <div className="card mb-6">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-500" />
               <h3 className="font-semibold">Friends</h3>
               {friends.length > 0 && (
-                <span className="text-xs text-gray-500">({friends.length})</span>
+                <span className="text-xs text-gray-400">({friends.length})</span>
               )}
             </div>
-            <button
-              onClick={() => {
-                resetModal();
-                setShowFriendModal(true);
-              }}
-              className="p-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition"
-            >
-              <UserPlus className="w-4 h-4 text-blue-500" />
-            </button>
           </div>
+
+          <p className="text-xs text-gray-400 mb-3 flex items-start gap-1">
+            <span>Send recommendations to friends—they can accept to add them to their own lists.</span>
+            <button
+              onClick={() => setShowFriendInfo(!showFriendInfo)}
+              className="text-gray-400 hover:text-gray-300 transition flex-shrink-0"
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
+          </p>
+
+          {showFriendInfo && (
+            <div className="mb-3 p-3 bg-zinc-800 rounded-lg text-xs text-gray-300 space-y-2">
+              <p><strong className="text-white">One-way suggestions:</strong> Send movie recommendations to friends. They choose to add them or dismiss.</p>
+              <p><strong className="text-white">No shared lists:</strong> Unlike partners, friends have separate libraries. Suggestions are just recommendations.</p>
+              <p><strong className="text-white">Unlimited friends:</strong> Connect with as many friends as you like.</p>
+            </div>
+          )}
 
           {sharingLoading ? (
             <div className="flex justify-center py-4">
@@ -477,15 +596,28 @@ export default function ProfilePage() {
               {/* Pending friend invites */}
               {friendPendingInvites.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-xs text-gray-500 mb-2">Pending invites:</p>
                   {friendPendingInvites.map(inv => (
-                    <div key={inv.id} className="flex items-center justify-between p-2 bg-zinc-800 rounded-lg mb-1">
-                      <span className="text-sm text-gray-300">
-                        Invite sent {new Date(inv.createdAt).toLocaleDateString()}
-                      </span>
+                    <div key={inv.id} className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl mb-2">
+                      <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                        {inv.targetUser ? (
+                          <span className="text-blue-500 font-semibold">
+                            {inv.targetUser.name?.[0]?.toUpperCase()}
+                          </span>
+                        ) : (
+                          <UserPlus className="w-5 h-5 text-blue-500" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">
+                          {inv.targetUser ? inv.targetUser.name : 'Invite link created'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Pending · Sent {new Date(inv.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
                       <button
                         onClick={() => cancelInvite(inv.id, 'friend')}
-                        className="text-xs text-red-400 hover:text-red-300"
+                        className="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-zinc-700 rounded-lg transition"
                       >
                         Cancel
                       </button>
@@ -495,9 +627,9 @@ export default function ProfilePage() {
               )}
 
               {/* Friends list */}
-              {friends.length > 0 ? (
+              {friends.length > 0 && (
                 friends.map(friend => (
-                  <div key={friend.collaboratorId} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg transition">
+                  <div key={friend.id || friend.collaboratorId} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg transition">
                     <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center overflow-hidden">
                       {friend.image ? (
                         <img src={friend.image} alt={friend.name} className="w-full h-full object-cover" />
@@ -509,25 +641,34 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{friend.name}</p>
-                      {friend.suggestionStats.pending > 0 && (
+                      {(friend.suggestionStats?.pending ?? 0) > 0 && (
                         <p className="text-xs text-brand-primary">
-                          {friend.suggestionStats.pending} pending suggestions
+                          {friend.suggestionStats?.pending} pending suggestions
                         </p>
                       )}
                     </div>
                     <button
-                      onClick={() => removeFriend(friend.collaboratorId)}
-                      className="p-1.5 hover:bg-zinc-700 rounded text-gray-500 hover:text-red-400 transition"
+                      onClick={() => showRemoveFriendConfirm(friend)}
+                      className="p-1.5 hover:bg-zinc-700 rounded text-gray-400 hover:text-red-400 transition"
+                      title="Remove friend"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </div>
                 ))
-              ) : friendPendingInvites.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-2">
-                  Add friends to send and receive suggestions
-                </p>
-              ) : null}
+              )}
+
+              {/* Add Friend button */}
+              <button
+                onClick={() => {
+                  resetModal();
+                  setShowFriendModal(true);
+                }}
+                className="w-full py-3 border-2 border-dashed border-zinc-700 hover:border-blue-500 rounded-xl text-gray-400 hover:text-white transition flex items-center justify-center gap-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                Add Friend
+              </button>
             </div>
           )}
         </div>
@@ -536,7 +677,7 @@ export default function ProfilePage() {
         <div className="space-y-2">
           <Link
             href="/settings/notifications"
-            className="flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
+            className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
               <Bell className="w-5 h-5 text-brand-primary" />
@@ -545,34 +686,32 @@ export default function ProfilePage() {
               <h3 className="font-semibold">Notifications</h3>
               <p className="text-sm text-gray-400">Manage show alerts</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-500" />
+            <ChevronRight className="w-5 h-5 text-gray-400" />
           </Link>
 
           <Link
             href="/settings"
-            className="flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
+            className="card card-interactive flex items-center gap-4"
           >
-            <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center">
-              <Settings className="w-5 h-5 text-gray-400" />
+            <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
+              <Settings className="w-5 h-5 text-brand-primary" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">Settings</h3>
               <p className="text-sm text-gray-400">Privacy, import, export, and more</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-gray-500" />
+            <ChevronRight className="w-5 h-5 text-gray-400" />
           </Link>
 
-          <div className="h-px bg-zinc-800 my-4" />
-
           <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-4 p-4 bg-zinc-900 hover:bg-red-900/20 rounded-xl transition"
+            onClick={() => setShowLogoutModal(true)}
+            className="card card-interactive w-full flex items-center gap-4"
           >
-            <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
-              <LogOut className="w-5 h-5 text-red-500" />
+            <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center">
+              <LogOut className="w-5 h-5 text-gray-400" />
             </div>
             <div className="flex-1 text-left">
-              <h3 className="font-semibold text-red-400">Log Out</h3>
+              <h3 className="font-semibold text-white">Log Out</h3>
             </div>
           </button>
         </div>
@@ -603,7 +742,7 @@ export default function ProfilePage() {
 
                 <div className="mb-4">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="text"
                       value={searchQuery}
@@ -642,7 +781,7 @@ export default function ProfilePage() {
                           <div className="text-left">
                             <p className="text-sm font-medium">{user.name}</p>
                             {user.username && (
-                              <p className="text-xs text-gray-500">@{user.username}</p>
+                              <p className="text-xs text-gray-400">@{user.username}</p>
                             )}
                           </div>
                         </button>
@@ -651,7 +790,7 @@ export default function ProfilePage() {
                   )}
 
                   {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && !selectedUser && (
-                    <p className="text-center text-gray-500 text-sm py-4">No users found</p>
+                    <p className="text-center text-gray-400 text-sm py-4">No users found</p>
                   )}
                 </div>
 
@@ -683,7 +822,7 @@ export default function ProfilePage() {
                 <button
                   onClick={sendPartnerInvite}
                   disabled={inviteLoading || !selectedUser}
-                  className="w-full py-3 bg-pink-500 hover:bg-pink-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
                 >
                   {inviteLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -706,7 +845,7 @@ export default function ProfilePage() {
                 </p>
                 <button
                   onClick={() => setShowPartnerModal(false)}
-                  className="w-full py-3 bg-pink-500 hover:bg-pink-600 rounded-xl font-semibold transition"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition"
                 >
                   Done
                 </button>
@@ -751,7 +890,7 @@ export default function ProfilePage() {
 
                 <div className="mb-4">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="text"
                       value={searchQuery}
@@ -790,7 +929,7 @@ export default function ProfilePage() {
                           <div className="text-left">
                             <p className="text-sm font-medium">{user.name}</p>
                             {user.username && (
-                              <p className="text-xs text-gray-500">@{user.username}</p>
+                              <p className="text-xs text-gray-400">@{user.username}</p>
                             )}
                           </div>
                         </button>
@@ -799,7 +938,7 @@ export default function ProfilePage() {
                   )}
 
                   {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && !selectedUser && (
-                    <p className="text-center text-gray-500 text-sm py-4">No users found</p>
+                    <p className="text-center text-gray-400 text-sm py-4">No users found</p>
                   )}
                 </div>
 
@@ -831,7 +970,7 @@ export default function ProfilePage() {
                 <button
                   onClick={sendFriendInvite}
                   disabled={inviteLoading || !selectedUser}
-                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
                 >
                   {inviteLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -854,7 +993,7 @@ export default function ProfilePage() {
                 </p>
                 <button
                   onClick={() => setShowFriendModal(false)}
-                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 rounded-xl font-semibold transition"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition"
                 >
                   Done
                 </button>
@@ -869,6 +1008,99 @@ export default function ProfilePage() {
                 Cancel
               </button>
             )}
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Remove Confirmation Modal */}
+      {confirmModal?.show && mounted && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => !removeLoading && setConfirmModal(null)}
+          />
+
+          <div className="relative w-full max-w-sm bg-zinc-900 rounded-2xl p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                Remove {confirmModal.type === 'partner' ? 'Partner' : 'Friend'}?
+              </h3>
+              <p className="text-gray-400 text-sm mb-6">
+                Are you sure you want to remove <strong className="text-white">{confirmModal.name}</strong> as your {confirmModal.type}?
+                {confirmModal.type === 'partner' && (
+                  <span className="block mt-2 text-xs">Your shared lists will no longer be synced.</span>
+                )}
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmModal(null)}
+                  disabled={removeLoading}
+                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-semibold transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRemove}
+                  disabled={removeLoading}
+                  className="flex-1 py-3 bg-red-500 hover:bg-red-600 rounded-xl font-semibold transition flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {removeLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    'Remove'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && mounted && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => !logoutLoading && setShowLogoutModal(false)}
+          />
+
+          <div className="relative w-full max-w-sm bg-zinc-900 rounded-2xl p-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-zinc-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <LogOut className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Log Out?</h3>
+              <p className="text-gray-400 text-sm mb-6">
+                Are you sure you want to log out of your account?
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  disabled={logoutLoading}
+                  className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-semibold transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogout}
+                  disabled={logoutLoading}
+                  className="flex-1 py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {logoutLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    'Log Out'
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>,
         document.body

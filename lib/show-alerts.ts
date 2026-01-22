@@ -286,10 +286,15 @@ export async function getNotifications(
 }
 
 export async function getUnreadCount(userId: number): Promise<number> {
+  // Exclude notification types that are either deprecated or counted separately:
+  // - invite, collab_invite: deprecated, no longer displayed
+  // - friend_suggestion, friend_suggestion_group: counted separately via /api/suggestions
   const result = await db`
     SELECT COUNT(*) as count
     FROM notifications
-    WHERE user_id = ${userId} AND is_read = false
+    WHERE user_id = ${userId}
+      AND is_read = false
+      AND type NOT IN ('invite', 'collab_invite', 'friend_suggestion', 'friend_suggestion_group')
   `;
 
   return parseInt(result.rows[0].count, 10);
@@ -325,6 +330,27 @@ export async function deleteNotification(notificationId: number, userId: number)
   `;
 
   return result.rows.length > 0;
+}
+
+export async function clearAllNotifications(userId: number, readOnly: boolean = false): Promise<number> {
+  let result;
+  if (readOnly) {
+    // Only delete read notifications
+    result = await db`
+      DELETE FROM notifications
+      WHERE user_id = ${userId} AND is_read = true
+      RETURNING id
+    `;
+  } else {
+    // Delete all notifications
+    result = await db`
+      DELETE FROM notifications
+      WHERE user_id = ${userId}
+      RETURNING id
+    `;
+  }
+
+  return result.rows.length;
 }
 
 // ============================================================================

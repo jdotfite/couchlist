@@ -67,7 +67,7 @@ export default function NotificationSettingsPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
@@ -81,7 +81,7 @@ export default function NotificationSettingsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-6 space-y-8 max-w-lg">
+      <main className="px-4 pt-4 space-y-6">
         {/* Show Alerts Section */}
         <section>
           <div className="flex items-center gap-2 mb-4">
@@ -141,7 +141,7 @@ export default function NotificationSettingsPage() {
             When should we notify you about premieres and new episodes?
           </p>
 
-          <div className="bg-zinc-900 rounded-xl p-4">
+          <div className="card">
             <label className="text-sm text-gray-400 mb-3 block">Notify me</label>
             <div className="flex flex-wrap gap-2">
               <TimingButton
@@ -189,7 +189,7 @@ export default function NotificationSettingsPage() {
             />
 
             {settings?.quiet_hours_enabled && (
-              <div className="bg-zinc-900 rounded-xl p-4">
+              <div className="card">
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <label className="text-sm text-gray-400 mb-1 block">From</label>
@@ -247,7 +247,7 @@ interface ToggleRowProps {
 
 function ToggleRow({ label, description, checked, onChange, disabled }: ToggleRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 bg-zinc-900 rounded-xl p-4">
+    <div className="card flex items-center justify-between gap-4">
       <div className="flex-1 min-w-0">
         <p className="font-medium text-white">{label}</p>
         <p className="text-sm text-gray-400 mt-0.5">{description}</p>

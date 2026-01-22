@@ -28,7 +28,6 @@ export async function DELETE(
         AND owner_id = ${userId}
         AND type = 'friend'
         AND status = 'pending'
-        AND collaborator_id IS NULL
     `;
 
     if (rowCount === 0) {

@@ -454,6 +454,60 @@ These are ideas to consider but not yet prioritized:
 - [x] In-app collaboration invites (user search, pending invites, notifications, privacy settings)
 - [x] Episode tracking MVP (progress bar, season pills, episode list sheet, mark watched)
 - [x] Letterboxd import (ZIP export with diary, ratings, watchlist, conflict resolution)
+- [x] Partner & Friend sharing system (separate from custom list collaborators)
+- [x] Friend suggestions ("Send to Friend" from media options)
+- [x] Notification center redesign with grouped suggestions and swipe-to-dismiss
+- [x] Dev tools: Account reset endpoint for testing
+
+---
+
+## Recent Changes (January 2025)
+
+### Friend Suggestions & Notification UI Improvements
+
+#### Send to Friend Flow
+- **New Component**: `FriendSuggestionSheet.tsx` - Bottom sheet for sending media suggestions
+  - Triggered from MediaOptionsSheet via "Send to Friend" button
+  - Shows media preview (poster, title, year)
+  - Friend selector with checkboxes
+  - Optional note (280 chars)
+  - Success/error feedback
+- **New Component**: `FriendSelector.tsx` - Reusable friend list with selection
+  - Fetches from `/api/friends`
+  - Avatar + name display
+  - Loading/empty states
+
+#### Notification Center Redesign
+- **Restructured layout** with clear sections:
+  1. Friend Suggestions (grouped by sender, collapsible)
+  2. Pending Invites (friend/partner/custom list)
+  3. Other Notifications (show alerts, collab events)
+- **New Component**: `SuggestionGroup.tsx` - Grouped suggestions from one friend
+  - Collapsed view: poster thumbnails + "Add All" / "Dismiss All"
+  - Expanded view: individual items with accept/dismiss buttons
+- **New Component**: `NotificationItem.tsx` - Swipeable notification wrapper
+  - Touch/mouse event handlers for swipe gestures
+  - 30% threshold triggers dismiss
+  - Smooth CSS transitions
+- **Badge color**: Changed from red to brand purple (`#8b5ef4`)
+- **Auto-close**: Panel closes automatically when empty after actions (1.5s delay)
+
+#### Bug Fixes
+- **Fixed double notification count**: NotificationBell was counting direct invites twice (once via `/api/invites/pending?countOnly=true` which includes direct invites, and again via `/api/collaborators/direct-invites`)
+- **Added suggestions to badge count**: Bell now includes pending friend suggestions in the count
+- **Profile page refresh**: Added event listener for `connection-accepted` events to auto-refresh connections
+
+#### Profile Page UX Improvements
+- **Confirmation modal**: Added for removing friends/partners (prevents accidental disconnection)
+- **Logout confirmation**: Added modal before signing out
+- **Settings icon**: Changed to purple to match notifications icon
+- **Logout button**: Changed text from red to white for cleaner look
+
+#### Developer Tools
+- **Account reset endpoint**: `/api/dev/reset-user?username=xxx&confirm=yes`
+  - Clears all user data: library, tags, custom lists, connections, suggestions, notifications
+  - Requires `confirm=yes` parameter
+  - Useful for testing clean states
 
 ---
 

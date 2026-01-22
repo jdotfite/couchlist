@@ -437,7 +437,7 @@ export default function CollaboratorsSettingsPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
@@ -449,7 +449,7 @@ export default function CollaboratorsSettingsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-6">
+      <main className="px-4 pt-4">
         {/* Error message */}
         {error && (
           <div className="flex items-center gap-3 p-4 mb-6 bg-red-500/10 border border-red-500 rounded-lg text-red-400">

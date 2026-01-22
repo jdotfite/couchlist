@@ -31,7 +31,22 @@
       "Bash(npx eslint:*)",
       "Bash(npm run lint)",
       "Bash(npx tsx:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "WebFetch(domain:uxplanet.org)",
+      "Bash(where:*)",
+      "Bash(git fetch:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:vercel.com)",
+      "Bash(npm i:*)",
+      "Bash(vercel --prod:*)",
+      "Bash(vercel login)",
+      "Bash(git restore:*)",
+      "Bash(copy \"C:\\\\Users\\\\Justin\\\\Desktop\\\\logo-flicklog.svg\" \"C:\\\\_websites\\\\couchlist\\\\public\\\\logo-flicklog.svg\")",
+      "Bash(cmd /c copy \"C:\\\\Users\\\\Justin\\\\Desktop\\\\logo-flicklog.svg\" \"C:\\\\_websites\\\\couchlist\\\\public\\\\logo-flicklog.svg\")",
+      "Bash(cmd /c dir \"C:\\\\_websites\\\\couchlist\\\\public\\\\logo-flicklog.svg\")",
+      "Bash(npx next build)",
+      "WebFetch(domain:trakt.docs.apiary.io)",
+      "WebFetch(domain:betamode.de)"
     ]
   }
 }

@@ -152,7 +152,7 @@ export default function ImportPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
           {step === 'source' || step === 'processing' || step === 'complete' ? (
             <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
@@ -167,7 +167,7 @@ export default function ImportPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-6 max-w-lg mx-auto">
+      <main className="px-4 pt-4">
         {/* Step: Source Selection */}
         {step === 'source' && (
           <div className="space-y-4">
@@ -191,7 +191,7 @@ export default function ImportPage() {
                     <h3 className="font-semibold text-white">{s.name}</h3>
                     <p className="text-sm text-gray-400 mt-1">{s.description}</p>
                   </div>
-                  {s.available && <ChevronRight className="w-5 h-5 text-gray-500" />}
+                  {s.available && <ChevronRight className="w-5 h-5 text-gray-400" />}
                 </div>
               </button>
             ))}

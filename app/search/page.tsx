@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, Loader2, X, ArrowLeft, Film, Tv } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Search, Loader2, X, Film, Tv } from 'lucide-react';
 import SearchResults from '@/components/SearchResults';
 import TrendingRow from '@/components/home/TrendingRow';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
@@ -32,7 +32,6 @@ const categories = [
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const initialFilter = searchParams.get('type') || 'all';
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -181,15 +180,7 @@ export default function SearchPage() {
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
-        <div className="flex items-center gap-3 mb-4">
-          <button
-            onClick={() => router.back()}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-zinc-800 transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-xl font-bold">Search</h1>
-        </div>
+        <h1 className="text-xl font-bold mb-4">Search</h1>
 
         {/* Search Input */}
         <div className="relative">

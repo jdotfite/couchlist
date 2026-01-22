@@ -509,18 +509,24 @@ export async function getPendingDirectInvites(userId: number): Promise<{
   message: string | null;
   sharedLists: string[];
   createdAt: Date;
+  inviteType?: string;
 }[]> {
+  // Query for invites where user is the target
+  // - target_user_id is used by general collaborator invites
+  // - collaborator_id is used by friend/partner invites
   const result = await sql`
     SELECT
       c.id,
       c.owner_id,
       c.invite_message,
       c.created_at,
+      c.type,
       u.name as owner_name,
-      u.username as owner_username
+      u.username as owner_username,
+      u.profile_image as owner_image
     FROM collaborators c
     JOIN users u ON c.owner_id = u.id
-    WHERE c.target_user_id = ${userId}
+    WHERE (c.target_user_id = ${userId} OR c.collaborator_id = ${userId})
     AND c.status = 'pending'
     AND c.invite_expires_at > NOW()
     ORDER BY c.created_at DESC
@@ -538,10 +544,11 @@ export async function getPendingDirectInvites(userId: number): Promise<{
       ownerId: row.owner_id,
       ownerName: row.owner_name,
       ownerUsername: row.owner_username,
-      ownerImage: null, // users table doesn't have image column
+      ownerImage: row.owner_image || null,
       message: row.invite_message,
       sharedLists: listsResult.rows.map(r => r.list_type),
       createdAt: row.created_at,
+      inviteType: row.type,
     });
   }
 
@@ -553,7 +560,7 @@ export async function getPendingDirectInviteCount(userId: number): Promise<numbe
   const result = await sql`
     SELECT COUNT(*)::int as count
     FROM collaborators
-    WHERE target_user_id = ${userId}
+    WHERE (target_user_id = ${userId} OR collaborator_id = ${userId})
     AND status = 'pending'
     AND invite_expires_at > NOW()
   `;
@@ -567,10 +574,11 @@ export async function acceptDirectInvite(
   selectedLists: string[]
 ): Promise<{ success: boolean; error?: string }> {
   // Verify the invite is for this user and is pending
+  // Check both target_user_id (general invites) and collaborator_id (friend/partner invites)
   const result = await sql`
     SELECT * FROM collaborators
     WHERE id = ${inviteId}
-    AND target_user_id = ${userId}
+    AND (target_user_id = ${userId} OR collaborator_id = ${userId})
     AND status = 'pending'
     AND invite_expires_at > NOW()
   `;
@@ -581,7 +589,7 @@ export async function acceptDirectInvite(
 
   const invite = result.rows[0];
 
-  // Update the collaboration
+  // Update the collaboration - set collaborator_id if it was a target_user_id invite
   await sql`
     UPDATE collaborators
     SET collaborator_id = ${userId},
@@ -614,11 +622,12 @@ export async function declineDirectInvite(
   inviteId: number,
   userId: number
 ): Promise<{ success: boolean; error?: string }> {
+  // Check both target_user_id (general invites) and collaborator_id (friend/partner invites)
   const result = await sql`
     UPDATE collaborators
     SET status = 'declined'
     WHERE id = ${inviteId}
-    AND target_user_id = ${userId}
+    AND (target_user_id = ${userId} OR collaborator_id = ${userId})
     AND status = 'pending'
     RETURNING id
   `;

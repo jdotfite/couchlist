@@ -325,7 +325,7 @@ export default function PartnerListsPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href="/settings/sharing" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
@@ -475,7 +475,7 @@ export default function PartnerListsPage() {
                         <div className="mt-2 flex items-center gap-2">
                           <button
                             onClick={() => setWatchedTogetherItem(item)}
-                            className="px-3 py-1.5 bg-pink-500 hover:bg-pink-600 rounded-lg text-xs font-medium transition flex items-center gap-1.5"
+                            className="px-3 py-1.5 bg-brand-primary hover:bg-brand-primary-dark rounded-lg text-xs font-medium transition flex items-center gap-1.5"
                           >
                             <Users className="w-3 h-3" />
                             Watched Together
@@ -525,7 +525,7 @@ export default function PartnerListsPage() {
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-pink-500 hover:bg-pink-600 rounded-full font-semibold transition inline-flex items-center gap-2"
+              className="px-6 py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-full font-semibold transition inline-flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
               Create List
@@ -574,7 +574,7 @@ export default function PartnerListsPage() {
             <button
               onClick={createList}
               disabled={createLoading || !newListName.trim()}
-              className="w-full py-3 bg-pink-500 hover:bg-pink-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+              className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
             >
               {createLoading ? (
                 <>
@@ -628,7 +628,7 @@ export default function PartnerListsPage() {
             <button
               onClick={() => markWatchedTogether(watchedTogetherItem)}
               disabled={markingWatched}
-              className="w-full py-3 bg-pink-500 hover:bg-pink-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+              className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
             >
               {markingWatched ? (
                 <>

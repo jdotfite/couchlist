@@ -12,20 +12,23 @@ export async function GET() {
 
     const userId = parseInt(session.user.id);
 
-    // Get pending friend invites created by this user (link invites without specific target)
+    // Get pending friend invites created by this user (both link-based and direct)
     const { rows } = await sql`
       SELECT
-        id,
-        invite_code,
-        invite_expires_at,
-        created_at
-      FROM collaborators
-      WHERE owner_id = ${userId}
-        AND type = 'friend'
-        AND status = 'pending'
-        AND collaborator_id IS NULL
-        AND invite_expires_at > NOW()
-      ORDER BY created_at DESC
+        c.id,
+        c.invite_code,
+        c.invite_expires_at,
+        c.created_at,
+        c.collaborator_id,
+        u.name as target_name,
+        u.username as target_username
+      FROM collaborators c
+      LEFT JOIN users u ON c.collaborator_id = u.id
+      WHERE c.owner_id = ${userId}
+        AND c.type = 'friend'
+        AND c.status = 'pending'
+        AND c.invite_expires_at > NOW()
+      ORDER BY c.created_at DESC
     `;
 
     const invites = rows.map(row => ({
@@ -34,6 +37,11 @@ export async function GET() {
       inviteUrl: `${process.env.NEXTAUTH_URL}/invite/${row.invite_code}?type=friend`,
       createdAt: row.created_at,
       expiresAt: row.invite_expires_at,
+      targetUser: row.collaborator_id ? {
+        id: row.collaborator_id,
+        name: row.target_name,
+        username: row.target_username,
+      } : null,
     }));
 
     return NextResponse.json({ invites });

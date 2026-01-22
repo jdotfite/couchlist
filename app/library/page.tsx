@@ -9,10 +9,10 @@ import {
   Play,
   List,
   CheckCircle2,
-  Loader2,
   ChevronRight,
   Plus,
 } from 'lucide-react';
+import LibraryPageSkeleton from '@/components/skeletons/LibraryPageSkeleton';
 import ProfileMenu from '@/components/ProfileMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import { getImageUrl } from '@/lib/tmdb';
@@ -117,11 +117,7 @@ export default function LibraryPage() {
   };
 
   if (status === 'loading' || isLoading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
-    );
+    return <LibraryPageSkeleton />;
   }
 
   return (
@@ -195,7 +191,7 @@ export default function LibraryPage() {
                   )}
 
                   {/* Arrow */}
-                  <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition flex-shrink-0" />
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition flex-shrink-0" />
                 </div>
               </Link>
             );
@@ -268,7 +264,7 @@ export default function LibraryPage() {
                       )}
 
                       {/* Arrow */}
-                      <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white transition flex-shrink-0" />
+                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition flex-shrink-0" />
                     </div>
                   </Link>
                 );
@@ -284,7 +280,7 @@ export default function LibraryPage() {
                   <Plus className="w-6 h-6 text-gray-400 group-hover:text-brand-primary transition" />
                 </div>
                 <h3 className="font-semibold text-gray-300 group-hover:text-white transition">Create Custom List</h3>
-                <p className="text-sm text-gray-500 mt-1">Organize your movies and shows your way</p>
+                <p className="text-sm text-gray-400 mt-1">Organize your movies and shows your way</p>
               </div>
             </Link>
           )}

@@ -377,7 +377,7 @@ export default function SharingSettingsPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
@@ -389,7 +389,7 @@ export default function SharingSettingsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-6 space-y-8">
+      <main className="px-4 pt-4 space-y-6">
         {/* Error message */}
         {error && (
           <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-400">
@@ -840,7 +840,7 @@ export default function SharingSettingsPage() {
                 <button
                   onClick={sendDirectPartnerInvite}
                   disabled={partnerInviteLoading || !selectedUser}
-                  className="w-full py-3 bg-pink-500 hover:bg-pink-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
                 >
                   {partnerInviteLoading ? (
                     <>
@@ -869,7 +869,7 @@ export default function SharingSettingsPage() {
                 </p>
                 <button
                   onClick={resetPartnerModal}
-                  className="w-full py-3 bg-pink-500 hover:bg-pink-600 rounded-xl font-semibold transition"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition"
                 >
                   Done
                 </button>
@@ -886,7 +886,7 @@ export default function SharingSettingsPage() {
                 <button
                   onClick={createPartnerInviteLink}
                   disabled={partnerInviteLoading}
-                  className="w-full py-3 bg-pink-500 hover:bg-pink-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
                 >
                   {partnerInviteLoading ? (
                     <>
@@ -915,7 +915,7 @@ export default function SharingSettingsPage() {
 
                   <button
                     onClick={() => copyToClipboard(partnerInviteUrl)}
-                    className="w-full py-3 bg-pink-500 hover:bg-pink-600 rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition flex items-center justify-center gap-2"
                   >
                     {copied ? (
                       <>
@@ -1077,7 +1077,7 @@ export default function SharingSettingsPage() {
                 <button
                   onClick={sendDirectFriendInvite}
                   disabled={friendInviteLoading || !selectedUser}
-                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
                 >
                   {friendInviteLoading ? (
                     <>
@@ -1106,7 +1106,7 @@ export default function SharingSettingsPage() {
                 </p>
                 <button
                   onClick={resetFriendModal}
-                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 rounded-xl font-semibold transition"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition"
                 >
                   Done
                 </button>
@@ -1123,7 +1123,7 @@ export default function SharingSettingsPage() {
                 <button
                   onClick={createFriendInviteLink}
                   disabled={friendInviteLoading}
-                  className="w-full py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
                 >
                   {friendInviteLoading ? (
                     <>
@@ -1152,7 +1152,7 @@ export default function SharingSettingsPage() {
 
                   <button
                     onClick={() => copyToClipboard(friendInviteUrl)}
-                    className="w-full py-3 bg-blue-500 hover:bg-blue-600 rounded-xl font-semibold transition flex items-center justify-center gap-2"
+                    className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition flex items-center justify-center gap-2"
                   >
                     {copied ? (
                       <>

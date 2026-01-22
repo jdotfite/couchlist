@@ -67,7 +67,7 @@ export default function ExportPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
@@ -76,9 +76,9 @@ export default function ExportPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-6 space-y-6">
+      <main className="px-4 pt-4 space-y-6">
         {/* Info Box */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
           <p className="text-sm text-gray-400">
             Export your entire watch history including all movies and TV shows you've tracked,
             along with your ratings, notes, and tags.

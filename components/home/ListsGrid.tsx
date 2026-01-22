@@ -51,7 +51,7 @@ export default function ListsGrid({ lists }: ListsGridProps) {
             </div>
             <div>
               <h3 className="font-semibold text-sm">{title}</h3>
-              <p className="text-xs text-gray-400">{count} items</p>
+              <p className="text-xs text-gray-400">{count} {slug === 'all' ? 'lists' : 'items'}</p>
             </div>
           </Link>
         ))}
@@ -65,5 +65,5 @@ export const DEFAULT_LISTS = [
   { slug: 'watching', title: 'Watching', icon: Play, color: 'from-emerald-500 to-emerald-900' },
   { slug: 'watchlist', title: 'Watchlist', icon: List, color: 'from-blue-600 to-blue-900' },
   { slug: 'finished', title: 'Watched', icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker' },
-  { slug: 'all', title: 'All Items', icon: LayoutGrid, color: 'from-zinc-600 to-zinc-800' },
+  { slug: 'all', title: 'All Lists', icon: LayoutGrid, color: 'from-zinc-600 to-zinc-800' },
 ];

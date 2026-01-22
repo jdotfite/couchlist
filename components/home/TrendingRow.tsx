@@ -1,10 +1,19 @@
 'use client';
 
+/**
+ * TrendingRow - A horizontal scrolling row for discovery/browse content (2.5-up layout)
+ *
+ * Use this for displaying trending, popular, or recommended content with optional add buttons.
+ * Shows larger items (~2.5 visible at a time) for better discoverability.
+ *
+ * For user's library items, use MediaRow instead (compact 3-up layout with placeholders).
+ */
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Film, Tv } from 'lucide-react';
 
-interface TrendingItem {
+export interface TrendingRowItem {
   id: number;
   title?: string;
   name?: string;
@@ -16,20 +25,20 @@ interface TrendingItem {
 
 interface TrendingRowProps {
   title: string;
-  items: TrendingItem[];
-  seeAllLink?: string;
-  onAddClick?: (item: TrendingItem) => void;
+  items: TrendingRowItem[];
+  seeAllHref?: string;
+  onAddClick?: (item: TrendingRowItem) => void;
 }
 
-export default function TrendingRow({ title, items, seeAllLink, onAddClick }: TrendingRowProps) {
+export default function TrendingRow({ title, items, seeAllHref, onAddClick }: TrendingRowProps) {
   if (items.length === 0) return null;
 
   return (
     <section className="mb-8">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold">{title}</h2>
-        {seeAllLink && (
-          <Link href={seeAllLink} className="text-sm text-gray-400 hover:text-white">
+        {seeAllHref && (
+          <Link href={seeAllHref} className="text-sm text-gray-400 hover:text-white">
             See all
           </Link>
         )}

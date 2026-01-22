@@ -459,7 +459,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
           <button
             onClick={handleAccept}
             disabled={accepting}
-            className="w-full py-4 bg-pink-500 hover:bg-pink-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-full font-bold transition flex items-center justify-center gap-2"
+            className="w-full py-4 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-full font-bold transition flex items-center justify-center gap-2"
           >
             {accepting ? (
               <>
@@ -535,7 +535,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
           <button
             onClick={handleAccept}
             disabled={accepting}
-            className="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-full font-bold transition flex items-center justify-center gap-2"
+            className="w-full py-4 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-full font-bold transition flex items-center justify-center gap-2"
           >
             {accepting ? (
               <>

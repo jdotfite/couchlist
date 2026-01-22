@@ -41,7 +41,8 @@ app/
 │   ├── page.tsx                 # Settings hub
 │   ├── collaborators/page.tsx   # Manage shared lists
 │   ├── lists/page.tsx           # Rename list names
-│   └── notifications/page.tsx   # Show alert preferences
+│   ├── notifications/page.tsx   # Show alert preferences
+│   └── trakt/page.tsx           # Trakt sync settings
 ├── add/page.tsx                 # Quick add page
 └── page.tsx                     # Home (search hero + lists + trending)
 
@@ -70,6 +71,7 @@ components/
 lib/
 ├── db.ts                        # Database connection & schema
 ├── tmdb.ts                      # TMDb API helpers
+├── trakt.ts                     # Trakt API helpers & OAuth
 ├── auth.ts                      # NextAuth configuration
 ├── collaborators.ts             # Collaboration logic
 ├── list-preferences.ts          # Custom list name logic
@@ -220,6 +222,15 @@ types/
 - Unified notification center shows both invites and show alerts
 - Cron jobs sync TMDb metadata (every 6h) and generate alerts (8am/6pm)
 
+### Trakt Sync
+- Connect Trakt account via OAuth device flow (Settings → Trakt Sync)
+- Import watch history from Kodi, Plex, Jellyfin, and other Trakt-connected apps
+- **Device auth**: User goes to trakt.tv/activate and enters code
+- **Sync behavior**: Imports watched movies/shows as "finished" status
+- **Duplicate handling**: Skips items already in library
+- **Manual sync**: User triggers sync from settings page
+- Uses TMDB IDs from Trakt to match content
+
 ## API Endpoints
 
 | Endpoint | Method | Description |
@@ -246,9 +257,15 @@ types/
 | /api/notifications | GET | List notifications (paginated) |
 | /api/notifications/count | GET | Get unread count |
 | /api/notifications/[id]/read | POST | Mark notification as read |
+| /api/notifications/[id] | DELETE | Delete a notification |
 | /api/notifications/read-all | POST | Mark all notifications as read |
+| /api/notifications/clear | POST | Clear all notifications |
 | /api/cron/sync-shows | GET/POST | TMDb metadata sync (cron) |
 | /api/cron/generate-alerts | GET/POST | Generate show alerts (cron) |
+| /api/trakt/device-code | POST | Start Trakt device auth flow |
+| /api/trakt/poll-token | POST | Poll for Trakt auth token |
+| /api/trakt/status | GET/DELETE/PATCH | Get/disconnect/update Trakt connection |
+| /api/trakt/sync | POST | Sync watched content from Trakt |
 
 ## Styling Conventions
 
@@ -269,6 +286,8 @@ POSTGRES_URL=
 TMDB_API_KEY=
 TMDB_ACCESS_TOKEN=
 CRON_SECRET=              # Optional: Secure cron endpoints
+TRAKT_CLIENT_ID=          # Optional: Trakt sync integration
+TRAKT_CLIENT_SECRET=      # Optional: Trakt sync integration
 ```
 
 ## Current Limitations

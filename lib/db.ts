@@ -828,6 +828,38 @@ export async function initDb() {
       ON user_media(suggested_by_user_id);
     `;
 
+    // ========================================================================
+    // Trakt Integration
+    // ========================================================================
+
+    // User Trakt connections - stores OAuth tokens for Trakt sync
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_trakt_connections (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        trakt_user_id VARCHAR(100),
+        trakt_username VARCHAR(100),
+        access_token TEXT NOT NULL,
+        refresh_token TEXT NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        last_synced_at TIMESTAMP,
+        last_activity_at TIMESTAMP,
+        sync_enabled BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_trakt_connections_user
+      ON user_trakt_connections(user_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_trakt_connections_sync
+      ON user_trakt_connections(sync_enabled, last_synced_at);
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },
