@@ -85,7 +85,7 @@ type NotificationItem = CustomListInvite | CollaborationInvite | ShowAlertNotifi
 const LIST_LABELS: Record<string, string> = {
   watchlist: 'Watchlist',
   watching: 'Watching',
-  finished: 'Finished',
+  finished: 'Watched',
   onhold: 'On Hold',
   dropped: 'Dropped',
   favorites: 'Favorites',

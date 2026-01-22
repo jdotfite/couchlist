@@ -138,7 +138,7 @@ export default function Home() {
     },
     {
       slug: 'finished',
-      title: getListName('finished') || 'Finished',
+      title: getListName('finished') || 'Watched',
       count: finishedItems.length,
       posterPath: finishedItems[0]?.poster_path || null,
       icon: CheckCircle2,

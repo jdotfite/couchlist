@@ -27,6 +27,8 @@ import {
   Link2,
   Search,
   AtSign,
+  Plus,
+  X,
 } from 'lucide-react';
 
 interface Collaboration {
@@ -74,7 +76,7 @@ const listIcons: Record<string, React.ReactNode> = {
 const listLabels: Record<string, string> = {
   watchlist: 'Watchlist',
   watching: 'Watching',
-  finished: 'Finished',
+  finished: 'Watched',
   onhold: 'On Hold',
   dropped: 'Dropped',
   favorites: 'Favorites',
@@ -107,6 +109,11 @@ export default function CollaboratorsSettingsPage() {
   const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; username: string | null } | null>(null);
   const [directInviteSent, setDirectInviteSent] = useState(false);
   const [selectedCustomLists, setSelectedCustomLists] = useState<number[]>([]);
+
+  // Inline list creation state
+  const [isCreatingList, setIsCreatingList] = useState(false);
+  const [newListName, setNewListName] = useState('');
+  const [creatingListLoading, setCreatingListLoading] = useState(false);
 
   // Remove confirmation
   const [removingId, setRemovingId] = useState<number | null>(null);
@@ -267,6 +274,53 @@ export default function CollaboratorsSettingsPage() {
         ? prev.filter(id => id !== listId)
         : [...prev, listId]
     );
+  };
+
+  const createNewList = async () => {
+    const trimmedName = newListName.trim();
+    if (!trimmedName || creatingListLoading) return;
+
+    setCreatingListLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/custom-lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          icon: 'list',
+          color: 'purple',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Failed to create list');
+        return;
+      }
+
+      // Add the new list to customLists and auto-select it
+      const newList: CustomList = {
+        id: data.list.id,
+        slug: data.list.slug,
+        name: data.list.name,
+        icon: data.list.icon,
+        color: data.list.color,
+        item_count: 0,
+      };
+      setCustomLists(prev => [...prev, newList]);
+      setSelectedCustomLists(prev => [...prev, newList.id]);
+
+      // Reset the form
+      setNewListName('');
+      setIsCreatingList(false);
+    } catch (err) {
+      setError('Failed to create list');
+    } finally {
+      setCreatingListLoading(false);
+    }
   };
 
   const searchUsers = async (query: string) => {
@@ -493,6 +547,8 @@ export default function CollaboratorsSettingsPage() {
             setSearchResults([]);
             setDirectInviteSent(false);
             setInviteTab('search');
+            setIsCreatingList(false);
+            setNewListName('');
           }}
           className="w-full mb-6 p-4 border-2 border-dashed border-zinc-700 hover:border-brand-primary rounded-xl transition flex items-center justify-center gap-3 text-gray-400 hover:text-white group"
         >
@@ -764,37 +820,85 @@ export default function CollaboratorsSettingsPage() {
                 </div>
 
                 {/* Custom Lists selection */}
-                {customLists.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-sm font-medium mb-3">Custom Lists</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {customLists.map((list) => (
-                        <button
-                          key={list.id}
-                          onClick={() => toggleCustomListSelection(list.id)}
-                          className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition ${
-                            selectedCustomLists.includes(list.id)
-                              ? 'bg-brand-primary/10 border-brand-primary'
-                              : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            selectedCustomLists.includes(list.id)
-                              ? 'bg-brand-primary border-brand-primary'
-                              : 'border-zinc-600'
-                          }`}>
-                            {selectedCustomLists.includes(list.id) && <Check className="w-3 h-3" />}
-                          </div>
-                          <span className="flex-1 text-left truncate">{list.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium mb-3">Custom Lists</h3>
+                  <div className="space-y-2">
+                    {customLists.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {customLists.map((list) => (
+                          <button
+                            key={list.id}
+                            onClick={() => toggleCustomListSelection(list.id)}
+                            className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition ${
+                              selectedCustomLists.includes(list.id)
+                                ? 'bg-brand-primary/10 border-brand-primary'
+                                : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                              selectedCustomLists.includes(list.id)
+                                ? 'bg-brand-primary border-brand-primary'
+                                : 'border-zinc-600'
+                            }`}>
+                              {selectedCustomLists.includes(list.id) && <Check className="w-3 h-3" />}
+                            </div>
+                            <span className="flex-1 text-left truncate">{list.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                {customLists.length === 0 && (
-                  <div className="mb-6" />
-                )}
+                    {/* Inline create list */}
+                    {isCreatingList ? (
+                      <div className="flex items-center gap-2 p-2 bg-zinc-800 rounded-lg border border-zinc-700">
+                        <input
+                          type="text"
+                          value={newListName}
+                          onChange={(e) => setNewListName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') createNewList();
+                            if (e.key === 'Escape') {
+                              setIsCreatingList(false);
+                              setNewListName('');
+                            }
+                          }}
+                          placeholder="List name..."
+                          autoFocus
+                          className="flex-1 bg-transparent text-sm focus:outline-none placeholder-gray-500"
+                          maxLength={50}
+                        />
+                        <button
+                          onClick={createNewList}
+                          disabled={!newListName.trim() || creatingListLoading}
+                          className="p-1 text-green-500 hover:text-green-400 disabled:text-gray-600 disabled:cursor-not-allowed"
+                        >
+                          {creatingListLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsCreatingList(false);
+                            setNewListName('');
+                          }}
+                          className="p-1 text-gray-400 hover:text-gray-300"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setIsCreatingList(true)}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-dashed border-zinc-600 text-sm text-gray-400 hover:text-white hover:border-zinc-500 transition"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Create new list...</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 <button
                   onClick={sendDirectInvite}
@@ -871,37 +975,85 @@ export default function CollaboratorsSettingsPage() {
                 </div>
 
                 {/* Custom Lists selection */}
-                {customLists.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-sm font-medium mb-3">Custom Lists</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {customLists.map((list) => (
-                        <button
-                          key={list.id}
-                          onClick={() => toggleCustomListSelection(list.id)}
-                          className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition ${
-                            selectedCustomLists.includes(list.id)
-                              ? 'bg-brand-primary/10 border-brand-primary'
-                              : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
-                          }`}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            selectedCustomLists.includes(list.id)
-                              ? 'bg-brand-primary border-brand-primary'
-                              : 'border-zinc-600'
-                          }`}>
-                            {selectedCustomLists.includes(list.id) && <Check className="w-3 h-3" />}
-                          </div>
-                          <span className="flex-1 text-left truncate">{list.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium mb-3">Custom Lists</h3>
+                  <div className="space-y-2">
+                    {customLists.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {customLists.map((list) => (
+                          <button
+                            key={list.id}
+                            onClick={() => toggleCustomListSelection(list.id)}
+                            className={`flex items-center gap-2 p-2.5 rounded-lg border text-sm transition ${
+                              selectedCustomLists.includes(list.id)
+                                ? 'bg-brand-primary/10 border-brand-primary'
+                                : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
+                            }`}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                              selectedCustomLists.includes(list.id)
+                                ? 'bg-brand-primary border-brand-primary'
+                                : 'border-zinc-600'
+                            }`}>
+                              {selectedCustomLists.includes(list.id) && <Check className="w-3 h-3" />}
+                            </div>
+                            <span className="flex-1 text-left truncate">{list.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                {customLists.length === 0 && (
-                  <div className="mb-6" />
-                )}
+                    {/* Inline create list */}
+                    {isCreatingList ? (
+                      <div className="flex items-center gap-2 p-2 bg-zinc-800 rounded-lg border border-zinc-700">
+                        <input
+                          type="text"
+                          value={newListName}
+                          onChange={(e) => setNewListName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') createNewList();
+                            if (e.key === 'Escape') {
+                              setIsCreatingList(false);
+                              setNewListName('');
+                            }
+                          }}
+                          placeholder="List name..."
+                          autoFocus
+                          className="flex-1 bg-transparent text-sm focus:outline-none placeholder-gray-500"
+                          maxLength={50}
+                        />
+                        <button
+                          onClick={createNewList}
+                          disabled={!newListName.trim() || creatingListLoading}
+                          className="p-1 text-green-500 hover:text-green-400 disabled:text-gray-600 disabled:cursor-not-allowed"
+                        >
+                          {creatingListLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsCreatingList(false);
+                            setNewListName('');
+                          }}
+                          className="p-1 text-gray-400 hover:text-gray-300"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setIsCreatingList(true)}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-lg border border-dashed border-zinc-600 text-sm text-gray-400 hover:text-white hover:border-zinc-500 transition"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Create new list...</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 <button
                   onClick={createInvite}

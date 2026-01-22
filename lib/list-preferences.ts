@@ -13,7 +13,7 @@ async function ensureDb() {
 export const SYSTEM_LISTS = [
   { type: 'watchlist', defaultName: 'Watchlist' },
   { type: 'watching', defaultName: 'Watching' },
-  { type: 'finished', defaultName: 'Finished' },
+  { type: 'finished', defaultName: 'Watched' },
   { type: 'onhold', defaultName: 'On Hold' },
   { type: 'dropped', defaultName: 'Dropped' },
   { type: 'favorites', defaultName: 'Favorites' },

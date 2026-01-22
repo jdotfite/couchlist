@@ -45,7 +45,7 @@ const listConfig: Record<string, { label: string; icon: React.ReactNode; descrip
     description: 'Currently in progress',
   },
   finished: {
-    label: 'Finished',
+    label: 'Watched',
     icon: <CheckCircle2 className="w-5 h-5 text-brand-primary" />,
     description: 'Completed movies & shows',
   },

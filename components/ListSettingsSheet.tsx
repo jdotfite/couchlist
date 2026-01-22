@@ -31,7 +31,7 @@ interface ListSettingsSheetProps {
 const SYSTEM_LISTS = [
   { type: 'watching', defaultName: 'Watching', icon: Play },
   { type: 'watchlist', defaultName: 'Watchlist', icon: Clock },
-  { type: 'finished', defaultName: 'Finished', icon: CheckCircle2 },
+  { type: 'finished', defaultName: 'Watched', icon: CheckCircle2 },
   { type: 'onhold', defaultName: 'On Hold', icon: PauseCircle },
   { type: 'dropped', defaultName: 'Dropped', icon: XCircle },
   { type: 'rewatch', defaultName: 'Rewatch', icon: RotateCcw },

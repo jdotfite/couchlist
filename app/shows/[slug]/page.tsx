@@ -20,22 +20,22 @@ type IconType = 'finished' | 'watchlist' | 'watching' | 'onhold' | 'dropped' | '
 
 const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint: string; icon: React.ReactNode; iconType: IconType; emptyMessage: string; emptySubMessage: string }> = {
   finished: {
-    title: 'Finished',
+    title: 'Watched',
     subtitle: 'TV shows you\'ve completed',
     apiEndpoint: '/api/watched',
     icon: <CheckCircle2 className="w-6 h-6 text-brand-primary" />,
     iconType: 'finished',
-    emptyMessage: 'No finished shows yet',
-    emptySubMessage: 'Mark TV shows as finished to track them here',
+    emptyMessage: 'No shows watched yet',
+    emptySubMessage: 'Mark TV shows as watched to track them here',
   },
   watched: {
-    title: 'Finished',
+    title: 'Watched',
     subtitle: 'TV shows you\'ve completed',
     apiEndpoint: '/api/watched',
     icon: <CheckCircle2 className="w-6 h-6 text-brand-primary" />,
     iconType: 'finished',
-    emptyMessage: 'No finished shows yet',
-    emptySubMessage: 'Mark TV shows as finished to track them here',
+    emptyMessage: 'No shows watched yet',
+    emptySubMessage: 'Mark TV shows as watched to track them here',
   },
   watching: {
     title: 'Watching',
