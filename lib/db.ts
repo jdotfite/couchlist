@@ -685,6 +685,149 @@ export async function initDb() {
       // Column might already exist
     }
 
+    // ========================================================================
+    // Partner & Friend Sharing System
+    // ========================================================================
+
+    // Add type column to collaborators table (partner vs friend)
+    try {
+      await sql`
+        ALTER TABLE collaborators
+        ADD COLUMN IF NOT EXISTS type VARCHAR(10) DEFAULT 'friend';
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_collaborators_type
+      ON collaborators(type);
+    `;
+
+    // Partner lists - dedicated shared lists between partners
+    await sql`
+      CREATE TABLE IF NOT EXISTS partner_lists (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    // Partner list members - links users to partner lists
+    await sql`
+      CREATE TABLE IF NOT EXISTS partner_list_members (
+        id SERIAL PRIMARY KEY,
+        partner_list_id INTEGER NOT NULL REFERENCES partner_lists(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        collaborator_id INTEGER REFERENCES collaborators(id) ON DELETE SET NULL,
+        role VARCHAR(20) DEFAULT 'member',
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(partner_list_id, user_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_list_members_user
+      ON partner_list_members(user_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_list_members_list
+      ON partner_list_members(partner_list_id);
+    `;
+
+    // Partner list items - items within a partner list
+    await sql`
+      CREATE TABLE IF NOT EXISTS partner_list_items (
+        id SERIAL PRIMARY KEY,
+        partner_list_id INTEGER NOT NULL REFERENCES partner_lists(id) ON DELETE CASCADE,
+        media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+        added_by_user_id INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(partner_list_id, media_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_list_items_list
+      ON partner_list_items(partner_list_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_list_items_media
+      ON partner_list_items(media_id);
+    `;
+
+    // Partner list item status - per-user watched/rating status on shared items
+    await sql`
+      CREATE TABLE IF NOT EXISTS partner_list_item_status (
+        id SERIAL PRIMARY KEY,
+        item_id INTEGER NOT NULL REFERENCES partner_list_items(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        watched BOOLEAN DEFAULT FALSE,
+        watched_at TIMESTAMP,
+        rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(item_id, user_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_list_item_status_item
+      ON partner_list_item_status(item_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_partner_list_item_status_user
+      ON partner_list_item_status(user_id);
+    `;
+
+    // Friend suggestions - tracks suggestions between friends
+    await sql`
+      CREATE TABLE IF NOT EXISTS friend_suggestions (
+        id SERIAL PRIMARY KEY,
+        from_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        to_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+        note TEXT,
+        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'dismissed')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        responded_at TIMESTAMP,
+        UNIQUE(from_user_id, to_user_id, media_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_friend_suggestions_to_user
+      ON friend_suggestions(to_user_id, status);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_friend_suggestions_from_user
+      ON friend_suggestions(from_user_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_friend_suggestions_media
+      ON friend_suggestions(media_id);
+    `;
+
+    // Add suggested_by_user_id to user_media for attribution
+    try {
+      await sql`
+        ALTER TABLE user_media
+        ADD COLUMN IF NOT EXISTS suggested_by_user_id INTEGER REFERENCES users(id);
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_media_suggested_by
+      ON user_media(suggested_by_user_id);
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },

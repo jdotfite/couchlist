@@ -3,6 +3,8 @@ import crypto from 'crypto';
 import { createNotification } from './show-alerts';
 
 // Types
+export type CollaboratorType = 'partner' | 'friend';
+
 export interface Collaborator {
   id: number;
   owner_id: number;
@@ -10,6 +12,7 @@ export interface Collaborator {
   invite_code: string;
   invite_expires_at: Date;
   status: 'pending' | 'accepted' | 'declined' | 'revoked';
+  type: CollaboratorType;
   created_at: Date;
   accepted_at: Date | null;
 }
@@ -18,8 +21,11 @@ export interface CollaboratorWithUser extends Collaborator {
   owner_name: string;
   owner_email: string;
   owner_image: string | null;
+  owner_username?: string | null;
   collaborator_name: string | null;
   collaborator_email: string | null;
+  collaborator_username?: string | null;
+  collaborator_image?: string | null;
 }
 
 export interface SharedList {
@@ -38,22 +44,23 @@ export function generateInviteCode(): string {
 // Create a new collaboration invite
 export async function createInvite(
   ownerId: number,
-  lists: string[] = []
-): Promise<{ inviteCode: string; expiresAt: Date }> {
+  lists: string[] = [],
+  type: CollaboratorType = 'friend'
+): Promise<{ inviteCode: string; expiresAt: Date; collaboratorId: number }> {
   const inviteCode = generateInviteCode();
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
 
   // Create the collaboration record
   const result = await sql`
-    INSERT INTO collaborators (owner_id, invite_code, invite_expires_at, status)
-    VALUES (${ownerId}, ${inviteCode}, ${expiresAt.toISOString()}, 'pending')
+    INSERT INTO collaborators (owner_id, invite_code, invite_expires_at, status, type)
+    VALUES (${ownerId}, ${inviteCode}, ${expiresAt.toISOString()}, 'pending', ${type})
     RETURNING id
   `;
 
   const collaboratorId = result.rows[0].id;
 
-  // Add the shared lists
+  // Add the shared lists (for friend type, these are the lists they can add to)
   for (const listType of lists) {
     await sql`
       INSERT INTO shared_lists (collaborator_id, list_type)
@@ -61,7 +68,7 @@ export async function createInvite(
     `;
   }
 
-  return { inviteCode, expiresAt };
+  return { inviteCode, expiresAt, collaboratorId };
 }
 
 // Get invite details by code
@@ -425,16 +432,30 @@ export async function createDirectInvite(
   ownerId: number,
   targetUserId: number,
   lists: string[] = [],
-  message?: string
+  message?: string,
+  type: CollaboratorType = 'friend'
 ): Promise<{ success: boolean; error?: string; inviteId?: number }> {
   // Check if user is trying to invite themselves
   if (ownerId === targetUserId) {
     return { success: false, error: 'Cannot invite yourself' };
   }
 
+  // For partner type, check if user already has a partner
+  if (type === 'partner') {
+    const existingPartner = await sql`
+      SELECT id FROM collaborators
+      WHERE (owner_id = ${ownerId} OR collaborator_id = ${ownerId})
+      AND type = 'partner'
+      AND status = 'accepted'
+    `;
+    if (existingPartner.rows.length > 0) {
+      return { success: false, error: 'You already have a partner. Remove your current partner first.' };
+    }
+  }
+
   // Check if collaboration already exists between these users
   const existingResult = await sql`
-    SELECT id, status FROM collaborators
+    SELECT id, status, type FROM collaborators
     WHERE (
       (owner_id = ${ownerId} AND (collaborator_id = ${targetUserId} OR target_user_id = ${targetUserId}))
       OR (owner_id = ${targetUserId} AND collaborator_id = ${ownerId})
@@ -444,7 +465,10 @@ export async function createDirectInvite(
   if (existingResult.rows.length > 0) {
     const existing = existingResult.rows[0];
     if (existing.status === 'accepted') {
-      return { success: false, error: 'You are already connected with this user' };
+      // Allow upgrading friend to partner or inviting as different type
+      if (existing.type === type) {
+        return { success: false, error: 'You are already connected with this user' };
+      }
     }
     if (existing.status === 'pending') {
       return { success: false, error: 'An invite is already pending with this user' };
@@ -457,8 +481,8 @@ export async function createDirectInvite(
 
   // Create the collaboration record with target_user_id
   const result = await sql`
-    INSERT INTO collaborators (owner_id, target_user_id, invite_code, invite_expires_at, invite_message, status)
-    VALUES (${ownerId}, ${targetUserId}, ${inviteCode}, ${expiresAt.toISOString()}, ${message || null}, 'pending')
+    INSERT INTO collaborators (owner_id, target_user_id, invite_code, invite_expires_at, invite_message, status, type)
+    VALUES (${ownerId}, ${targetUserId}, ${inviteCode}, ${expiresAt.toISOString()}, ${message || null}, 'pending', ${type})
     RETURNING id
   `;
 
@@ -717,4 +741,112 @@ export async function revokeInvite(
   }
 
   return { success: true };
+}
+
+// ============================================================================
+// Partner-specific helpers
+// ============================================================================
+
+// Check if user already has a partner
+export async function hasPartner(userId: number): Promise<boolean> {
+  const result = await sql`
+    SELECT id FROM collaborators
+    WHERE (owner_id = ${userId} OR collaborator_id = ${userId})
+    AND type = 'partner'
+    AND status = 'accepted'
+    LIMIT 1
+  `;
+  return result.rows.length > 0;
+}
+
+// Get user's partner info
+export async function getPartner(userId: number): Promise<{
+  collaboratorId: number;
+  userId: number;
+  name: string;
+  username: string | null;
+  image: string | null;
+  connectedAt: Date;
+} | null> {
+  const result = await sql`
+    SELECT
+      c.id as collaborator_id,
+      c.accepted_at,
+      CASE WHEN c.owner_id = ${userId} THEN c.collaborator_id ELSE c.owner_id END as partner_user_id,
+      CASE WHEN c.owner_id = ${userId} THEN collab.name ELSE owner.name END as partner_name,
+      CASE WHEN c.owner_id = ${userId} THEN collab.username ELSE owner.username END as partner_username,
+      CASE WHEN c.owner_id = ${userId} THEN collab.profile_image ELSE owner.profile_image END as partner_image
+    FROM collaborators c
+    JOIN users owner ON c.owner_id = owner.id
+    LEFT JOIN users collab ON c.collaborator_id = collab.id
+    WHERE (c.owner_id = ${userId} OR c.collaborator_id = ${userId})
+    AND c.type = 'partner'
+    AND c.status = 'accepted'
+    LIMIT 1
+  `;
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  const row = result.rows[0];
+  return {
+    collaboratorId: row.collaborator_id,
+    userId: row.partner_user_id,
+    name: row.partner_name,
+    username: row.partner_username,
+    image: row.partner_image,
+    connectedAt: row.accepted_at,
+  };
+}
+
+// Get all friends for a user
+export async function getFriends(userId: number): Promise<{
+  collaboratorId: number;
+  userId: number;
+  name: string;
+  username: string | null;
+  image: string | null;
+  connectedAt: Date;
+}[]> {
+  const result = await sql`
+    SELECT
+      c.id as collaborator_id,
+      c.accepted_at,
+      CASE WHEN c.owner_id = ${userId} THEN c.collaborator_id ELSE c.owner_id END as friend_user_id,
+      CASE WHEN c.owner_id = ${userId} THEN collab.name ELSE owner.name END as friend_name,
+      CASE WHEN c.owner_id = ${userId} THEN collab.username ELSE owner.username END as friend_username,
+      CASE WHEN c.owner_id = ${userId} THEN collab.profile_image ELSE owner.profile_image END as friend_image
+    FROM collaborators c
+    JOIN users owner ON c.owner_id = owner.id
+    LEFT JOIN users collab ON c.collaborator_id = collab.id
+    WHERE (c.owner_id = ${userId} OR c.collaborator_id = ${userId})
+    AND c.type = 'friend'
+    AND c.status = 'accepted'
+    ORDER BY c.accepted_at DESC
+  `;
+
+  return result.rows.map(row => ({
+    collaboratorId: row.collaborator_id,
+    userId: row.friend_user_id,
+    name: row.friend_name,
+    username: row.friend_username,
+    image: row.friend_image,
+    connectedAt: row.accepted_at,
+  }));
+}
+
+// Check if two users are friends
+export async function areFriends(userId1: number, userId2: number): Promise<boolean> {
+  const result = await sql`
+    SELECT id FROM collaborators
+    WHERE (
+      (owner_id = ${userId1} AND collaborator_id = ${userId2})
+      OR (owner_id = ${userId2} AND collaborator_id = ${userId1})
+    )
+    AND type = 'friend'
+    AND status = 'accepted'
+    LIMIT 1
+  `;
+  return result.rows.length > 0;
 }

@@ -9,7 +9,11 @@ export type NotificationType =
   | 'invite'
   | 'collab_invite'
   | 'collab_accepted'
-  | 'collab_ended';
+  | 'collab_ended'
+  // Friend suggestions
+  | 'friend_suggestion'       // Single: "Dane suggested Severance"
+  | 'friend_suggestion_group' // Grouped: "Dane suggested 3 titles"
+  | 'suggestion_watched';     // "Justin watched your suggestion"
 
 export interface Notification {
   id: number;
@@ -46,6 +50,18 @@ export interface NotificationData {
   // For connection ended
   ender_name?: string;
   ender_id?: number;
+  // For friend suggestions
+  suggestion_id?: number;
+  suggestion_ids?: number[];      // For grouped suggestions
+  suggester_id?: number;
+  suggester_name?: string;
+  suggester_image?: string;
+  suggestion_note?: string;
+  suggestion_count?: number;      // For grouped: "3 titles"
+  // For suggestion watched feedback
+  watcher_id?: number;
+  watcher_name?: string;
+  watcher_rating?: number;
 }
 
 export interface GlobalNotificationSettings {

@@ -67,15 +67,15 @@ export default function SettingsPage() {
           </Link>
 
           <Link
-            href="/settings/collaborators"
+            href="/settings/sharing"
             className="flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
               <Share2 className="w-5 h-5 text-brand-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">Shared Lists</h3>
-              <p className="text-sm text-gray-400">Collaborate with others on your lists</p>
+              <h3 className="font-semibold">Partner & Friends</h3>
+              <p className="text-sm text-gray-400">Share lists and suggestions with others</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-500" />
           </Link>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Users,
@@ -17,21 +17,41 @@ import {
   AlertCircle,
   Loader2,
   Check,
+  UserPlus,
 } from 'lucide-react';
 
-interface InviteDetails {
+type InviteType = 'partner' | 'friend' | 'collaboration';
+
+interface BaseInviteDetails {
+  type: InviteType;
+  ownerName: string;
+  ownerImage: string | null;
+  expiresAt: string;
+}
+
+interface PartnerInviteDetails extends BaseInviteDetails {
+  type: 'partner';
+}
+
+interface FriendInviteDetails extends BaseInviteDetails {
+  type: 'friend';
+}
+
+interface CollaborationInviteDetails extends BaseInviteDetails {
+  type: 'collaboration';
   inviter: {
     id: number;
     name: string;
     image: string | null;
   };
   sharedLists: string[];
-  expiresAt: string;
   isExpired: boolean;
   isUsed: boolean;
   isOwnInvite: boolean;
   status: string;
 }
+
+type InviteDetails = PartnerInviteDetails | FriendInviteDetails | CollaborationInviteDetails;
 
 const listConfig: Record<string, { label: string; icon: React.ReactNode; description: string }> = {
   watchlist: {
@@ -80,6 +100,8 @@ const allListTypes = ['watchlist', 'watching', 'finished', 'onhold', 'dropped', 
 
 export default function InviteAcceptPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
+  const searchParams = useSearchParams();
+  const typeFromUrl = searchParams.get('type') as InviteType | null;
   const { data: session, status: authStatus } = useSession();
   const router = useRouter();
 
@@ -93,18 +115,27 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
 
   useEffect(() => {
     fetchInviteDetails();
-  }, [code]);
+  }, [code, typeFromUrl]);
 
   useEffect(() => {
-    // Pre-select the lists that the inviter suggested
-    if (invite?.sharedLists) {
+    // Pre-select the lists that the inviter suggested (for collaboration type)
+    if (invite && 'sharedLists' in invite && invite.sharedLists) {
       setSelectedLists(invite.sharedLists);
     }
-  }, [invite?.sharedLists]);
+  }, [invite]);
 
   const fetchInviteDetails = async () => {
     try {
-      const response = await fetch(`/api/collaborators/invite/${code}`);
+      // Determine which endpoint to call based on URL type param
+      let endpoint = `/api/collaborators/invite/${code}`;
+
+      if (typeFromUrl === 'partner') {
+        endpoint = `/api/partners/invite/${code}`;
+      } else if (typeFromUrl === 'friend') {
+        endpoint = `/api/friends/invite/${code}`;
+      }
+
+      const response = await fetch(endpoint);
       const data = await response.json();
 
       if (!response.ok) {
@@ -112,7 +143,36 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
         return;
       }
 
-      setInvite(data);
+      // Normalize the response based on type
+      if (typeFromUrl === 'partner') {
+        setInvite({
+          type: 'partner',
+          ownerName: data.ownerName,
+          ownerImage: data.ownerImage,
+          expiresAt: data.expiresAt,
+        });
+      } else if (typeFromUrl === 'friend') {
+        setInvite({
+          type: 'friend',
+          ownerName: data.ownerName,
+          ownerImage: data.ownerImage,
+          expiresAt: data.expiresAt,
+        });
+      } else {
+        // Legacy collaboration type
+        setInvite({
+          type: 'collaboration',
+          ownerName: data.inviter?.name,
+          ownerImage: data.inviter?.image,
+          expiresAt: data.expiresAt,
+          inviter: data.inviter,
+          sharedLists: data.sharedLists,
+          isExpired: data.isExpired,
+          isUsed: data.isUsed,
+          isOwnInvite: data.isOwnInvite,
+          status: data.status,
+        });
+      }
     } catch (err) {
       setError('Failed to load invite details');
     } finally {
@@ -129,7 +189,10 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
   };
 
   const handleAccept = async () => {
-    if (selectedLists.length === 0) {
+    if (!invite) return;
+
+    // For collaboration type, require at least one list
+    if (invite.type === 'collaboration' && selectedLists.length === 0) {
       setError('Please select at least one list to share');
       return;
     }
@@ -138,13 +201,24 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
     setError(null);
 
     try {
-      const response = await fetch(`/api/collaborators/accept/${code}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      let endpoint = `/api/collaborators/accept/${code}`;
+      let body: Record<string, unknown> = {};
+
+      if (invite.type === 'partner') {
+        endpoint = `/api/partners/accept/${code}`;
+      } else if (invite.type === 'friend') {
+        endpoint = `/api/friends/accept/${code}`;
+      } else {
+        body = {
           lists: selectedLists,
           mergeItems: true,
-        }),
+        };
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -159,7 +233,13 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
 
       // Redirect after a short delay
       setTimeout(() => {
-        router.push('/');
+        if (invite.type === 'partner') {
+          router.push('/partner-lists');
+        } else if (invite.type === 'friend') {
+          router.push('/settings/sharing');
+        } else {
+          router.push('/');
+        }
       }, 2000);
     } catch (err) {
       setError('Failed to accept invite');
@@ -172,31 +252,40 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
   if (loading || authStatus === 'loading') {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin-fast text-gray-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
   // Not logged in
   if (authStatus === 'unauthenticated') {
+    const inviteTypeLabel = typeFromUrl === 'partner' ? 'partner' : typeFromUrl === 'friend' ? 'friend' : 'collaboration';
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
-        <div className="w-16 h-16 bg-brand-primary/20 rounded-full flex items-center justify-center mb-6">
-          <Users className="w-8 h-8 text-brand-primary" />
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${
+          typeFromUrl === 'partner' ? 'bg-pink-500/20' : typeFromUrl === 'friend' ? 'bg-blue-500/20' : 'bg-brand-primary/20'
+        }`}>
+          {typeFromUrl === 'partner' ? (
+            <Heart className="w-8 h-8 text-pink-500" />
+          ) : typeFromUrl === 'friend' ? (
+            <UserPlus className="w-8 h-8 text-blue-500" />
+          ) : (
+            <Users className="w-8 h-8 text-brand-primary" />
+          )}
         </div>
         <h1 className="text-2xl font-bold mb-2 text-center">You've been invited!</h1>
         <p className="text-gray-400 mb-8 text-center">
-          Log in or create an account to accept this invitation.
+          Log in or create an account to accept this {inviteTypeLabel} invitation.
         </p>
         <div className="flex gap-3">
           <Link
-            href={`/login?callbackUrl=/invite/${code}`}
+            href={`/login?callbackUrl=/invite/${code}${typeFromUrl ? `?type=${typeFromUrl}` : ''}`}
             className="px-6 py-3 bg-brand-primary hover:bg-brand-primary-light rounded-full font-semibold transition"
           >
             Log In
           </Link>
           <Link
-            href={`/register?callbackUrl=/invite/${code}`}
+            href={`/register?callbackUrl=/invite/${code}${typeFromUrl ? `?type=${typeFromUrl}` : ''}`}
             className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
           >
             Sign Up
@@ -225,67 +314,69 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
     );
   }
 
-  // Invite expired
-  if (invite?.isExpired) {
-    return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
-        <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6">
-          <Clock className="w-8 h-8 text-yellow-500" />
-        </div>
-        <h1 className="text-2xl font-bold mb-2">Invite Expired</h1>
-        <p className="text-gray-400 mb-8 text-center">
-          This invite link has expired. Ask {invite.inviter.name} to send a new one.
-        </p>
-        <Link
-          href="/"
-          className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
-        >
-          Go Home
-        </Link>
-      </div>
-    );
-  }
+  // Check for expired/used/own invite (collaboration type only)
+  if (invite?.type === 'collaboration') {
+    const collabInvite = invite as CollaborationInviteDetails;
 
-  // Invite already used
-  if (invite?.isUsed) {
-    return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
-        <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-6">
-          <CheckCircle2 className="w-8 h-8 text-blue-500" />
+    if (collabInvite.isExpired) {
+      return (
+        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+          <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6">
+            <Clock className="w-8 h-8 text-yellow-500" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Invite Expired</h1>
+          <p className="text-gray-400 mb-8 text-center">
+            This invite link has expired. Ask {collabInvite.inviter.name} to send a new one.
+          </p>
+          <Link
+            href="/"
+            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
+          >
+            Go Home
+          </Link>
         </div>
-        <h1 className="text-2xl font-bold mb-2">Already Accepted</h1>
-        <p className="text-gray-400 mb-8 text-center">
-          This invite has already been accepted.
-        </p>
-        <Link
-          href="/"
-          className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
-        >
-          Go Home
-        </Link>
-      </div>
-    );
-  }
+      );
+    }
 
-  // Own invite
-  if (invite?.isOwnInvite) {
-    return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
-        <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6">
-          <AlertCircle className="w-8 h-8 text-yellow-500" />
+    if (collabInvite.isUsed) {
+      return (
+        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-6">
+            <CheckCircle2 className="w-8 h-8 text-blue-500" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Already Accepted</h1>
+          <p className="text-gray-400 mb-8 text-center">
+            This invite has already been accepted.
+          </p>
+          <Link
+            href="/"
+            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
+          >
+            Go Home
+          </Link>
         </div>
-        <h1 className="text-2xl font-bold mb-2">This is your invite</h1>
-        <p className="text-gray-400 mb-8 text-center">
-          You can't accept your own invite. Share this link with someone else!
-        </p>
-        <Link
-          href="/settings/collaborators"
-          className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
-        >
-          Manage Collaborations
-        </Link>
-      </div>
-    );
+      );
+    }
+
+    if (collabInvite.isOwnInvite) {
+      return (
+        <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+          <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mb-6">
+            <AlertCircle className="w-8 h-8 text-yellow-500" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">This is your invite</h1>
+          <p className="text-gray-400 mb-8 text-center">
+            You can't accept your own invite. Share this link with someone else!
+          </p>
+          <Link
+            href="/settings/sharing"
+            className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-full font-semibold transition"
+          >
+            Manage Sharing
+          </Link>
+        </div>
+      );
+    }
   }
 
   // Success state
@@ -295,37 +386,200 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
         <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-6">
           <Check className="w-8 h-8 text-green-500" />
         </div>
-        <h1 className="text-2xl font-bold mb-2">You're connected!</h1>
+        <h1 className="text-2xl font-bold mb-2">
+          {invite?.type === 'partner' ? "You're partners!" :
+           invite?.type === 'friend' ? "You're friends!" : "You're connected!"}
+        </h1>
         <p className="text-gray-400 mb-4 text-center">
-          You and {invite?.inviter.name} are now sharing lists.
+          {invite?.type === 'partner' ? (
+            <>You and {invite?.ownerName} can now share lists and track what you watch together.</>
+          ) : invite?.type === 'friend' ? (
+            <>You and {invite?.ownerName} can now send each other suggestions.</>
+          ) : (
+            <>You and {invite?.ownerName} are now sharing lists.</>
+          )}
         </p>
-        {duplicatesCount > 0 && (
+        {duplicatesCount > 0 && invite?.type === 'collaboration' && (
           <p className="text-sm text-brand-primary mb-4 text-center">
             {duplicatesCount} item{duplicatesCount !== 1 ? 's' : ''} you both had will appear once in your shared lists.
           </p>
         )}
-        <p className="text-sm text-gray-500">Redirecting to your library...</p>
+        <p className="text-sm text-gray-500">Redirecting...</p>
       </div>
     );
   }
 
-  // Main accept form
+  // Partner invite accept form
+  if (invite?.type === 'partner') {
+    return (
+      <div className="min-h-screen bg-black text-white p-6">
+        <div className="max-w-md mx-auto pt-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden bg-gradient-to-br from-pink-500 to-rose-500">
+              {invite.ownerImage ? (
+                <img src={invite.ownerImage} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-white">
+                  {invite.ownerName?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl font-bold mb-2">
+              {invite.ownerName} wants to be your partner!
+            </h1>
+            <p className="text-gray-400">
+              Partners share lists bidirectionally and can track shows watched together.
+            </p>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="flex items-center gap-3 p-4 mb-6 bg-red-500/10 border border-red-500 rounded-lg text-red-400">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Info box */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-8">
+            <h3 className="font-medium mb-2 flex items-center gap-2">
+              <Heart className="w-4 h-4 text-pink-500" />
+              What partners can do
+            </h3>
+            <ul className="text-sm text-gray-400 space-y-1">
+              <li>• Create shared lists just for the two of you</li>
+              <li>• Mark shows as "Watched Together"</li>
+              <li>• See each other's watch progress</li>
+              <li>• You can only have one partner at a time</li>
+            </ul>
+          </div>
+
+          {/* Accept button */}
+          <button
+            onClick={handleAccept}
+            disabled={accepting}
+            className="w-full py-4 bg-pink-500 hover:bg-pink-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-full font-bold transition flex items-center justify-center gap-2"
+          >
+            {accepting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                Accepting...
+              </>
+            ) : (
+              <>
+                <Heart className="w-5 h-5" />
+                Accept Partner Invite
+              </>
+            )}
+          </button>
+
+          {/* Skip link */}
+          <div className="text-center mt-4">
+            <Link href="/" className="text-sm text-gray-500 hover:text-gray-400">
+              Skip for now
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Friend invite accept form
+  if (invite?.type === 'friend') {
+    return (
+      <div className="min-h-screen bg-black text-white p-6">
+        <div className="max-w-md mx-auto pt-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500">
+              {invite.ownerImage ? (
+                <img src={invite.ownerImage} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-white">
+                  {invite.ownerName?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              )}
+            </div>
+            <h1 className="text-2xl font-bold mb-2">
+              {invite.ownerName} wants to be friends!
+            </h1>
+            <p className="text-gray-400">
+              Friends can send each other movie and TV show suggestions.
+            </p>
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="flex items-center gap-3 p-4 mb-6 bg-red-500/10 border border-red-500 rounded-lg text-red-400">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Info box */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-8">
+            <h3 className="font-medium mb-2 flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-blue-500" />
+              What friends can do
+            </h3>
+            <ul className="text-sm text-gray-400 space-y-1">
+              <li>• Send you suggestions that appear as notifications</li>
+              <li>• You can accept or dismiss suggestions</li>
+              <li>• Accepted suggestions show who recommended them</li>
+              <li>• Your lists stay private - no automatic sharing</li>
+            </ul>
+          </div>
+
+          {/* Accept button */}
+          <button
+            onClick={handleAccept}
+            disabled={accepting}
+            className="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-full font-bold transition flex items-center justify-center gap-2"
+          >
+            {accepting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                Accepting...
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-5 h-5" />
+                Accept Friend Invite
+              </>
+            )}
+          </button>
+
+          {/* Skip link */}
+          <div className="text-center mt-4">
+            <Link href="/" className="text-sm text-gray-500 hover:text-gray-400">
+              Skip for now
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Legacy collaboration accept form
+  const collabInvite = invite as CollaborationInviteDetails;
+
   return (
     <div className="min-h-screen bg-black text-white p-6">
       <div className="max-w-md mx-auto pt-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500">
-            {invite?.inviter.image ? (
-              <img src={invite.inviter.image} alt="" className="w-full h-full object-cover" />
+            {collabInvite?.inviter?.image ? (
+              <img src={collabInvite.inviter.image} alt="" className="w-full h-full object-cover" />
             ) : (
               <span className="text-2xl font-bold text-white">
-                {invite?.inviter.name?.charAt(0).toUpperCase() || 'U'}
+                {collabInvite?.inviter?.name?.charAt(0).toUpperCase() || 'U'}
               </span>
             )}
           </div>
           <h1 className="text-2xl font-bold mb-2">
-            {invite?.inviter.name} invited you!
+            {collabInvite?.inviter?.name} invited you!
           </h1>
           <p className="text-gray-400">
             Collaborate on your movie & TV lists together.
@@ -351,7 +605,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
             {allListTypes.map(listType => {
               const config = listConfig[listType];
               const isSelected = selectedLists.includes(listType);
-              const isSuggested = invite?.sharedLists.includes(listType);
+              const isSuggested = collabInvite?.sharedLists?.includes(listType);
 
               return (
                 <button
@@ -407,7 +661,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
         >
           {accepting ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin-fast text-gray-400" />
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
               Accepting...
             </>
           ) : (
