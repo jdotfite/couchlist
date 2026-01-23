@@ -137,9 +137,9 @@ export default function Home() {
         {/* Your Lists */}
         <ListsGrid lists={listsData} />
 
-        {/* Continue Watching */}
+        {/* Watching */}
         <MediaRow
-          title={getListName('watching') || 'Continue Watching'}
+          title={getListName('watching') || 'Watching'}
           items={watchingItems}
           seeAllHref="/library?status=watching"
           addHref="/search"
