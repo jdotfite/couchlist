@@ -10,35 +10,9 @@ import {
   Film,
   Tv,
   Star,
-  TrendingUp,
-  Calendar,
-  BarChart3,
-  PieChart as PieChartIcon,
-  Activity,
+  Play,
 } from 'lucide-react';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  LineChart,
-  Line,
-  CartesianGrid,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  AreaChart,
-  Area,
-} from 'recharts';
 import ProfileMenu from '@/components/ProfileMenu';
-import ActivityHeatmap from '@/components/stats/ActivityHeatmap';
 
 interface StatsData {
   overview: {
@@ -87,7 +61,7 @@ const STATUS_LABELS: Record<string, string> = {
   dropped: 'Dropped',
 };
 
-const CHART_COLORS = ['#8b5ef4', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#14b8a6', '#f97316'];
+const GENRE_COLORS = ['#8b5ef4', '#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#14b8a6'];
 
 export default function StatsPage() {
   const { data: session, status: authStatus } = useSession();
@@ -129,10 +103,12 @@ export default function StatsPage() {
           </div>
         </header>
         <main className="px-4 py-6">
-          <div className="animate-pulse space-y-6">
-            <div className="h-32 bg-zinc-900 rounded-xl" />
-            <div className="h-64 bg-zinc-900 rounded-xl" />
-            <div className="h-64 bg-zinc-900 rounded-xl" />
+          <div className="animate-pulse space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-40 bg-zinc-900 rounded-2xl" />
+              <div className="h-40 bg-zinc-900 rounded-2xl" />
+            </div>
+            <div className="h-48 bg-zinc-900 rounded-2xl" />
           </div>
         </main>
       </div>
@@ -147,37 +123,13 @@ export default function StatsPage() {
     );
   }
 
-  const { overview, genres, ratingDistribution, yearlyActivity, monthlyActivity, decades } = stats;
+  const { overview, genres, ratingDistribution, decades } = stats;
 
-  // Prepare data for charts
-  const mediaTypePieData = [
-    { name: 'Movies', value: overview.totalMovies, color: '#8b5ef4' },
-    { name: 'TV Shows', value: overview.totalTVShows, color: '#22c55e' },
-  ];
-
-  const statusPieData = overview.statusBreakdown.map((item) => ({
-    name: STATUS_LABELS[item.status] || item.status,
-    value: item.count,
-    color: STATUS_COLORS[item.status] || '#6b7280',
-  }));
-
-  const top10Genres = genres.slice(0, 10).map((g, i) => ({
-    ...g,
-    fill: CHART_COLORS[i % CHART_COLORS.length],
-  }));
-
-  // Radar chart data (top 6 genres)
-  const radarData = genres.slice(0, 6).map((g) => ({
-    genre: g.genreName.split(' ')[0], // Shorten names
-    count: g.count,
-    fullMark: genres[0]?.count || 1,
-  }));
-
-  // Monthly activity for current year
-  const monthlyData = monthlyActivity.map((item) => ({
-    month: new Date(item.date + '-01').toLocaleDateString('en-US', { month: 'short' }),
-    count: item.count,
-  }));
+  // Calculate totals for percentages
+  const totalItems = overview.totalItems || 1;
+  const maxGenreCount = genres[0]?.count || 1;
+  const maxRatingCount = Math.max(...ratingDistribution.map(r => r.count), 1);
+  const maxDecadeCount = Math.max(...decades.map(d => d.count), 1);
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -194,396 +146,291 @@ export default function StatsPage() {
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-6 max-w-4xl mx-auto">
-        {/* Hero Stats */}
-        <section className="bg-gradient-to-br from-brand-primary/20 to-zinc-900 rounded-2xl p-6">
-          <div className="text-center mb-6">
-            <div className="flex items-center justify-center gap-2 text-gray-400 text-sm mb-2">
-              <Clock className="w-4 h-4" />
-              Total Watch Time
-            </div>
-            <div className="text-5xl font-bold text-white mb-1">
+      <main className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+        {/* Top Row - Watch Time & Library */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Watch Time Card */}
+          <div className="bg-zinc-900 rounded-2xl p-5">
+            <h3 className="text-white font-semibold text-sm mb-1">Watch Time</h3>
+            <p className="text-zinc-500 text-xs mb-3">Total time spent</p>
+            <div className="text-4xl font-bold text-white mb-1">
               {overview.watchTime.days > 0 ? (
-                <>
-                  {overview.watchTime.days}<span className="text-2xl text-gray-400">d</span>{' '}
-                  {overview.watchTime.hours}<span className="text-2xl text-gray-400">h</span>
-                </>
+                <>{overview.watchTime.days}<span className="text-xl text-zinc-500">d </span>{overview.watchTime.hours}<span className="text-xl text-zinc-500">h</span></>
               ) : (
-                <>
-                  {overview.watchTime.hours}<span className="text-2xl text-gray-400">h</span>{' '}
-                  {overview.watchTime.minutes}<span className="text-2xl text-gray-400">m</span>
-                </>
+                <>{overview.watchTime.hours}<span className="text-xl text-zinc-500">h </span>{overview.watchTime.minutes}<span className="text-xl text-zinc-500">m</span></>
               )}
             </div>
-            <p className="text-gray-400 text-sm">
-              across {overview.totalItems} titles
-            </p>
           </div>
 
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-black/30 rounded-xl p-4 text-center">
-              <Film className="w-6 h-6 text-brand-primary mx-auto mb-2" />
-              <div className="text-2xl font-bold">{overview.totalMovies}</div>
-              <div className="text-xs text-gray-400">Movies</div>
+          {/* Library Card */}
+          <div className="bg-zinc-900 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-white font-semibold text-sm">Library</h3>
+              <Link href="/library/manage" className="text-xs text-zinc-500 hover:text-white">Manage</Link>
             </div>
-            <div className="bg-black/30 rounded-xl p-4 text-center">
-              <Tv className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold">{overview.totalTVShows}</div>
-              <div className="text-xs text-gray-400">TV Shows</div>
+            <p className="text-zinc-500 text-xs mb-3">Total titles</p>
+            <div className="text-4xl font-bold text-white">{overview.totalItems.toLocaleString()}</div>
+          </div>
+        </div>
+
+        {/* Category Cards Row */}
+        <div className="grid grid-cols-4 gap-3">
+          {/* Movies */}
+          <div className="bg-zinc-900 rounded-2xl p-4 text-center">
+            <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Film className="w-5 h-5 text-purple-400" />
             </div>
-            <div className="bg-black/30 rounded-xl p-4 text-center">
-              <Star className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold">
-                {overview.averageRating ? overview.averageRating.toFixed(1) : '-'}
-              </div>
-              <div className="text-xs text-gray-400">Avg Rating</div>
-            </div>
-            <div className="bg-black/30 rounded-xl p-4 text-center">
-              <TrendingUp className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-              <div className="text-2xl font-bold">
-                {Math.round(overview.completionRate * 100)}%
-              </div>
-              <div className="text-xs text-gray-400">Completion</div>
+            <div className="text-purple-400 font-medium text-xs mb-1">Movies</div>
+            <div className="text-xl font-bold">{overview.totalMovies}</div>
+            <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-purple-500 rounded-full"
+                style={{ width: `${(overview.totalMovies / totalItems) * 100}%` }}
+              />
             </div>
           </div>
-        </section>
 
-        {/* Media Type Split */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-zinc-900 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
-              <PieChartIcon className="w-4 h-4" />
-              Movies vs TV Shows
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={mediaTypePieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {mediaTypePieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: 'white',
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+          {/* TV Shows */}
+          <div className="bg-zinc-900 rounded-2xl p-4 text-center">
+            <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Tv className="w-5 h-5 text-emerald-400" />
             </div>
-            <div className="flex justify-center gap-6 mt-2">
-              {mediaTypePieData.map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm text-gray-400">
-                    {item.name} ({item.value})
-                  </span>
+            <div className="text-emerald-400 font-medium text-xs mb-1">Shows</div>
+            <div className="text-xl font-bold">{overview.totalTVShows}</div>
+            <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-500 rounded-full"
+                style={{ width: `${(overview.totalTVShows / totalItems) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Episodes */}
+          <div className="bg-zinc-900 rounded-2xl p-4 text-center">
+            <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Play className="w-5 h-5 text-blue-400" />
+            </div>
+            <div className="text-blue-400 font-medium text-xs mb-1">Episodes</div>
+            <div className="text-xl font-bold">{overview.totalEpisodesWatched.toLocaleString()}</div>
+            <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full w-full" />
+            </div>
+          </div>
+
+          {/* Avg Rating */}
+          <div className="bg-zinc-900 rounded-2xl p-4 text-center">
+            <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Star className="w-5 h-5 text-yellow-400" />
+            </div>
+            <div className="text-yellow-400 font-medium text-xs mb-1">Rating</div>
+            <div className="text-xl font-bold">{overview.averageRating?.toFixed(1) || '-'}</div>
+            <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-yellow-500 rounded-full"
+                style={{ width: `${((overview.averageRating || 0) / 5) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Activity Sparkline */}
+        {stats.monthlyActivity && stats.monthlyActivity.length > 0 && (() => {
+          const monthlyData = stats.monthlyActivity.slice(-12);
+          const maxCount = Math.max(...monthlyData.map(m => m.count), 1);
+          const thisMonth = monthlyData[monthlyData.length - 1]?.count || 0;
+          const lastMonth = monthlyData[monthlyData.length - 2]?.count || 0;
+          const change = thisMonth - lastMonth;
+
+          // Generate sparkline path - need at least 2 points
+          const width = 200;
+          const height = 40;
+          const padding = 2;
+          const drawHeight = height - padding * 2;
+
+          // If only one data point, show as a bar instead
+          if (monthlyData.length === 1) {
+            return (
+              <div className="bg-zinc-900 rounded-2xl p-5">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-white font-semibold text-sm mb-1">Activity</h3>
+                    <p className="text-zinc-500 text-xs">This month</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold">{thisMonth}</div>
+                    <div className="text-xs text-zinc-500">titles watched</div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-zinc-900 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              By Status
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusPieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {statusPieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: 'white',
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-2">
-              {statusPieData.map((item) => (
-                <div key={item.name} className="flex items-center gap-1.5">
-                  <div
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-xs text-gray-400">{item.name}</span>
+                <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-pink-500 rounded-full" style={{ width: '100%' }} />
                 </div>
-              ))}
+              </div>
+            );
+          }
+
+          const points = monthlyData.map((item, i) => {
+            const x = monthlyData.length > 1 ? (i / (monthlyData.length - 1)) * width : width / 2;
+            const y = padding + drawHeight - (item.count / maxCount) * drawHeight;
+            return { x, y };
+          });
+
+          const linePath = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
+          const areaPath = `${linePath} L ${width},${height} L 0,${height} Z`;
+
+          const firstMonth = monthlyData[0]?.date;
+          const lastMonthDate = monthlyData[monthlyData.length - 1]?.date;
+
+          return (
+            <div className="bg-zinc-900 rounded-2xl p-5">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-white font-semibold text-sm mb-1">Activity</h3>
+                  <p className="text-zinc-500 text-xs">Last {monthlyData.length} months</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold">{thisMonth}</div>
+                  {monthlyData.length > 1 && (
+                    <div className={`text-xs flex items-center justify-end gap-1 ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {change >= 0 ? '↑' : '↓'} {Math.abs(change)} vs last month
+                    </div>
+                  )}
+                </div>
+              </div>
+              <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-16" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="sparklineGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ec4899" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="#ec4899" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d={areaPath} fill="url(#sparklineGradient)" />
+                <path d={linePath} fill="none" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                {/* Dots at each data point */}
+                {points.map((p, i) => (
+                  <circle key={i} cx={p.x} cy={p.y} r="3" fill="#ec4899" vectorEffect="non-scaling-stroke" />
+                ))}
+              </svg>
+              <div className="flex justify-between text-xs text-zinc-500 mt-2">
+                <span>{firstMonth ? new Date(firstMonth + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) : ''}</span>
+                <span>{lastMonthDate ? new Date(lastMonthDate + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) : ''}</span>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Status Breakdown */}
+        <div className="bg-zinc-900 rounded-2xl p-5">
+          <h3 className="text-white font-semibold text-sm mb-1">By Status</h3>
+          <p className="text-zinc-500 text-xs mb-4">How your library breaks down</p>
+          <div className="space-y-3">
+            {overview.statusBreakdown.map((item) => {
+              const percentage = Math.round((item.count / totalItems) * 100);
+              return (
+                <div key={item.status} className="flex items-center gap-3">
+                  <div className="w-20 text-sm text-zinc-400">{STATUS_LABELS[item.status]}</div>
+                  <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor: STATUS_COLORS[item.status]
+                      }}
+                    />
+                  </div>
+                  <div className="w-16 text-right">
+                    <span className="text-white font-medium">{item.count}</span>
+                    <span className="text-zinc-500 text-xs ml-1">{percentage}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Top Genres */}
+        {genres.length > 0 && (
+          <div className="bg-zinc-900 rounded-2xl p-5">
+            <h3 className="text-white font-semibold text-sm mb-1">Top Genres</h3>
+            <p className="text-zinc-500 text-xs mb-4">What you watch most</p>
+            <div className="space-y-3">
+              {genres.slice(0, 6).map((genre, index) => {
+                const percentage = Math.round((genre.count / maxGenreCount) * 100);
+                return (
+                  <div key={genre.genreId} className="flex items-center gap-3">
+                    <div className="w-24 text-sm text-zinc-400 truncate">{genre.genreName}</div>
+                    <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${percentage}%`,
+                          backgroundColor: GENRE_COLORS[index % GENRE_COLORS.length]
+                        }}
+                      />
+                    </div>
+                    <div className="w-12 text-right text-white font-medium">{genre.count}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        </section>
-
-        {/* Activity Heatmap */}
-        {stats.dailyActivity && stats.dailyActivity.length > 0 && (
-          <section className="bg-zinc-900 rounded-xl p-4 overflow-x-auto">
-            <h3 className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Watch Activity
-            </h3>
-            <ActivityHeatmap data={stats.dailyActivity} />
-          </section>
         )}
 
-        {/* Genre Distribution */}
-        <section className="bg-zinc-900 rounded-xl p-4">
-          <h3 className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Top Genres
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={top10Genres} layout="vertical" margin={{ left: 80, right: 20 }}>
-                <XAxis type="number" stroke="#6b7280" fontSize={12} />
-                <YAxis
-                  type="category"
-                  dataKey="genreName"
-                  stroke="#6b7280"
-                  fontSize={12}
-                  width={75}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#18181b',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: 'white',
-                  }}
-                  formatter={(value) => [`${value} titles`, 'Count']}
-                />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                  {top10Genres.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        {/* Ratings Distribution */}
+        <div className="bg-zinc-900 rounded-2xl p-5">
+          <h3 className="text-white font-semibold text-sm mb-1">Your Ratings</h3>
+          <p className="text-zinc-500 text-xs mb-4">{overview.ratedItemsCount} of {overview.totalItems} rated</p>
+          <div className="flex items-end justify-between gap-2 h-32">
+            {[1, 2, 3, 4, 5].map((rating) => {
+              const ratingData = ratingDistribution.find(r => r.rating === rating);
+              const count = ratingData?.count || 0;
+              const heightPercent = (count / maxRatingCount) * 100;
+              return (
+                <div key={rating} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-full flex flex-col items-center justify-end h-24">
+                    {count > 0 && (
+                      <span className="text-xs text-zinc-400 mb-1">{count}</span>
+                    )}
+                    <div
+                      className="w-full bg-yellow-500 rounded-t-lg transition-all duration-500"
+                      style={{ height: `${Math.max(heightPercent, count > 0 ? 8 : 0)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-sm font-medium text-white">{rating}</span>
+                    <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </section>
-
-        {/* Genre Radar */}
-        {radarData.length >= 3 && (
-          <section className="bg-zinc-900 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              Your Taste Profile
-            </h3>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData}>
-                  <PolarGrid stroke="#3f3f46" />
-                  <PolarAngleAxis
-                    dataKey="genre"
-                    stroke="#9ca3af"
-                    fontSize={12}
-                  />
-                  <PolarRadiusAxis stroke="#3f3f46" fontSize={10} />
-                  <Radar
-                    name="Count"
-                    dataKey="count"
-                    stroke="#8b5ef4"
-                    fill="#8b5ef4"
-                    fillOpacity={0.5}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: 'white',
-                    }}
-                  />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-        )}
-
-        {/* Rating Distribution */}
-        <section className="bg-zinc-900 rounded-xl p-4">
-          <h3 className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
-            <Star className="w-4 h-4" />
-            Your Ratings
-          </h3>
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ratingDistribution} margin={{ top: 10, bottom: 5 }}>
-                <XAxis
-                  dataKey="rating"
-                  stroke="#6b7280"
-                  fontSize={12}
-                  tickFormatter={(value) => `${value}★`}
-                />
-                <YAxis stroke="#6b7280" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#18181b',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: 'white',
-                  }}
-                  formatter={(value) => [`${value} titles`, 'Count']}
-                  labelFormatter={(label) => `${label} stars`}
-                />
-                <Bar dataKey="count" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <p className="text-center text-sm text-gray-400 mt-2">
-            {overview.ratedItemsCount} rated out of {overview.totalItems} titles
-          </p>
-        </section>
-
-        {/* Monthly Activity */}
-        {monthlyData.length > 0 && (
-          <section className="bg-zinc-900 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              This Year&apos;s Activity
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyData} margin={{ top: 10, right: 10, bottom: 5 }}>
-                  <defs>
-                    <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5ef4" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#8b5ef4" stopOpacity={0.1} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
-                  <YAxis stroke="#6b7280" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: 'white',
-                    }}
-                    formatter={(value) => [`${value} titles`, 'Finished']}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#8b5ef4"
-                    fillOpacity={1}
-                    fill="url(#colorCount)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-        )}
-
-        {/* Yearly Activity */}
-        {yearlyActivity.length > 1 && (
-          <section className="bg-zinc-900 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Year Over Year
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={yearlyActivity} margin={{ top: 10, right: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-                  <XAxis dataKey="year" stroke="#6b7280" fontSize={12} />
-                  <YAxis stroke="#6b7280" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: 'white',
-                    }}
-                    formatter={(value) => [`${value} titles`, 'Finished']}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#22c55e"
-                    strokeWidth={2}
-                    dot={{ fill: '#22c55e', strokeWidth: 0, r: 4 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-        )}
+        </div>
 
         {/* Decades */}
         {decades.length > 0 && (
-          <section className="bg-zinc-900 rounded-xl p-4">
-            <h3 className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Favorite Decades
-            </h3>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={decades} margin={{ top: 10, bottom: 5 }}>
-                  <XAxis dataKey="decade" stroke="#6b7280" fontSize={12} />
-                  <YAxis stroke="#6b7280" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      border: 'none',
-                      borderRadius: '8px',
-                      color: 'white',
-                    }}
-                    formatter={(value) => [`${value} titles`, 'Count']}
-                  />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+          <div className="bg-zinc-900 rounded-2xl p-5">
+            <h3 className="text-white font-semibold text-sm mb-1">By Decade</h3>
+            <p className="text-zinc-500 text-xs mb-4">Release years of your titles</p>
+            <div className="flex items-end justify-between gap-2 h-32">
+              {decades.slice(0, 8).map((decade) => {
+                const heightPercent = (decade.count / maxDecadeCount) * 100;
+                return (
+                  <div key={decade.decade} className="flex-1 flex flex-col items-center gap-2">
+                    <div className="w-full flex flex-col items-center justify-end h-24">
+                      {decade.count > 0 && (
+                        <span className="text-xs text-zinc-400 mb-1">{decade.count}</span>
+                      )}
+                      <div
+                        className="w-full bg-blue-500 rounded-t-lg transition-all duration-500"
+                        style={{ height: `${Math.max(heightPercent, decade.count > 0 ? 8 : 0)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-zinc-500">{decade.decade}</span>
+                  </div>
+                );
+              })}
             </div>
-          </section>
+          </div>
         )}
-
-        {/* Manage Library Link */}
-        <section className="bg-zinc-900 rounded-xl p-4">
-          <Link
-            href="/library/manage"
-            className="flex items-center justify-between p-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition"
-          >
-            <div>
-              <h3 className="font-medium">Manage Library</h3>
-              <p className="text-sm text-gray-400">Filter and bulk edit your collection</p>
-            </div>
-            <BarChart3 className="w-5 h-5 text-gray-400" />
-          </Link>
-        </section>
       </main>
     </div>
   );

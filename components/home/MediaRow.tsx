@@ -4,8 +4,8 @@
  * MediaRow - A horizontal scrolling row for library items
  *
  * Use this for displaying user's library items like Continue Watching, Watchlist, etc.
- * Shows up to 5 most recent items in a row (19% width each, 5 visible).
- * Shows dotted placeholder items when below minimum count.
+ * Shows 2.5 items visible at once (40% width each), swipeable to see more.
+ * Displays the 5 most recent items with dotted placeholders if below 5.
  * Optional quick action button (e.g., mark as watched) on items.
  *
  * For discovery/browse content, use TrendingRow instead (includes add buttons).
@@ -63,7 +63,7 @@ export default function MediaRow({
             <div
               key={`${item.media_type}-${item.media_id}`}
               className="group flex-shrink-0 snap-start relative"
-              style={{ width: 'calc(19% - 2.4px)' }}
+              style={{ width: 'calc(40% - 6px)' }}
             >
               <Link href={`/${item.media_type}/${item.media_id}`}>
                 <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800 mb-2">
@@ -73,7 +73,7 @@ export default function MediaRow({
                       alt={item.title}
                       fill
                       className="object-cover group-hover:opacity-75 transition"
-                      sizes="19vw"
+                      sizes="40vw"
                     />
                   ) : (
                     <Image
@@ -81,7 +81,7 @@ export default function MediaRow({
                       alt={item.title}
                       fill
                       className="object-cover group-hover:opacity-75 transition"
-                      sizes="19vw"
+                      sizes="40vw"
                     />
                   )}
                   <div className="absolute top-2 left-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
@@ -116,7 +116,7 @@ export default function MediaRow({
               key={`placeholder-${index}`}
               href={addHref}
               className="group flex-shrink-0 snap-start"
-              style={{ width: 'calc(19% - 2.4px)' }}
+              style={{ width: 'calc(40% - 6px)' }}
             >
               <div className="relative aspect-[2/3] rounded-lg border-2 border-dashed border-zinc-700 hover:border-zinc-500 mb-2 flex items-center justify-center transition">
                 <Plus className="w-8 h-8 text-zinc-600 group-hover:text-zinc-400 transition" />

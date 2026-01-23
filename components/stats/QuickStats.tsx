@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Clock, Film, Tv, Star, ChevronRight, TrendingUp } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { Clock, Film, Tv, Star, ChevronRight, Play } from 'lucide-react';
 
 interface StatsOverview {
   totalItems: number;
@@ -20,15 +19,8 @@ interface StatsOverview {
   };
 }
 
-interface GenreStats {
-  genreId: number;
-  genreName: string;
-  count: number;
-}
-
 export default function QuickStats() {
   const [stats, setStats] = useState<StatsOverview | null>(null);
-  const [topGenre, setTopGenre] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -37,21 +29,10 @@ export default function QuickStats() {
 
   const fetchStats = async () => {
     try {
-      const [overviewRes, genresRes] = await Promise.all([
-        fetch('/api/stats?type=overview'),
-        fetch('/api/stats?type=genres'),
-      ]);
-
+      const overviewRes = await fetch('/api/stats?type=overview');
       if (overviewRes.ok) {
         const data = await overviewRes.json();
         setStats(data);
-      }
-
-      if (genresRes.ok) {
-        const data = await genresRes.json();
-        if (data.genres && data.genres.length > 0) {
-          setTopGenre(data.genres[0].genreName);
-        }
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);
@@ -62,11 +43,16 @@ export default function QuickStats() {
 
   if (isLoading) {
     return (
-      <div className="mt-8 bg-zinc-900 rounded-xl p-4 animate-pulse">
-        <div className="h-4 bg-zinc-800 rounded w-24 mb-4" />
+      <div className="mt-8 space-y-4 animate-pulse">
         <div className="grid grid-cols-2 gap-4">
-          <div className="h-16 bg-zinc-800 rounded" />
-          <div className="h-16 bg-zinc-800 rounded" />
+          <div className="h-24 bg-zinc-900 rounded-2xl" />
+          <div className="h-24 bg-zinc-900 rounded-2xl" />
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          <div className="h-28 bg-zinc-900 rounded-2xl" />
+          <div className="h-28 bg-zinc-900 rounded-2xl" />
+          <div className="h-28 bg-zinc-900 rounded-2xl" />
+          <div className="h-28 bg-zinc-900 rounded-2xl" />
         </div>
       </div>
     );
@@ -76,18 +62,12 @@ export default function QuickStats() {
     return null;
   }
 
-  const pieData = [
-    { name: 'Movies', value: stats.totalMovies, color: '#8b5ef4' },
-    { name: 'TV Shows', value: stats.totalTVShows, color: '#22c55e' },
-  ];
+  const totalItems = stats.totalItems || 1;
 
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-brand-primary" />
-          Your Stats
-        </h2>
+        <h2 className="text-lg font-semibold">Your Stats</h2>
         <Link
           href="/stats"
           className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
@@ -97,83 +77,86 @@ export default function QuickStats() {
         </Link>
       </div>
 
-      <div className="bg-zinc-900 rounded-xl p-4">
-        {/* Top Row - Watch Time and Pie Chart */}
-        <div className="flex items-center gap-4 mb-4">
-          {/* Watch Time */}
-          <div className="flex-1">
-            <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
-              <Clock className="w-3.5 h-3.5" />
-              Watch Time
-            </div>
-            <div className="text-2xl font-bold text-white">
-              {stats.watchTime.display}
-            </div>
+      {/* Top Row - Watch Time & Library */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        {/* Watch Time Card */}
+        <div className="bg-zinc-900 rounded-2xl p-4">
+          <div className="flex items-center gap-2 text-zinc-500 text-xs mb-2">
+            <Clock className="w-3.5 h-3.5" />
+            Watch Time
           </div>
-
-          {/* Mini Pie Chart */}
-          <div className="w-20 h-20">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={20}
-                  outerRadius={35}
-                  paddingAngle={2}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="text-3xl font-bold text-white">
+            {stats.watchTime.days > 0 ? (
+              <>{stats.watchTime.days}<span className="text-lg text-zinc-500">d </span>{stats.watchTime.hours}<span className="text-lg text-zinc-500">h</span></>
+            ) : (
+              <>{stats.watchTime.hours}<span className="text-lg text-zinc-500">h </span>{stats.watchTime.minutes}<span className="text-lg text-zinc-500">m</span></>
+            )}
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-4 gap-3">
-          {/* Movies */}
-          <div className="text-center">
-            <div className="flex justify-center mb-1">
-              <Film className="w-4 h-4 text-brand-primary" />
-            </div>
-            <div className="text-lg font-semibold">{stats.totalMovies}</div>
-            <div className="text-xs text-gray-500">Movies</div>
-          </div>
+        {/* Library Card */}
+        <div className="bg-zinc-900 rounded-2xl p-4">
+          <div className="text-zinc-500 text-xs mb-2">Total Titles</div>
+          <div className="text-3xl font-bold text-white">{stats.totalItems.toLocaleString()}</div>
+        </div>
+      </div>
 
-          {/* TV Shows */}
-          <div className="text-center">
-            <div className="flex justify-center mb-1">
-              <Tv className="w-4 h-4 text-emerald-500" />
-            </div>
-            <div className="text-lg font-semibold">{stats.totalTVShows}</div>
-            <div className="text-xs text-gray-500">Shows</div>
+      {/* Category Cards Row */}
+      <div className="grid grid-cols-4 gap-3">
+        {/* Movies */}
+        <div className="bg-zinc-900 rounded-2xl p-3 text-center">
+          <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+            <Film className="w-4 h-4 text-purple-400" />
           </div>
-
-          {/* Average Rating */}
-          <div className="text-center">
-            <div className="flex justify-center mb-1">
-              <Star className="w-4 h-4 text-yellow-500" />
-            </div>
-            <div className="text-lg font-semibold">
-              {stats.averageRating ? stats.averageRating.toFixed(1) : '-'}
-            </div>
-            <div className="text-xs text-gray-500">Avg Rating</div>
+          <div className="text-lg font-bold">{stats.totalMovies}</div>
+          <div className="text-xs text-zinc-500">Movies</div>
+          <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-purple-500 rounded-full"
+              style={{ width: `${(stats.totalMovies / totalItems) * 100}%` }}
+            />
           </div>
+        </div>
 
-          {/* Top Genre */}
-          <div className="text-center">
-            <div className="flex justify-center mb-1">
-              <TrendingUp className="w-4 h-4 text-orange-500" />
-            </div>
-            <div className="text-sm font-semibold truncate">
-              {topGenre || '-'}
-            </div>
-            <div className="text-xs text-gray-500">Top Genre</div>
+        {/* TV Shows */}
+        <div className="bg-zinc-900 rounded-2xl p-3 text-center">
+          <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+            <Tv className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="text-lg font-bold">{stats.totalTVShows}</div>
+          <div className="text-xs text-zinc-500">Shows</div>
+          <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-emerald-500 rounded-full"
+              style={{ width: `${(stats.totalTVShows / totalItems) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Episodes */}
+        <div className="bg-zinc-900 rounded-2xl p-3 text-center">
+          <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+            <Play className="w-4 h-4 text-blue-400" />
+          </div>
+          <div className="text-lg font-bold">{stats.totalEpisodesWatched.toLocaleString()}</div>
+          <div className="text-xs text-zinc-500">Episodes</div>
+          <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-500 rounded-full w-full" />
+          </div>
+        </div>
+
+        {/* Avg Rating */}
+        <div className="bg-zinc-900 rounded-2xl p-3 text-center">
+          <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+            <Star className="w-4 h-4 text-yellow-400" />
+          </div>
+          <div className="text-lg font-bold">{stats.averageRating?.toFixed(1) || '-'}</div>
+          <div className="text-xs text-zinc-500">Rating</div>
+          <div className="mt-2 h-1 bg-zinc-800 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-yellow-500 rounded-full"
+              style={{ width: `${((stats.averageRating || 0) / 5) * 100}%` }}
+            />
           </div>
         </div>
       </div>

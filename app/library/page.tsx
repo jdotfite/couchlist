@@ -82,7 +82,7 @@ export default function LibraryPage() {
                   title: config.title,
                   icon: config.icon,
                   color: config.color,
-                  items: items.slice(0, 4),
+                  items: items.slice(0, 5),
                   count: items.length,
                 };
               }
@@ -165,7 +165,7 @@ export default function LibraryPage() {
                   {/* Preview Posters - stacked with rightmost on top */}
                   {list.items.length > 0 && (
                     <div className="flex mr-2">
-                      {list.items.slice(0, 3).map((item, index) => (
+                      {list.items.slice(0, 5).map((item, index) => (
                         <div
                           key={index}
                           className="relative w-8 h-12 rounded overflow-hidden flex-shrink-0"
@@ -238,7 +238,7 @@ export default function LibraryPage() {
                       {/* Preview Posters - stacked with rightmost on top */}
                       {list.items && list.items.length > 0 && (
                         <div className="flex mr-2">
-                          {list.items.slice(0, 3).map((item, index) => (
+                          {list.items.slice(0, 5).map((item, index) => (
                             <div
                               key={index}
                               className="relative w-8 h-12 rounded overflow-hidden flex-shrink-0"
