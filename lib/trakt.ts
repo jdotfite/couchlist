@@ -103,6 +103,10 @@ export interface TraktLastActivities {
 
 // Get device code for authentication
 export async function getDeviceCode(): Promise<TraktDeviceCode> {
+  if (!TRAKT_CLIENT_ID) {
+    throw new Error('TRAKT_CLIENT_ID is not configured');
+  }
+
   const res = await fetch(`${TRAKT_API_URL}/oauth/device/code`, {
     method: 'POST',
     headers: {
@@ -114,7 +118,9 @@ export async function getDeviceCode(): Promise<TraktDeviceCode> {
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to get device code: ${res.status}`);
+    const errorText = await res.text();
+    console.error('Trakt device code error:', res.status, errorText);
+    throw new Error(`Failed to get device code: ${res.status} - ${errorText}`);
   }
 
   return res.json();

@@ -16,8 +16,9 @@ export async function POST() {
     return NextResponse.json(deviceCode);
   } catch (error) {
     console.error('Error getting Trakt device code:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to get device code' },
+      { error: `Failed to get device code: ${message}` },
       { status: 500 }
     );
   }
