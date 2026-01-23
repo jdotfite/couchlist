@@ -113,6 +113,12 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     try {
       const response = await fetch('/api/library/summary');
 
+      // Handle auth errors silently - user will be redirected
+      if (response.status === 401) {
+        set({ isLoading: false });
+        return;
+      }
+
       if (!response.ok) {
         throw new Error('Failed to fetch library summary');
       }

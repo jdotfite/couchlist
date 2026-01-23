@@ -860,6 +860,28 @@ export async function initDb() {
       ON user_trakt_connections(sync_enabled, last_synced_at);
     `;
 
+    // ========================================================================
+    // User Streaming Services (for filtering)
+    // ========================================================================
+
+    // User streaming service preferences - stores which services user has subscriptions to
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_streaming_services (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        provider_id INTEGER NOT NULL,
+        provider_name VARCHAR(100) NOT NULL,
+        logo_path VARCHAR(200),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, provider_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_streaming_services_user
+      ON user_streaming_services(user_id);
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },

@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Search, Loader2, X, Film, Tv } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, Loader2, X, SlidersHorizontal } from 'lucide-react';
 import SearchResults from '@/components/SearchResults';
 import TrendingRow from '@/components/home/TrendingRow';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
+import NotificationBell from '@/components/notifications/NotificationBell';
+import FilterBottomSheet from '@/components/search/FilterBottomSheet';
+import ActiveFilters from '@/components/search/ActiveFilters';
+import BrowseCards from '@/components/search/BrowseCards';
 import { Movie, TVShow, SearchResponse } from '@/types';
-import Image from 'next/image';
-import Link from 'next/link';
+import { DiscoverFilters, DEFAULT_FILTERS } from '@/types/streaming';
 
 interface TrendingItem {
   id: number;
@@ -20,32 +22,63 @@ interface TrendingItem {
   first_air_date?: string;
 }
 
-const categories = [
-  { id: 'trending_movies', label: 'Trending Movies', type: 'movies' },
-  { id: 'trending_tv', label: 'Trending TV', type: 'tv' },
-  { id: 'popular_movies', label: 'Popular Movies', type: 'movies' },
-  { id: 'popular_tv', label: 'Popular TV', type: 'tv' },
-  { id: 'top_rated_movies', label: 'Top Rated Movies', type: 'movies' },
-  { id: 'top_rated_tv', label: 'Top Rated TV', type: 'tv' },
-];
-
+interface DiscoverResult {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  overview: string;
+  vote_average: number;
+  vote_count: number;
+  release_date?: string;
+  first_air_date?: string;
+  media_type: 'movie' | 'tv';
+  genre_ids: number[];
+}
 
 export default function SearchPage() {
-  const searchParams = useSearchParams();
-  const initialFilter = searchParams.get('type') || 'all';
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Search state
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<(Movie | TVShow)[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<(Movie | TVShow)[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'movies' | 'tv'>(initialFilter as 'all' | 'movies' | 'tv');
-  const [categoryImages, setCategoryImages] = useState<Record<string, string>>({});
+
+  // Filter state
+  const [filters, setFilters] = useState<DiscoverFilters>(DEFAULT_FILTERS);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [discoverResults, setDiscoverResults] = useState<DiscoverResult[]>([]);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [hasFiltered, setHasFiltered] = useState(false);
+
+  // User's streaming services
+  const [userProviderIds, setUserProviderIds] = useState<number[]>([]);
+
+  // Trending data
   const [trendingAll, setTrendingAll] = useState<TrendingItem[]>([]);
-  const [popularAll, setPopularAll] = useState<TrendingItem[]>([]);
+  const [topRatedAll, setTopRatedAll] = useState<TrendingItem[]>([]);
+
+  // Media options sheet
   const [selectedItem, setSelectedItem] = useState<TrendingItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  // Fetch user's streaming services on mount
+  useEffect(() => {
+    const fetchUserServices = async () => {
+      try {
+        const response = await fetch('/api/streaming-services');
+        if (response.ok) {
+          const data = await response.json();
+          setUserProviderIds(data.providerIds || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user services:', error);
+      }
+    };
+    fetchUserServices();
+  }, []);
 
   // Auto-focus on mount
   useEffect(() => {
@@ -54,24 +87,13 @@ export default function SearchPage() {
     }
   }, []);
 
+  // Fetch trending data
   useEffect(() => {
     const fetchTrendingData = async () => {
       try {
         const response = await fetch('/api/trending');
         const data = await response.json();
 
-        setCategoryImages({
-          'movies': data.trendingMovies[0]?.poster_path || '',
-          'tv': data.trendingTV[0]?.poster_path || '',
-          'trending': data.trendingMovies[1]?.poster_path || data.trendingTV[0]?.poster_path || '',
-          'top_rated': data.topRatedMovies[0]?.poster_path || '',
-        });
-
-        // Combine movies and TV, interleaved for variety
-        const trending = [...(data.trendingMovies || []), ...(data.trendingTV || [])];
-        const popular = [...(data.popularMovies || []), ...(data.popularTV || [])];
-
-        // Shuffle to mix content types
         const shuffleMix = (arr: TrendingItem[]) => {
           const result: TrendingItem[] = [];
           const movies = arr.filter(i => i.media_type === 'movie');
@@ -84,8 +106,11 @@ export default function SearchPage() {
           return result;
         };
 
+        const trending = [...(data.trendingMovies || []), ...(data.trendingTV || [])];
+        const topRated = [...(data.topRatedMovies || []), ...(data.topRatedTV || [])];
+
         setTrendingAll(shuffleMix(trending).slice(0, 15));
-        setPopularAll(shuffleMix(popular).slice(0, 15));
+        setTopRatedAll(shuffleMix(topRated).slice(0, 15));
       } catch (error) {
         console.error('Failed to fetch trending data:', error);
       }
@@ -97,10 +122,9 @@ export default function SearchPage() {
   // Debounced search
   useEffect(() => {
     if (!query.trim()) {
-      setResults([]);
+      setSearchResults([]);
       setHasSearched(false);
-      setIsLoading(false);
-      setSelectedCategory(null);
+      setIsSearching(false);
       return;
     }
 
@@ -109,12 +133,12 @@ export default function SearchPage() {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [query, filter]);
+  }, [query]);
 
   const performSearch = async (searchQuery: string) => {
-    setIsLoading(true);
+    setIsSearching(true);
     setHasSearched(true);
-    setSelectedCategory(null);
+    setHasFiltered(false);
 
     try {
       const response = await fetch(`/api/search?query=${encodeURIComponent(searchQuery)}&type=multi`);
@@ -125,40 +149,133 @@ export default function SearchPage() {
 
       const data: SearchResponse<Movie | TVShow> = await response.json();
 
-      // Filter based on current filter
+      // Apply type filter if set
       let filteredResults = data.results;
-      if (filter === 'movies') {
+      if (filters.type === 'movie') {
         filteredResults = data.results.filter((item: any) => item.media_type === 'movie' || item.title);
-      } else if (filter === 'tv') {
+      } else if (filters.type === 'tv') {
         filteredResults = data.results.filter((item: any) => item.media_type === 'tv' || item.name);
       }
 
-      setResults(filteredResults);
+      setSearchResults(filteredResults);
     } catch (error) {
       console.error('Search error:', error);
-      setResults([]);
+      setSearchResults([]);
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
-  const handleCategoryClick = async (categoryId: string) => {
-    setSelectedCategory(categoryId);
-    setHasSearched(true);
-    setIsLoading(true);
+  // Discover content with filters
+  const performDiscover = useCallback(async () => {
+    setIsDiscovering(true);
+    setHasFiltered(true);
+    setHasSearched(false);
+    setQuery('');
 
     try {
-      const response = await fetch(`/api/browse?category=${categoryId}`);
-      if (!response.ok) throw new Error('Failed to fetch category');
+      const params = new URLSearchParams();
+
+      if (filters.type !== 'all') {
+        params.set('type', filters.type);
+      }
+      if (filters.providers.length > 0) {
+        params.set('providers', filters.providers.join(','));
+      }
+      if (filters.genres.length > 0) {
+        params.set('genres', filters.genres.join(','));
+      }
+      if (filters.yearMin) {
+        params.set('yearMin', filters.yearMin.toString());
+      }
+      if (filters.yearMax) {
+        params.set('yearMax', filters.yearMax.toString());
+      }
+      if (filters.ratingMin) {
+        params.set('ratingMin', filters.ratingMin.toString());
+      }
+      if (filters.runtimeMin) {
+        params.set('runtimeMin', filters.runtimeMin.toString());
+      }
+      if (filters.runtimeMax) {
+        params.set('runtimeMax', filters.runtimeMax.toString());
+      }
+      if (filters.sortBy !== 'popularity.desc') {
+        params.set('sortBy', filters.sortBy);
+      }
+
+      const response = await fetch(`/api/discover?${params}`);
+
+      if (!response.ok) {
+        throw new Error('Discover failed');
+      }
 
       const data = await response.json();
-      setResults(data.results || []);
+      setDiscoverResults(data.results || []);
     } catch (error) {
-      console.error('Failed to fetch category:', error);
-      setResults([]);
+      console.error('Discover error:', error);
+      setDiscoverResults([]);
     } finally {
-      setIsLoading(false);
+      setIsDiscovering(false);
     }
+  }, [filters]);
+
+  // Handle provider card click
+  const handleProviderClick = (providerId: number) => {
+    const newFilters = {
+      ...DEFAULT_FILTERS,
+      providers: [providerId],
+    };
+    setFilters(newFilters);
+    // Trigger discover with new filter
+    setTimeout(() => {
+      setIsDiscovering(true);
+      setHasFiltered(true);
+      setHasSearched(false);
+      setQuery('');
+
+      fetch(`/api/discover?providers=${providerId}`)
+        .then(res => res.json())
+        .then(data => {
+          setDiscoverResults(data.results || []);
+        })
+        .catch(error => {
+          console.error('Discover error:', error);
+          setDiscoverResults([]);
+        })
+        .finally(() => {
+          setIsDiscovering(false);
+        });
+    }, 0);
+  };
+
+  // Handle genre card click
+  const handleGenreClick = (genreId: number) => {
+    const newFilters = {
+      ...DEFAULT_FILTERS,
+      genres: [genreId],
+    };
+    setFilters(newFilters);
+    // Trigger discover with new filter
+    setTimeout(() => {
+      setIsDiscovering(true);
+      setHasFiltered(true);
+      setHasSearched(false);
+      setQuery('');
+
+      fetch(`/api/discover?genres=${genreId}`)
+        .then(res => res.json())
+        .then(data => {
+          setDiscoverResults(data.results || []);
+        })
+        .catch(error => {
+          console.error('Discover error:', error);
+          setDiscoverResults([]);
+        })
+        .finally(() => {
+          setIsDiscovering(false);
+        });
+    }, 0);
   };
 
   const handleAddClick = (item: TrendingItem) => {
@@ -171,235 +288,209 @@ export default function SearchPage() {
     inputRef.current?.focus();
   };
 
-  const filteredCategories = categories.filter(cat => {
-    if (filter === 'all') return true;
-    return cat.type === filter;
-  });
+  const clearAllFilters = () => {
+    setFilters(DEFAULT_FILTERS);
+    setHasFiltered(false);
+    setDiscoverResults([]);
+  };
+
+  const hasActiveFilters =
+    filters.providers.length > 0 ||
+    filters.genres.length > 0 ||
+    filters.type !== 'all' ||
+    filters.yearMin !== undefined ||
+    filters.yearMax !== undefined ||
+    filters.ratingMin !== undefined ||
+    filters.runtimeMin !== undefined ||
+    filters.runtimeMax !== undefined;
+
+  const activeFilterCount =
+    filters.providers.length +
+    filters.genres.length +
+    (filters.type !== 'all' ? 1 : 0) +
+    (filters.yearMin || filters.yearMax ? 1 : 0) +
+    (filters.ratingMin ? 1 : 0) +
+    (filters.runtimeMin || filters.runtimeMax ? 1 : 0);
+
+  // Show browse view when not searching and not filtered
+  const showBrowseView = !hasSearched && !hasFiltered;
+
+  // Convert discover results to the format expected by SearchResults
+  const resultsForDisplay = hasFiltered
+    ? discoverResults.map(item => ({
+        ...item,
+        title: item.title || item.name,
+        name: item.name || item.title,
+      }))
+    : searchResults;
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
-        <h1 className="text-xl font-bold mb-4">Search</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold">Search</h1>
+          <NotificationBell />
+        </div>
 
-        {/* Search Input */}
-        <div className="relative">
-          {isLoading ? (
-            <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />
-          ) : (
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-          )}
+        {/* Search Input with Filter */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            {isSearching ? (
+              <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />
+            ) : (
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            )}
 
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search movies & TV shows..."
-            className="w-full h-12 pl-11 pr-12 bg-zinc-900 rounded-lg border border-transparent text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary transition-all"
-          />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search movies & TV shows..."
+              className="w-full h-12 pl-11 pr-12 bg-zinc-900 rounded-xl border border-transparent text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary transition-all"
+            />
 
-          {query && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white transition-colors"
-              aria-label="Clear search"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          )}
+            {query && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Button - connected to search */}
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className={`relative h-12 px-4 rounded-xl flex items-center gap-2 transition font-medium ${
+              hasActiveFilters
+                ? 'bg-brand-primary text-white'
+                : 'bg-zinc-900 text-gray-400 hover:text-white'
+            }`}
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+            {activeFilterCount > 0 && (
+              <span className="text-sm">{activeFilterCount}</span>
+            )}
+          </button>
         </div>
       </header>
 
       <main className="px-4 pt-4">
-        {/* Filter Pills */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setFilter('all')}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              filter === 'all' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter('movies')}
-            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${
-              filter === 'movies' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
-            }`}
-          >
-            <Film className="w-4 h-4" />
-            Movies
-          </button>
-          <button
-            onClick={() => setFilter('tv')}
-            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${
-              filter === 'tv' ? 'bg-brand-primary text-white' : 'bg-zinc-800 text-white hover:bg-zinc-700'
-            }`}
-          >
-            <Tv className="w-4 h-4" />
-            TV Shows
-          </button>
-        </div>
-
-        {/* Category Pills when searching */}
-        {hasSearched && (
-          <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
-            <div className="flex gap-2 pb-2">
-              {filteredCategories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategoryClick(category.id)}
-                  className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                    selectedCategory === category.id
-                      ? 'bg-brand-primary text-white'
-                      : 'bg-zinc-800 text-white hover:bg-zinc-700'
-                  }`}
-                >
-                  {category.label}
-                </button>
-              ))}
-            </div>
+        {/* Active Filters */}
+        {hasActiveFilters && (
+          <div className="mb-4">
+            <ActiveFilters
+              filters={filters}
+              onRemoveProvider={providerId => {
+                const newFilters = {
+                  ...filters,
+                  providers: filters.providers.filter(id => id !== providerId),
+                };
+                setFilters(newFilters);
+                if (
+                  newFilters.providers.length === 0 &&
+                  newFilters.genres.length === 0 &&
+                  newFilters.type === 'all' &&
+                  !newFilters.yearMin &&
+                  !newFilters.yearMax &&
+                  !newFilters.ratingMin &&
+                  !newFilters.runtimeMin &&
+                  !newFilters.runtimeMax
+                ) {
+                  setHasFiltered(false);
+                  setDiscoverResults([]);
+                } else {
+                  performDiscover();
+                }
+              }}
+              onRemoveGenre={genreId => {
+                const newFilters = {
+                  ...filters,
+                  genres: filters.genres.filter(id => id !== genreId),
+                };
+                setFilters(newFilters);
+                if (
+                  newFilters.providers.length === 0 &&
+                  newFilters.genres.length === 0 &&
+                  newFilters.type === 'all' &&
+                  !newFilters.yearMin &&
+                  !newFilters.yearMax &&
+                  !newFilters.ratingMin &&
+                  !newFilters.runtimeMin &&
+                  !newFilters.runtimeMax
+                ) {
+                  setHasFiltered(false);
+                  setDiscoverResults([]);
+                } else {
+                  performDiscover();
+                }
+              }}
+              onClearType={() => {
+                setFilters(prev => ({ ...prev, type: 'all' }));
+                performDiscover();
+              }}
+              onClearYear={() => {
+                setFilters(prev => ({ ...prev, yearMin: undefined, yearMax: undefined }));
+                performDiscover();
+              }}
+              onClearRating={() => {
+                setFilters(prev => ({ ...prev, ratingMin: undefined }));
+                performDiscover();
+              }}
+              onClearRuntime={() => {
+                setFilters(prev => ({ ...prev, runtimeMin: undefined, runtimeMax: undefined }));
+                performDiscover();
+              }}
+              onClearAll={clearAllFilters}
+            />
           </div>
         )}
 
-        {/* Browse Categories - Default View */}
-        {!hasSearched && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-3">Browse</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {(filter === 'all' || filter === 'movies') && (
-                <button
-                  onClick={() => handleCategoryClick('popular_movies')}
-                  className="relative h-28 rounded-lg overflow-hidden bg-gradient-to-br from-pink-600 to-pink-800 hover:from-pink-500 hover:to-pink-700 transition"
-                >
-                  <h3 className="absolute top-3 left-3 text-lg font-semibold z-10">Movies</h3>
-                  {categoryImages['movies'] && (
-                    <div className="absolute bottom-0 right-0 w-20 h-20">
-                      <Image
-                        src={`https://image.tmdb.org/t/p/w200${categoryImages['movies']}`}
-                        alt="Movies"
-                        fill
-                        style={{ marginTop: '10px' }}
-                        className="object-cover rounded rotate-12 shadow-md"
-                        sizes="90px"
-                      />
-                    </div>
-                  )}
-                </button>
-              )}
+        {/* Browse View */}
+        {showBrowseView && (
+          <>
+            <BrowseCards
+              userProviderIds={userProviderIds}
+              onProviderClick={handleProviderClick}
+              onGenreClick={handleGenreClick}
+            />
 
-              {(filter === 'all' || filter === 'tv') && (
-                <button
-                  onClick={() => handleCategoryClick('popular_tv')}
-                  className="relative h-28 rounded-lg overflow-hidden bg-gradient-to-br from-teal-600 to-teal-800 hover:from-teal-500 hover:to-teal-700 transition"
-                >
-                  <h3 className="absolute top-3 left-3 text-lg font-semibold z-10">TV Shows</h3>
-                  {categoryImages['tv'] && (
-                    <div className="absolute bottom-0 right-0 w-20 h-20">
-                      <Image
-                        src={`https://image.tmdb.org/t/p/w200${categoryImages['tv']}`}
-                        alt="TV Shows"
-                        fill
-                        style={{ marginTop: '10px' }}
-                        className="object-cover rounded rotate-12 shadow-md"
-                        sizes="90px"
-                      />
-                    </div>
-                  )}
-                </button>
-              )}
-
-              <button
-                onClick={() => handleCategoryClick(filter === 'tv' ? 'trending_tv' : 'trending_movies')}
-                className="relative h-28 rounded-lg overflow-hidden bg-gradient-to-br from-orange-600 to-orange-800 hover:from-orange-500 hover:to-orange-700 transition"
-              >
-                <h3 className="absolute top-3 left-3 text-lg font-semibold z-10">Trending</h3>
-                {categoryImages['trending'] && (
-                  <div className="absolute bottom-0 right-0 w-20 h-20">
-                    <Image
-                      src={`https://image.tmdb.org/t/p/w200${categoryImages['trending']}`}
-                      alt="Trending"
-                      fill
-                      style={{ marginTop: '10px' }}
-                      className="object-cover rounded rotate-12 shadow-md"
-                      sizes="90px"
-                    />
-                  </div>
-                )}
-              </button>
-
-              <button
-                onClick={() => handleCategoryClick(filter === 'tv' ? 'top_rated_tv' : 'top_rated_movies')}
-                className="relative h-28 rounded-lg overflow-hidden bg-gradient-to-br from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 transition"
-              >
-                <h3 className="absolute top-3 left-3 text-lg font-semibold z-10">Top Rated</h3>
-                {categoryImages['top_rated'] && (
-                  <div className="absolute bottom-0 right-0 w-20 h-20">
-                    <Image
-                      src={`https://image.tmdb.org/t/p/w200${categoryImages['top_rated']}`}
-                      alt="Top Rated"
-                      fill
-                      style={{ marginTop: '10px' }}
-                      className="object-cover rounded rotate-12 shadow-md"
-                      sizes="90px"
-                    />
-                  </div>
-                )}
-              </button>
+            {/* Trending Now */}
+            <div className="mt-6">
+              <TrendingRow title="Trending Now" items={trendingAll} onAddClick={handleAddClick} />
             </div>
-          </section>
+
+            {/* Top Rated */}
+            <TrendingRow title="Top Rated" items={topRatedAll} onAddClick={handleAddClick} />
+          </>
         )}
 
-        {/* Search Results */}
-        {hasSearched && (
+        {/* Search/Discover Results */}
+        {(hasSearched || hasFiltered) && (
           <div className="mb-8">
-            <SearchResults results={results} isLoading={isLoading} />
+            <SearchResults
+              results={resultsForDisplay as (Movie | TVShow)[]}
+              isLoading={isSearching || isDiscovering}
+            />
           </div>
-        )}
-
-        {/* Trending Now - Default View */}
-        {!hasSearched && (
-          <TrendingRow
-            title="Trending Now"
-            items={filter === 'all' ? trendingAll : trendingAll.filter(i => filter === 'movies' ? i.media_type === 'movie' : i.media_type === 'tv')}
-            onAddClick={handleAddClick}
-          />
-        )}
-
-        {/* Popular - Default View */}
-        {!hasSearched && (
-          <TrendingRow
-            title="Popular"
-            items={filter === 'all' ? popularAll : popularAll.filter(i => filter === 'movies' ? i.media_type === 'movie' : i.media_type === 'tv')}
-            onAddClick={handleAddClick}
-          />
-        )}
-
-        {/* Quick Links - Default View */}
-        {!hasSearched && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-3">Your Library</h2>
-            <div className="grid grid-cols-2 gap-2">
-              <Link
-                href="/library?type=tv"
-                className="bg-zinc-900 hover:bg-zinc-800 rounded-lg p-4 text-center transition flex flex-col items-center gap-2"
-              >
-                <Tv className="w-5 h-5 text-gray-400" />
-                <span className="text-sm">Your TV Shows</span>
-              </Link>
-              <Link
-                href="/library?type=movie"
-                className="bg-zinc-900 hover:bg-zinc-800 rounded-lg p-4 text-center transition flex flex-col items-center gap-2"
-              >
-                <Film className="w-5 h-5 text-gray-400" />
-                <span className="text-sm">Your Movies</span>
-              </Link>
-            </div>
-          </section>
         )}
       </main>
+
+      {/* Filter Bottom Sheet */}
+      <FilterBottomSheet
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onApply={performDiscover}
+        resultCount={hasFiltered ? discoverResults.length : undefined}
+        userProviderIds={userProviderIds}
+      />
 
       {/* Media Options Sheet */}
       {selectedItem && (

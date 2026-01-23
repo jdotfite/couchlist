@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getUserIdByEmail, getItemsByStatus } from '@/lib/library';
-import { sql } from '@vercel/postgres';
+import { db as sql } from '@/lib/db';
 
 // GET /api/library/summary - Get all library lists in one call (for home page)
 export async function GET() {
@@ -27,7 +27,7 @@ export async function GET() {
       getItemsByStatus(userId, 'watching'),
       getItemsByStatus(userId, 'watchlist'),
       getItemsByStatus(userId, 'finished'),
-      sql`SELECT COUNT(*) as count FROM custom_lists WHERE owner_id = ${userId}`,
+      sql`SELECT COUNT(*) as count FROM custom_lists WHERE user_id = ${userId}`,
     ]);
 
     const customListsCount = parseInt(customListsResult.rows[0].count, 10);

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@auth/core": "^0.41.0",
+    "@icons-pack/react-simple-icons": "^13.8.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.0.8",
     "@types/react": "^19.2.8",
