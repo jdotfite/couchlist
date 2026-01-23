@@ -15,6 +15,7 @@ import {
 import LibraryPageSkeleton from '@/components/skeletons/LibraryPageSkeleton';
 import ProfileMenu from '@/components/ProfileMenu';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import QuickStats from '@/components/stats/QuickStats';
 import { getImageUrl } from '@/lib/tmdb';
 import { useListPreferences } from '@/hooks/useListPreferences';
 import { getIconComponent } from '@/components/custom-lists/IconPicker';
@@ -285,6 +286,9 @@ export default function LibraryPage() {
             </Link>
           )}
         </div>
+
+        {/* Quick Stats Section */}
+        <QuickStats />
       </main>
     </div>
   );

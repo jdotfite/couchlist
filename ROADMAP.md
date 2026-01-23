@@ -249,23 +249,158 @@ Inline expand showing:
 
 ## Phase 3: Statistics & Analytics
 
-### Watch Stats Dashboard
-- [ ] Total movies/shows watched
-- [ ] Total watch time (hours)
+> **Goal:** Best-in-class stats that impress data nerds. Free features that competitors paywall.
+
+### Chart Library
+- [ ] Install Tremor (built on Recharts + Tailwind, production-ready)
+- [ ] Create reusable chart components with FlickLog theming
+
+### 3A: Quick Stats (Library Page Footer)
+Compact stats section at bottom of `/library` page:
+- [ ] Total watch time (hours/days)
+- [ ] Movies vs TV split (mini donut chart)
 - [ ] Average rating given
-- [ ] Completion rate (finished vs dropped)
+- [ ] Top genre badge
+- [ ] Link to full stats page
 
-### Visualizations
-- [ ] Genre distribution chart
-- [ ] Watching activity over time (heatmap or graph)
-- [ ] Rating distribution
-- [ ] Monthly/yearly breakdown
+### 3B: Full Stats Page (`/stats`)
 
-### Fun Stats
-- [ ] Most watched genre
-- [ ] Favorite decade
-- [ ] Top directors/actors in your library
-- [ ] Yearly wrapped (end of year summary)
+#### Overview Section
+- [ ] Total watch time (days/hours/minutes) - big hero number
+- [ ] Movies watched / TV shows watched / Episodes watched
+- [ ] Average rating given
+- [ ] Completion rate (finished vs dropped percentage)
+- [ ] Items per status breakdown (bar chart)
+
+#### Time-based Analytics
+- [ ] Activity heatmap (GitHub-style contribution graph)
+- [ ] Monthly/yearly watch count (line/area chart)
+- [ ] Hourly breakdown (when do you watch? - radial chart)
+- [ ] Busiest day of week
+- [ ] Watch streak tracking
+
+#### Genre Analytics
+- [ ] Genre distribution (horizontal bar chart, sorted by count)
+- [ ] Genre radar/spider chart (your taste profile)
+- [ ] Genre over time (how tastes evolved - stacked area)
+- [ ] Average rating by genre
+
+#### Ratings Analysis
+- [ ] Rating distribution histogram (1-5 stars)
+- [ ] Your ratings vs TMDb average (scatter plot)
+- [ ] Most generous/harsh genres (where you rate higher/lower than average)
+
+#### Deep Dive Stats
+- [ ] Top 10 directors in your library
+- [ ] Top 10 actors in your library
+- [ ] Favorite decades (release year distribution)
+- [ ] Runtime distribution (histogram)
+- [ ] Country of origin breakdown (world map or bar chart)
+- [ ] Streaming service breakdown (pie chart)
+
+#### Year in Review (Wrapped-style)
+- [ ] Shareable cards with key stats
+- [ ] Animated story-style presentation (swipeable cards)
+- [ ] Highlights: first/last watch, longest movie, most-watched genre
+- [ ] Downloadable/shareable images
+- [ ] Available for any year with data
+
+### 3C: Advanced Filtering System
+
+> **Reusable across:** Library pages, Search/Discover, Stats page
+
+#### Universal Filter Component
+- [ ] Media type (Movie/TV/All)
+- [ ] Status (Watchlist, Watching, Finished, etc.)
+- [ ] Genre (multi-select with search)
+- [ ] Release year range (dual slider)
+- [ ] Your rating range (1-5 stars)
+- [ ] TMDb rating range (0-10)
+- [ ] Runtime range (slider)
+- [ ] Decade quick-select buttons
+- [ ] Country of origin
+- [ ] Streaming service (from user's services)
+- [ ] **Kids content toggle** (TMDb certification: G, PG, TV-Y, TV-G)
+- [ ] Tags (favorites, rewatch, classics)
+- [ ] Added date range
+
+#### Filter UX
+- [ ] Collapsible filter panel (bottom sheet on mobile)
+- [ ] Active filter pills with quick remove
+- [ ] Clear all filters button
+- [ ] Filter count badge
+- [ ] Save filter presets
+- [ ] Quick filter presets (e.g., "Kids Shows", "Long Movies", "Highly Rated")
+
+### 3D: Bulk Management Mode
+
+> **Use case:** Filter kids shows → Select all → Remove from library
+
+#### Selection Mode
+- [ ] Toggle "Select Mode" button on library pages
+- [ ] Checkboxes appear on each item
+- [ ] "Select All" / "Select All Filtered" / "Deselect All"
+- [ ] Selected count indicator
+
+#### Bulk Actions Bar (appears when items selected)
+- [ ] Change status (move to different list)
+- [ ] Add/remove tags
+- [ ] Add to custom list
+- [ ] **Delete from library** (with confirmation)
+- [ ] Export selected items
+
+#### Keyboard Shortcuts (desktop)
+- [ ] Shift+click for range select
+- [ ] Cmd/Ctrl+A for select all
+- [ ] Delete key for bulk delete (with confirmation)
+
+### Database Changes for Stats
+```sql
+-- Ensure media table has stats-relevant fields cached
+ALTER TABLE media ADD COLUMN IF NOT EXISTS genres JSONB;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS runtime INTEGER;
+ALTER TABLE media ADD COLUMN IF NOT EXISTS certification VARCHAR(10);
+ALTER TABLE media ADD COLUMN IF NOT EXISTS origin_country VARCHAR(10);
+ALTER TABLE media ADD COLUMN IF NOT EXISTS credits JSONB; -- top cast/crew
+
+-- Stats cache for performance (refresh on library changes)
+CREATE TABLE IF NOT EXISTS user_stats_cache (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  stats_data JSONB NOT NULL,
+  computed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id)
+);
+```
+
+### API Endpoints
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/stats` | GET | Aggregated user stats (overview) |
+| `/api/stats/activity` | GET | Watch activity timeline/heatmap data |
+| `/api/stats/genres` | GET | Genre breakdown with ratings |
+| `/api/stats/people` | GET | Top directors/actors |
+| `/api/stats/wrapped/[year]` | GET | Year in review data |
+| `/api/library/bulk` | POST | Bulk status/tag changes |
+| `/api/library/bulk` | DELETE | Bulk delete items |
+
+### Competitor Comparison
+| Feature | Letterboxd | Trakt | TV Time | FlickLog |
+|---------|------------|-------|---------|----------|
+| Free stats | ✗ Pro | ✗ VIP | ✓ | ✓ |
+| Activity heatmap | ✗ | ✓ VIP | ✗ | ✓ |
+| Bulk management | ✗ | ✗ | ✗ | ✓ |
+| Kids content filter | ✗ | ✗ | ✗ | ✓ |
+| Universal filters | ✗ | ✗ | ✗ | ✓ |
+| Shareable wrapped | ✓ Pro | ✓ VIP | ✗ | ✓ Free |
+| Streaming breakdown | ✗ | ✗ | ✗ | ✓ |
+
+### Implementation Order
+1. **Phase 3A**: Quick stats on library page (immediate value)
+2. **Phase 3C**: Advanced filtering (solves bulk cleanup need)
+3. **Phase 3D**: Bulk management mode
+4. **Phase 3B**: Full stats page (the impressive stuff)
+5. **Year in Review**: Polish feature for end-of-year
 
 ---
 

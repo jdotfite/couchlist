@@ -17,6 +17,8 @@ type MediaInput = {
   poster_path: string | null;
   genre_ids?: number[];
   release_year?: number | null;
+  runtime?: number | null;
+  certification?: string | null;
 };
 
 export async function getUserIdByEmail(email: string) {
@@ -30,13 +32,15 @@ export async function getUserIdByEmail(email: string) {
 export async function upsertMedia(input: MediaInput) {
   const genreIdsStr = input.genre_ids ? input.genre_ids.join(',') : null;
   const result = await sql`
-    INSERT INTO media (tmdb_id, media_type, title, poster_path, genre_ids, release_year)
-    VALUES (${input.media_id}, ${input.media_type}, ${input.title}, ${input.poster_path}, ${genreIdsStr}, ${input.release_year || null})
+    INSERT INTO media (tmdb_id, media_type, title, poster_path, genre_ids, release_year, runtime, certification)
+    VALUES (${input.media_id}, ${input.media_type}, ${input.title}, ${input.poster_path}, ${genreIdsStr}, ${input.release_year || null}, ${input.runtime || null}, ${input.certification || null})
     ON CONFLICT (tmdb_id, media_type) DO UPDATE
     SET title = EXCLUDED.title,
         poster_path = EXCLUDED.poster_path,
         genre_ids = COALESCE(EXCLUDED.genre_ids, media.genre_ids),
         release_year = COALESCE(EXCLUDED.release_year, media.release_year),
+        runtime = COALESCE(EXCLUDED.runtime, media.runtime),
+        certification = COALESCE(EXCLUDED.certification, media.certification),
         updated_at = CURRENT_TIMESTAMP
     RETURNING id
   `;

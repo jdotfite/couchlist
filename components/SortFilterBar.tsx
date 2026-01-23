@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, SlidersHorizontal, X, ChevronDown, Check } from 'lucide-react';
+import { Search, SlidersHorizontal, X, ChevronDown, Check, Filter } from 'lucide-react';
 
 export type SortOption = 'title-asc' | 'title-desc' | 'rating-desc' | 'rating-asc' | 'added-desc' | 'added-asc';
 
@@ -21,6 +21,9 @@ interface SortFilterBarProps {
   onSortChange: (sort: SortOption) => void;
   resultCount?: number;
   placeholder?: string;
+  // Optional filter button
+  onFilterClick?: () => void;
+  filterCount?: number;
 }
 
 export default function SortFilterBar({
@@ -30,6 +33,8 @@ export default function SortFilterBar({
   onSortChange,
   resultCount,
   placeholder = 'Search...',
+  onFilterClick,
+  filterCount = 0,
 }: SortFilterBarProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -129,6 +134,23 @@ export default function SortFilterBar({
               </div>
             )}
           </div>
+
+          {/* Filter Button (optional) */}
+          {onFilterClick && (
+            <button
+              onClick={onFilterClick}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition ${
+                filterCount > 0
+                  ? 'bg-brand-primary text-white'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-gray-400'
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+              {filterCount > 0 && (
+                <span className="text-sm font-medium">{filterCount}</span>
+              )}
+            </button>
+          )}
 
           {/* Result count */}
           {resultCount !== undefined && searchQuery && (

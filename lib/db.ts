@@ -428,6 +428,26 @@ export async function initDb() {
       ON media(release_year);
     `;
 
+    // Add runtime column to media table for watch time stats
+    try {
+      await sql`
+        ALTER TABLE media
+        ADD COLUMN IF NOT EXISTS runtime INTEGER;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    // Add certification column for kids content filtering
+    try {
+      await sql`
+        ALTER TABLE media
+        ADD COLUMN IF NOT EXISTS certification VARCHAR(10);
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
     // User episodes table - tracks individual episode watch status
     await sql`
       CREATE TABLE IF NOT EXISTS user_episodes (
