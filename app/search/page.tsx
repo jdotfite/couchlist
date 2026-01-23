@@ -80,12 +80,6 @@ export default function SearchPage() {
     fetchUserServices();
   }, []);
 
-  // Auto-focus on mount
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, []);
 
   // Fetch trending data
   useEffect(() => {
@@ -327,7 +321,7 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3">
+      <header className="sticky top-0 z-20 bg-black px-4 py-3">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold">Search</h1>
           <NotificationBell />
