@@ -63,11 +63,23 @@ export interface TraktWatchedMovie {
   movie: TraktMovie;
 }
 
+export interface TraktWatchedEpisode {
+  number: number;
+  plays: number;
+  last_watched_at: string;
+}
+
+export interface TraktWatchedSeason {
+  number: number;
+  episodes: TraktWatchedEpisode[];
+}
+
 export interface TraktWatchedShow {
   plays: number;
   last_watched_at: string;
   last_updated_at: string;
   show: TraktShow;
+  seasons?: TraktWatchedSeason[];
 }
 
 export interface TraktLastActivities {

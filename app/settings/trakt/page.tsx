@@ -28,7 +28,7 @@ interface SyncResult {
   success: boolean;
   result?: {
     movies: { added: number; skipped: number; failed: number };
-    shows: { added: number; skipped: number; failed: number };
+    shows: { added: number; skipped: number; failed: number; episodesSynced?: number };
   };
   total?: {
     added: number;
@@ -42,7 +42,7 @@ interface RepairResult {
   success: boolean;
   result?: {
     movies: { updated: number; notFound: number; failed: number };
-    shows: { updated: number; notFound: number; failed: number; statusChanges: { toWatching: number; toFinished: number } };
+    shows: { updated: number; notFound: number; failed: number; statusChanges: { toWatching: number; toFinished: number }; episodesSynced?: number };
   };
   total?: {
     updated: number;
@@ -368,6 +368,11 @@ export default function TraktSettingsPage() {
                     </span>
                   </div>
                 </div>
+                {syncResult.result.shows.episodesSynced !== undefined && syncResult.result.shows.episodesSynced > 0 && (
+                  <p className="text-sm text-green-400">
+                    {syncResult.result.shows.episodesSynced} episodes marked as watched
+                  </p>
+                )}
                 {syncResult.total && syncResult.total.skipped > 0 && (
                   <p className="text-sm text-gray-500">
                     {syncResult.total.skipped} already in library
@@ -395,6 +400,11 @@ export default function TraktSettingsPage() {
                       {repairResult.result.shows.updated} updated
                     </span>
                   </div>
+                  {repairResult.result.shows.episodesSynced !== undefined && repairResult.result.shows.episodesSynced > 0 && (
+                    <p className="text-green-400">
+                      {repairResult.result.shows.episodesSynced} episodes marked as watched
+                    </p>
+                  )}
                   {(repairResult.result.shows.statusChanges.toWatching > 0 ||
                     repairResult.result.shows.statusChanges.toFinished > 0) && (
                     <div className="pt-2 border-t border-zinc-700">

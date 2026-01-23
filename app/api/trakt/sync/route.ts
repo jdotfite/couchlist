@@ -13,10 +13,11 @@ import {
   upsertUserMediaStatus,
   getMediaIdByTmdb,
 } from '@/lib/library';
+import { markEpisodeWatched } from '@/lib/episodes';
 
 interface SyncResult {
   movies: { added: number; skipped: number; failed: number };
-  shows: { added: number; skipped: number; failed: number };
+  shows: { added: number; skipped: number; failed: number; episodesSynced: number };
 }
 
 // POST /api/trakt/sync - Sync watched content from Trakt
@@ -84,7 +85,7 @@ export async function POST() {
 
     const result: SyncResult = {
       movies: { added: 0, skipped: 0, failed: 0 },
-      shows: { added: 0, skipped: 0, failed: 0 },
+      shows: { added: 0, skipped: 0, failed: 0, episodesSynced: 0 },
     };
 
     // Process movies
@@ -148,17 +149,22 @@ export async function POST() {
       }
 
       try {
-        // Check if already in library
-        const existingMediaId = await getMediaIdByTmdb(tmdbId, 'tv');
+        // Check if show already in library (but we still want to sync episodes)
+        let existingMediaId = await getMediaIdByTmdb(tmdbId, 'tv');
+        let isNewShow = false;
+
         if (existingMediaId) {
           const existing = await db`
             SELECT id FROM user_media
             WHERE user_id = ${userId} AND media_id = ${existingMediaId}
           `;
           if (existing.rows[0]) {
-            result.shows.skipped++;
-            continue;
+            // Show exists - we'll still sync episodes below
+          } else {
+            isNewShow = true;
           }
+        } else {
+          isNewShow = true;
         }
 
         // Fetch show details from TMDB for poster and status
@@ -176,7 +182,7 @@ export async function POST() {
           // Use Trakt data if TMDB fails
         }
 
-        // Add to library
+        // Add/update media record
         const mediaId = await upsertMedia({
           media_id: tmdbId,
           media_type: 'tv',
@@ -185,28 +191,49 @@ export async function POST() {
           release_year: item.show.year,
         });
 
-        // Determine status based on show status and watch progress
-        // If show has ended/canceled AND user watched all episodes, mark as finished
-        // Otherwise mark as watching (they might still be catching up or show is ongoing)
-        let status = 'watching';
+        // Sync individual episodes from Trakt's seasons data
+        if (item.seasons && item.seasons.length > 0) {
+          for (const season of item.seasons) {
+            // Skip specials (season 0) for now
+            if (season.number === 0) continue;
 
-        if (showStatus === 'Ended' || showStatus === 'Canceled') {
-          // Show is complete - check if user watched all episodes
-          // Trakt's 'plays' is total episode plays (could include rewatches)
-          // If plays >= total episodes, likely finished
-          if (numberOfEpisodes && item.plays >= numberOfEpisodes) {
-            status = 'finished';
-          } else if (!numberOfEpisodes) {
-            // No episode count from TMDB, assume finished for ended shows
-            status = 'finished';
+            for (const episode of season.episodes) {
+              try {
+                await markEpisodeWatched(
+                  userId,
+                  mediaId,
+                  season.number,
+                  episode.number
+                );
+                result.shows.episodesSynced++;
+              } catch (epError) {
+                // Continue even if individual episode fails
+                console.error(`Failed to sync S${season.number}E${episode.number} for ${title}:`, epError);
+              }
+            }
           }
-          // Otherwise keep as 'watching' - they haven't finished the ended show
         }
-        // For ongoing shows ("Returning Series", "In Production", etc.), keep as 'watching'
 
-        // Use Trakt's last_watched_at as the timestamp for proper sorting
-        await upsertUserMediaStatus(userId, mediaId, status, null, undefined, item.last_watched_at);
-        result.shows.added++;
+        // Only add show to user library if it's new
+        if (isNewShow) {
+          // Determine status based on show status and watch progress
+          let status = 'watching';
+
+          if (showStatus === 'Ended' || showStatus === 'Canceled') {
+            // Show is complete - check if user watched all episodes
+            if (numberOfEpisodes && item.plays >= numberOfEpisodes) {
+              status = 'finished';
+            } else if (!numberOfEpisodes) {
+              status = 'finished';
+            }
+          }
+
+          // Use Trakt's last_watched_at as the timestamp for proper sorting
+          await upsertUserMediaStatus(userId, mediaId, status, null, undefined, item.last_watched_at);
+          result.shows.added++;
+        } else {
+          result.shows.skipped++;
+        }
       } catch (error) {
         console.error(`Failed to sync show ${tmdbId}:`, error);
         result.shows.failed++;

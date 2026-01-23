@@ -8,10 +8,11 @@ import {
 } from '@/lib/trakt';
 import { tmdbApi } from '@/lib/tmdb';
 import { getMediaIdByTmdb } from '@/lib/library';
+import { markEpisodeWatched } from '@/lib/episodes';
 
 interface RepairResult {
   movies: { updated: number; notFound: number; failed: number };
-  shows: { updated: number; notFound: number; failed: number; statusChanges: { toWatching: number; toFinished: number } };
+  shows: { updated: number; notFound: number; failed: number; statusChanges: { toWatching: number; toFinished: number }; episodesSynced: number };
 }
 
 // POST /api/trakt/repair - Repair timestamps and statuses for previously synced content
@@ -79,7 +80,7 @@ export async function POST() {
 
     const result: RepairResult = {
       movies: { updated: 0, notFound: 0, failed: 0 },
-      shows: { updated: 0, notFound: 0, failed: 0, statusChanges: { toWatching: 0, toFinished: 0 } },
+      shows: { updated: 0, notFound: 0, failed: 0, statusChanges: { toWatching: 0, toFinished: 0 }, episodesSynced: 0 },
     };
 
     // Repair movies - update timestamps
@@ -180,6 +181,29 @@ export async function POST() {
             result.shows.statusChanges.toWatching++;
           } else {
             result.shows.statusChanges.toFinished++;
+          }
+        }
+
+        // Sync individual episodes from Trakt's seasons data
+        if (item.seasons && item.seasons.length > 0) {
+          for (const season of item.seasons) {
+            // Skip specials (season 0) for now
+            if (season.number === 0) continue;
+
+            for (const episode of season.episodes) {
+              try {
+                await markEpisodeWatched(
+                  userId,
+                  mediaId,
+                  season.number,
+                  episode.number
+                );
+                result.shows.episodesSynced++;
+              } catch (epError) {
+                // Continue even if individual episode fails
+                console.error(`Failed to sync episode:`, epError);
+              }
+            }
           }
         }
 
