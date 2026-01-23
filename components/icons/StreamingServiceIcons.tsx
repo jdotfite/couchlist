@@ -156,14 +156,14 @@ export const STREAMING_COLORS: Record<number, string> = {
   15: '#1CE783', // Hulu green
   1899: '#002BE7', // Max blue
   337: '#113CCF', // Disney+ blue
-  386: '#050505', // Peacock (multicolor, use dark bg)
+  386: '#0a0a0a', // Peacock (multicolor, use dark bg)
   9: '#00A8E1', // Prime Video blue
-  2: '#050505', // Apple TV+ dark
+  2: '#0a0a0a', // Apple TV+ dark
   531: '#0064FF', // Paramount+ blue
   73: '#FA382F', // Tubi orange-red
   300: '#050505', // Pluto TV dark
   283: '#F47521', // Crunchyroll orange
-  350: '#050505', // Apple TV dark
+  350: '#0a0a0a', // Apple TV dark
 };
 
 // Provider ID to Icon component mapping
