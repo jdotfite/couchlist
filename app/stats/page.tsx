@@ -178,7 +178,7 @@ export default function StatsPage() {
           {/* Movies */}
           <div className="bg-zinc-900 rounded-2xl p-4 text-center">
             <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Film className="w-5 h-5 text-purple-400" />
+              <Film className="w-5 h-5 text-white" />
             </div>
             <div className="text-purple-400 font-medium text-xs mb-1">Movies</div>
             <div className="text-xl font-bold">{overview.totalMovies}</div>
@@ -193,7 +193,7 @@ export default function StatsPage() {
           {/* TV Shows */}
           <div className="bg-zinc-900 rounded-2xl p-4 text-center">
             <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Tv className="w-5 h-5 text-emerald-400" />
+              <Tv className="w-5 h-5 text-white" />
             </div>
             <div className="text-emerald-400 font-medium text-xs mb-1">Shows</div>
             <div className="text-xl font-bold">{overview.totalTVShows}</div>
@@ -208,7 +208,7 @@ export default function StatsPage() {
           {/* Episodes */}
           <div className="bg-zinc-900 rounded-2xl p-4 text-center">
             <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Play className="w-5 h-5 text-blue-400" />
+              <Play className="w-5 h-5 text-white" />
             </div>
             <div className="text-blue-400 font-medium text-xs mb-1">Episodes</div>
             <div className="text-xl font-bold">{overview.totalEpisodesWatched.toLocaleString()}</div>
@@ -220,7 +220,7 @@ export default function StatsPage() {
           {/* Avg Rating */}
           <div className="bg-zinc-900 rounded-2xl p-4 text-center">
             <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Star className="w-5 h-5 text-yellow-400" />
+              <Star className="w-5 h-5 text-white" />
             </div>
             <div className="text-yellow-400 font-medium text-xs mb-1">Rating</div>
             <div className="text-xl font-bold">{overview.averageRating?.toFixed(1) || '-'}</div>

@@ -106,7 +106,7 @@ export default function QuickStats() {
         {/* Movies */}
         <div className="bg-zinc-900 rounded-2xl p-3 text-center">
           <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-            <Film className="w-4 h-4 text-purple-400" />
+            <Film className="w-4 h-4 text-white" />
           </div>
           <div className="text-lg font-bold">{stats.totalMovies}</div>
           <div className="text-xs text-zinc-500">Movies</div>
@@ -121,7 +121,7 @@ export default function QuickStats() {
         {/* TV Shows */}
         <div className="bg-zinc-900 rounded-2xl p-3 text-center">
           <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-            <Tv className="w-4 h-4 text-emerald-400" />
+            <Tv className="w-4 h-4 text-white" />
           </div>
           <div className="text-lg font-bold">{stats.totalTVShows}</div>
           <div className="text-xs text-zinc-500">Shows</div>
@@ -136,7 +136,7 @@ export default function QuickStats() {
         {/* Episodes */}
         <div className="bg-zinc-900 rounded-2xl p-3 text-center">
           <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-            <Play className="w-4 h-4 text-blue-400" />
+            <Play className="w-4 h-4 text-white" />
           </div>
           <div className="text-lg font-bold">{stats.totalEpisodesWatched.toLocaleString()}</div>
           <div className="text-xs text-zinc-500">Episodes</div>
@@ -148,7 +148,7 @@ export default function QuickStats() {
         {/* Avg Rating */}
         <div className="bg-zinc-900 rounded-2xl p-3 text-center">
           <div className="w-8 h-8 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-            <Star className="w-4 h-4 text-yellow-400" />
+            <Star className="w-4 h-4 text-white" />
           </div>
           <div className="text-lg font-bold">{stats.averageRating?.toFixed(1) || '-'}</div>
           <div className="text-xs text-zinc-500">Rating</div>
