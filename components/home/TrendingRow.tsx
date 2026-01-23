@@ -88,9 +88,9 @@ export default function TrendingRow({ title, items, seeAllHref, onAddClick }: Tr
                         e.stopPropagation();
                         onAddClick(item);
                       }}
-                      className="absolute top-2 right-2 w-8 h-8 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                      className="absolute top-2 right-2 w-6 h-6 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
                     >
-                      <Plus className="w-5 h-5" />
+                      <Plus className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
