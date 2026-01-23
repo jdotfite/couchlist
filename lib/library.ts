@@ -59,22 +59,38 @@ export async function upsertUserMediaStatus(
   mediaId: number,
   status: string,
   rating?: number | null,
-  addedBy?: number
+  addedBy?: number,
+  statusUpdatedAt?: string | Date | null
 ) {
   // addedBy defaults to userId if not specified
   const addedByValue = addedBy || userId;
 
-  const result = await sql`
-    INSERT INTO user_media (user_id, media_id, status, status_updated_at, rating, added_by)
-    VALUES (${userId}, ${mediaId}, ${status}, CURRENT_TIMESTAMP, ${rating || null}, ${addedByValue})
-    ON CONFLICT (user_id, media_id) DO UPDATE
-    SET status = EXCLUDED.status,
-        status_updated_at = EXCLUDED.status_updated_at,
-        rating = COALESCE(EXCLUDED.rating, user_media.rating),
-        added_by = COALESCE(user_media.added_by, EXCLUDED.added_by),
-        updated_at = CURRENT_TIMESTAMP
-    RETURNING id
-  `;
+  // Use provided timestamp or current time
+  const timestamp = statusUpdatedAt ? new Date(statusUpdatedAt).toISOString() : null;
+
+  const result = timestamp
+    ? await sql`
+        INSERT INTO user_media (user_id, media_id, status, status_updated_at, rating, added_by)
+        VALUES (${userId}, ${mediaId}, ${status}, ${timestamp}, ${rating || null}, ${addedByValue})
+        ON CONFLICT (user_id, media_id) DO UPDATE
+        SET status = EXCLUDED.status,
+            status_updated_at = EXCLUDED.status_updated_at,
+            rating = COALESCE(EXCLUDED.rating, user_media.rating),
+            added_by = COALESCE(user_media.added_by, EXCLUDED.added_by),
+            updated_at = CURRENT_TIMESTAMP
+        RETURNING id
+      `
+    : await sql`
+        INSERT INTO user_media (user_id, media_id, status, status_updated_at, rating, added_by)
+        VALUES (${userId}, ${mediaId}, ${status}, CURRENT_TIMESTAMP, ${rating || null}, ${addedByValue})
+        ON CONFLICT (user_id, media_id) DO UPDATE
+        SET status = EXCLUDED.status,
+            status_updated_at = EXCLUDED.status_updated_at,
+            rating = COALESCE(EXCLUDED.rating, user_media.rating),
+            added_by = COALESCE(user_media.added_by, EXCLUDED.added_by),
+            updated_at = CURRENT_TIMESTAMP
+        RETURNING id
+      `;
   return result.rows[0].id as number;
 }
 

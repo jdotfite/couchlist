@@ -130,7 +130,8 @@ export async function POST() {
           release_year: item.movie.year,
         });
 
-        await upsertUserMediaStatus(userId, mediaId, 'finished');
+        // Use Trakt's last_watched_at as the timestamp for proper sorting
+        await upsertUserMediaStatus(userId, mediaId, 'finished', null, undefined, item.last_watched_at);
         result.movies.added++;
       } catch (error) {
         console.error(`Failed to sync movie ${tmdbId}:`, error);
@@ -160,13 +161,17 @@ export async function POST() {
           }
         }
 
-        // Fetch show details from TMDB for poster
+        // Fetch show details from TMDB for poster and status
         let posterPath: string | null = null;
         let title = item.show.title;
+        let showStatus: string | null = null;
+        let numberOfEpisodes: number | null = null;
         try {
           const tmdbResponse = await tmdbApi.get(`/tv/${tmdbId}`);
           posterPath = tmdbResponse.data.poster_path;
           title = tmdbResponse.data.name || title;
+          showStatus = tmdbResponse.data.status; // "Returning Series", "Ended", "Canceled", etc.
+          numberOfEpisodes = tmdbResponse.data.number_of_episodes;
         } catch {
           // Use Trakt data if TMDB fails
         }
@@ -180,7 +185,27 @@ export async function POST() {
           release_year: item.show.year,
         });
 
-        await upsertUserMediaStatus(userId, mediaId, 'finished');
+        // Determine status based on show status and watch progress
+        // If show has ended/canceled AND user watched all episodes, mark as finished
+        // Otherwise mark as watching (they might still be catching up or show is ongoing)
+        let status = 'watching';
+
+        if (showStatus === 'Ended' || showStatus === 'Canceled') {
+          // Show is complete - check if user watched all episodes
+          // Trakt's 'plays' is total episode plays (could include rewatches)
+          // If plays >= total episodes, likely finished
+          if (numberOfEpisodes && item.plays >= numberOfEpisodes) {
+            status = 'finished';
+          } else if (!numberOfEpisodes) {
+            // No episode count from TMDB, assume finished for ended shows
+            status = 'finished';
+          }
+          // Otherwise keep as 'watching' - they haven't finished the ended show
+        }
+        // For ongoing shows ("Returning Series", "In Production", etc.), keep as 'watching'
+
+        // Use Trakt's last_watched_at as the timestamp for proper sorting
+        await upsertUserMediaStatus(userId, mediaId, status, null, undefined, item.last_watched_at);
         result.shows.added++;
       } catch (error) {
         console.error(`Failed to sync show ${tmdbId}:`, error);
