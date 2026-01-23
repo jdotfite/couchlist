@@ -42,6 +42,7 @@ app/
 │   ├── collaborators/page.tsx   # Manage shared lists
 │   ├── lists/page.tsx           # Rename list names
 │   ├── notifications/page.tsx   # Show alert preferences
+│   ├── services/page.tsx        # Streaming services selection
 │   └── trakt/page.tsx           # Trakt sync settings
 ├── add/page.tsx                 # Quick add page
 └── page.tsx                     # Home (search hero + lists + trending)
@@ -65,6 +66,12 @@ components/
 ├── notifications/
 │   ├── NotificationBell.tsx     # Bell icon with unread count
 │   └── NotificationCenter.tsx   # Slide-out notification panel
+├── search/
+│   ├── BrowseCards.tsx          # Browse by service/genre cards
+│   ├── FilterBottomSheet.tsx    # Discover filters sheet
+│   └── ActiveFilters.tsx        # Active filter pills
+├── icons/
+│   └── StreamingServiceIcons.tsx # Custom SVG icons for streaming services
 └── tv/
     └── ShowAlertToggle.tsx      # Per-show alert toggle
 
@@ -89,7 +96,11 @@ types/
 ├── index.ts                     # TMDb API types
 ├── episodes.ts                  # Episode tracking types
 ├── import.ts                    # Import job types
-└── notifications.ts             # Notification & alert types
+├── notifications.ts             # Notification & alert types
+└── streaming.ts                 # Streaming provider types
+
+stores/
+└── useLibraryStore.ts           # Zustand store for library state
 ```
 
 ## Database Schema
@@ -156,11 +167,13 @@ types/
 - Tag as favorite, rewatch, or classic
 - Change status (watchlist -> watching -> finished)
 
-### Discovery
+### Discovery & Search
 - Search movies and TV shows via TMDb
-- Browse trending, popular, top-rated
-- Filter by media type (all/movies/TV)
-- Popular searches suggestions
+- Browse by streaming service (Netflix, Hulu, Max, Disney+, etc.)
+- Browse by genre with visual cards
+- Filter by streaming providers, genres, year, rating, runtime
+- Trending Now and Top Rated rows
+- User's streaming services highlighted
 
 ### Navigation (4-tab structure)
 - **Home** (`/`) - Search hero + Your Lists + Continue Watching + Trending
@@ -244,6 +257,8 @@ types/
 | /api/tv/[id] | GET | Get TV show details |
 | /api/trending | GET | Get trending content |
 | /api/browse | GET | Get category content |
+| /api/discover | GET | Discover content with filters (providers, genres, year, rating) |
+| /api/streaming-services | GET/POST/DELETE | User's streaming service preferences |
 | /api/collaborators | GET/POST | List/create collaborations |
 | /api/collaborators/[id] | PATCH/DELETE | Update/remove collaboration |
 | /api/collaborators/invite/[code] | GET | Get invite details |
@@ -306,7 +321,8 @@ TRAKT_CLIENT_SECRET=      # Optional: Trakt sync integration
 - SessionStorage caching on library pages
 
 ### State Management
-- React useState/useEffect (no external state library)
+- Zustand for global state (useLibraryStore)
+- React useState/useEffect for local state
 - URL search params for filters
 
 ### Error Handling

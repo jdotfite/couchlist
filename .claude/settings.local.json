@@ -46,7 +46,14 @@
       "Bash(cmd /c dir \"C:\\\\_websites\\\\couchlist\\\\public\\\\logo-flicklog.svg\")",
       "Bash(npx next build)",
       "WebFetch(domain:trakt.docs.apiary.io)",
-      "WebFetch(domain:betamode.de)"
+      "WebFetch(domain:betamode.de)",
+      "Bash(ls:*)",
+      "WebFetch(domain:support.justwatch.com)",
+      "WebFetch(domain:www.pencilandpaper.io)",
+      "WebFetch(domain:simpleicons.org)",
+      "WebFetch(domain:cdn.simpleicons.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(node:*)"
     ]
   }
 }
