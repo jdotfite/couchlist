@@ -111,13 +111,17 @@ export async function POST() {
           }
         }
 
-        // Fetch movie details from TMDB for poster
+        // Fetch movie details from TMDB for poster and genres
         let posterPath: string | null = null;
         let title = item.movie.title;
+        let genreIds: number[] = [];
+        let runtime: number | null = null;
         try {
           const tmdbResponse = await tmdbApi.get(`/movie/${tmdbId}`);
           posterPath = tmdbResponse.data.poster_path;
           title = tmdbResponse.data.title || title;
+          genreIds = tmdbResponse.data.genres?.map((g: { id: number }) => g.id) || [];
+          runtime = tmdbResponse.data.runtime || null;
         } catch {
           // Use Trakt data if TMDB fails
         }
@@ -129,6 +133,8 @@ export async function POST() {
           title,
           poster_path: posterPath,
           release_year: item.movie.year,
+          genre_ids: genreIds.length > 0 ? genreIds : undefined,
+          runtime,
         });
 
         // Use Trakt's last_watched_at as the timestamp for proper sorting
@@ -167,17 +173,19 @@ export async function POST() {
           isNewShow = true;
         }
 
-        // Fetch show details from TMDB for poster and status
+        // Fetch show details from TMDB for poster, status, and genres
         let posterPath: string | null = null;
         let title = item.show.title;
         let showStatus: string | null = null;
         let numberOfEpisodes: number | null = null;
+        let genreIds: number[] = [];
         try {
           const tmdbResponse = await tmdbApi.get(`/tv/${tmdbId}`);
           posterPath = tmdbResponse.data.poster_path;
           title = tmdbResponse.data.name || title;
           showStatus = tmdbResponse.data.status; // "Returning Series", "Ended", "Canceled", etc.
           numberOfEpisodes = tmdbResponse.data.number_of_episodes;
+          genreIds = tmdbResponse.data.genres?.map((g: { id: number }) => g.id) || [];
         } catch {
           // Use Trakt data if TMDB fails
         }
@@ -189,6 +197,7 @@ export async function POST() {
           title,
           poster_path: posterPath,
           release_year: item.show.year,
+          genre_ids: genreIds.length > 0 ? genreIds : undefined,
         });
 
         // Sync individual episodes from Trakt's seasons data

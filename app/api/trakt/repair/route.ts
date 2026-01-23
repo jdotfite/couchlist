@@ -83,7 +83,7 @@ export async function POST() {
       shows: { updated: 0, notFound: 0, failed: 0, statusChanges: { toWatching: 0, toFinished: 0 }, episodesSynced: 0 },
     };
 
-    // Repair movies - update timestamps
+    // Repair movies - update timestamps and genres
     for (const item of movies) {
       const tmdbId = item.movie?.ids?.tmdb;
       if (!tmdbId) {
@@ -109,7 +109,19 @@ export async function POST() {
           continue;
         }
 
-        // Update timestamp to Trakt's last_watched_at
+        // Fetch genres and runtime from TMDB
+        let genreIds: string | null = null;
+        let runtime: number | null = null;
+        try {
+          const tmdbResponse = await tmdbApi.get(`/movie/${tmdbId}`);
+          const genres = tmdbResponse.data.genres?.map((g: { id: number }) => g.id) || [];
+          genreIds = genres.length > 0 ? genres.join(',') : null;
+          runtime = tmdbResponse.data.runtime || null;
+        } catch {
+          // Continue without TMDB data
+        }
+
+        // Update timestamp, genres, and runtime
         const watchedAt = new Date(item.last_watched_at).toISOString();
         await db`
           UPDATE user_media
@@ -117,6 +129,17 @@ export async function POST() {
               updated_at = CURRENT_TIMESTAMP
           WHERE user_id = ${userId} AND media_id = ${mediaId}
         `;
+
+        // Update media record with genres and runtime
+        if (genreIds || runtime) {
+          await db`
+            UPDATE media
+            SET genre_ids = COALESCE(${genreIds}, genre_ids),
+                runtime = COALESCE(${runtime}, runtime),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ${mediaId}
+          `;
+        }
 
         result.movies.updated++;
       } catch (error) {
@@ -153,13 +176,16 @@ export async function POST() {
 
         const currentStatus = existing.rows[0].status;
 
-        // Fetch show details from TMDB to determine correct status
+        // Fetch show details from TMDB to determine correct status and genres
         let showStatus: string | null = null;
         let numberOfEpisodes: number | null = null;
+        let genreIds: string | null = null;
         try {
           const tmdbResponse = await tmdbApi.get(`/tv/${tmdbId}`);
           showStatus = tmdbResponse.data.status;
           numberOfEpisodes = tmdbResponse.data.number_of_episodes;
+          const genres = tmdbResponse.data.genres?.map((g: { id: number }) => g.id) || [];
+          genreIds = genres.length > 0 ? genres.join(',') : null;
         } catch {
           // Continue without TMDB data
         }
@@ -216,6 +242,16 @@ export async function POST() {
               updated_at = CURRENT_TIMESTAMP
           WHERE user_id = ${userId} AND media_id = ${mediaId}
         `;
+
+        // Update media record with genres
+        if (genreIds) {
+          await db`
+            UPDATE media
+            SET genre_ids = COALESCE(${genreIds}, genre_ids),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ${mediaId}
+          `;
+        }
 
         result.shows.updated++;
       } catch (error) {
