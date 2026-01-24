@@ -899,7 +899,7 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0">
                                 <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center">
-                                  <Check className="w-5 h-5 text-green-500" />
+                                  <Check className="w-5 h-5 text-white" />
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0">
@@ -962,7 +962,7 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
                             <div className="flex items-start gap-3">
                               <div className="flex-shrink-0">
                                 <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
-                                  <XCircle className="w-5 h-5 text-red-400" />
+                                  <XCircle className="w-5 h-5 text-white" />
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0">

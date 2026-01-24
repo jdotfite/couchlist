@@ -60,7 +60,10 @@
       "WebFetch(domain:cdn.dribbble.com)",
       "WebFetch(domain:www.serializd.com)",
       "Bash(timeout:*)",
-      "WebFetch(domain:sudoku.jull.dev)"
+      "WebFetch(domain:sudoku.jull.dev)",
+      "Bash(Get-ChildItem -Path \"C:\\\\_websites\\\\couchlist\" -Filter \"*.md\" -Recurse -File)",
+      "Bash(Where-Object { $_FullName -notlike \"*node_modules*\" -and $_FullName -notlike \"*.next*\" })",
+      "Bash(Select-Object -ExpandProperty FullName)"
     ]
   }
 }

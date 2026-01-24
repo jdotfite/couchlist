@@ -176,8 +176,8 @@ export default function FriendSuggestionSheet({
         <div
           className={`mx-4 px-3 py-2 rounded-lg flex items-center gap-2 ${
             result.success
-              ? 'bg-green-500/20 text-green-400'
-              : 'bg-red-500/20 text-red-400'
+              ? 'bg-green-500/20 text-white'
+              : 'bg-red-500/20 text-white'
           }`}
         >
           {result.success ? (

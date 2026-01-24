@@ -564,7 +564,7 @@ export default function EditListModal({
                           className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg"
                         >
                           <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                            <Mail className="w-5 h-5 text-amber-500" />
+                            <Mail className="w-5 h-5 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
