@@ -345,28 +345,12 @@ export function FriendSharingSheet({
                           </p>
                         </div>
 
-                        {/* Can Edit toggle */}
+                        {/* View only badge - system lists don't support edit permissions */}
                         {selection?.isShared && (
-                          <button
-                            onClick={() => toggleCanEdit(list.type)}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition ${
-                              selection.canEdit
-                                ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                                : 'bg-zinc-700 text-gray-400 hover:bg-zinc-600'
-                            }`}
-                          >
-                            {selection.canEdit ? (
-                              <>
-                                <Edit3 className="w-3 h-3" />
-                                Can edit
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="w-3 h-3" />
-                                View only
-                              </>
-                            )}
-                          </button>
+                          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-700 text-gray-400">
+                            <Eye className="w-3 h-3" />
+                            View only
+                          </div>
                         )}
                       </div>
                     );

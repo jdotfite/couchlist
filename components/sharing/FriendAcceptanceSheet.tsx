@@ -169,40 +169,73 @@ export function FriendAcceptanceSheet({
 
       // Then set up sharing for selected lists
       console.log('[FriendAcceptanceSheet] selectedLists.size:', selectedLists.size);
+      console.log('[FriendAcceptanceSheet] selectedLists contents:', Array.from(selectedLists));
+
       if (selectedLists.size > 0) {
         const listsToShare = Array.from(selectedLists).map(listType => ({
           listType,
           canEdit: false, // Default to view-only
         }));
         console.log('[FriendAcceptanceSheet] About to call sharing PATCH with:', listsToShare);
+        console.log('[FriendAcceptanceSheet] friend.id:', friend.id, 'type:', typeof friend.id);
 
-        const sharingRes = await fetch(`/api/friends/${friend.id}/sharing`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            listsToShare,
-            listsToRemove: [],
-          }),
-        });
+        try {
+          const sharingRes = await fetch(`/api/friends/${friend.id}/sharing`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              listsToShare,
+              listsToRemove: [],
+            }),
+          });
 
-        if (!sharingRes.ok) {
-          const errorData = await sharingRes.json().catch(() => ({}));
-          console.error('Failed to set up sharing:', errorData);
-          // Continue anyway - friendship was established, sharing can be set up later
+          const sharingData = await sharingRes.json().catch(() => ({}));
+          console.log('[FriendAcceptanceSheet] Sharing response:', sharingRes.status, sharingData);
+
+          if (!sharingRes.ok) {
+            console.error('[FriendAcceptanceSheet] Failed to set up sharing:', sharingData);
+            // Continue anyway - friendship was established, sharing can be set up later
+          } else {
+            console.log('[FriendAcceptanceSheet] Sharing setup successful');
+          }
+        } catch (sharingError) {
+          console.error('[FriendAcceptanceSheet] Exception during sharing setup:', sharingError);
         }
+      } else {
+        console.log('[FriendAcceptanceSheet] No lists selected, skipping sharing setup');
       }
 
       // Create collaborative list if opted in
+      let collaborativeListName: string | undefined;
       if (createCollaborativeList) {
         const collabRes = await fetch(`/api/friends/${friend.id}/collaborative-list`, {
           method: 'POST',
         });
 
-        if (!collabRes.ok) {
+        if (collabRes.ok) {
+          const collabData = await collabRes.json();
+          collaborativeListName = collabData.list?.name;
+        } else {
           const errorData = await collabRes.json().catch(() => ({}));
           console.error('Failed to create collaborative list:', errorData);
           // Continue anyway - friendship was established
         }
+      }
+
+      // Notify the friend (who sent the invite) about what was shared
+      try {
+        await fetch(`/api/friends/${friend.id}/notify-acceptance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sharedLists: Array.from(selectedLists),
+            createdCollaborativeList,
+            collaborativeListName,
+          }),
+        });
+      } catch (notifyError) {
+        console.error('Failed to send acceptance notification:', notifyError);
+        // Non-critical, continue
       }
 
       onAccepted();
