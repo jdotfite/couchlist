@@ -13,9 +13,7 @@ const STATUS_OPTIONS = [
   { value: '', label: 'All' },
   { value: 'watchlist', label: 'Watchlist' },
   { value: 'watching', label: 'Watching' },
-  { value: 'finished', label: 'Finished' },
-  { value: 'onhold', label: 'On Hold' },
-  { value: 'dropped', label: 'Dropped' },
+  { value: 'finished', label: 'Watched' },
 ];
 
 const KIDS_GENRES = [10762, 10751, 16]; // Kids, Family, Animation

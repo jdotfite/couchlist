@@ -346,9 +346,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   const STATUS_OPTIONS = [
     { value: 'watchlist', label: 'Watchlist', color: 'bg-blue-500' },
     { value: 'watching', label: 'Watching', color: 'bg-emerald-500' },
-    { value: 'finished', label: 'Finished', color: 'bg-purple-500' },
-    { value: 'onhold', label: 'On Hold', color: 'bg-yellow-500' },
-    { value: 'dropped', label: 'Dropped', color: 'bg-red-500' },
+    { value: 'finished', label: 'Watched', color: 'bg-purple-500' },
   ];
 
   // Available move targets (exclude current list)
