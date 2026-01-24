@@ -94,7 +94,7 @@ export default function StatsPage() {
   if (authStatus === 'loading' || isLoading) {
     return (
       <div className="min-h-screen bg-black text-white pb-24">
-        <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+        <header className="sticky top-0 z-10 bg-black px-4 py-3">
           <div className="flex items-center gap-3">
             <Link href="/library" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full">
               <ArrowLeft className="w-5 h-5" />
@@ -134,7 +134,7 @@ export default function StatsPage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3 border-b border-zinc-800">
+      <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/library" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full">
