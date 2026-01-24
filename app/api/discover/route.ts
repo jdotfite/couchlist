@@ -50,6 +50,9 @@ export async function GET(request: Request) {
 
       if (providers) {
         params.set('with_watch_providers', providers);
+        // TMDb requires monetization type when filtering by providers
+        // flatrate = subscription streaming (Netflix, Hulu, etc.)
+        params.set('with_watch_monetization_types', 'flatrate');
       }
 
       if (genres) {

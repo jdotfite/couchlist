@@ -243,35 +243,6 @@ export default function SearchPage() {
     }, 0);
   };
 
-  // Handle genre card click
-  const handleGenreClick = (genreId: number) => {
-    const newFilters = {
-      ...DEFAULT_FILTERS,
-      genres: [genreId],
-    };
-    setFilters(newFilters);
-    // Trigger discover with new filter
-    setTimeout(() => {
-      setIsDiscovering(true);
-      setHasFiltered(true);
-      setHasSearched(false);
-      setQuery('');
-
-      fetch(`/api/discover?genres=${genreId}`)
-        .then(res => res.json())
-        .then(data => {
-          setDiscoverResults(data.results || []);
-        })
-        .catch(error => {
-          console.error('Discover error:', error);
-          setDiscoverResults([]);
-        })
-        .finally(() => {
-          setIsDiscovering(false);
-        });
-    }, 0);
-  };
-
   const handleAddClick = (item: TrendingItem) => {
     setSelectedItem(item);
     setIsSheetOpen(true);
@@ -445,7 +416,6 @@ export default function SearchPage() {
             <BrowseCards
               userProviderIds={userProviderIds}
               onProviderClick={handleProviderClick}
-              onGenreClick={handleGenreClick}
             />
 
             {/* Trending Now */}
