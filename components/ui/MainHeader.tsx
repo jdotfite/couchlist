@@ -15,11 +15,12 @@ export default function MainHeader({
   showLogo = false,
   children,
 }: MainHeaderProps) {
-  // Use z-30 to stay above page content (buttons have z-10), z-40 with children
-  const zIndex = children ? 'z-40' : 'z-30';
+  // Only sticky when there are children (like search input)
+  // Use higher z-index when sticky to stay above page content
+  const positionClass = children ? 'sticky top-0 z-40' : '';
 
   return (
-    <header className={`sticky top-0 ${zIndex} bg-black px-4 py-3`}>
+    <header className={`${positionClass} bg-black px-4 py-3`}>
       <div className={`flex items-center justify-between${children ? ' mb-4' : ''}`}>
         <div className="flex items-center gap-3">
           <ProfileMenu />
