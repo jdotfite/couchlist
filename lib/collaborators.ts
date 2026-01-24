@@ -573,6 +573,8 @@ export async function acceptDirectInvite(
   userId: number,
   selectedLists: string[]
 ): Promise<{ success: boolean; error?: string }> {
+  console.log(`[acceptDirectInvite] Accepting invite ${inviteId} for user ${userId}`);
+
   // Verify the invite is for this user and is pending
   // Check both target_user_id (general invites) and collaborator_id (friend/partner invites)
   const result = await sql`
@@ -584,10 +586,19 @@ export async function acceptDirectInvite(
   `;
 
   if (result.rows.length === 0) {
+    console.log(`[acceptDirectInvite] Invite not found or expired for inviteId=${inviteId}, userId=${userId}`);
     return { success: false, error: 'Invite not found or expired' };
   }
 
   const invite = result.rows[0];
+  console.log(`[acceptDirectInvite] Found invite:`, {
+    id: invite.id,
+    owner_id: invite.owner_id,
+    collaborator_id: invite.collaborator_id,
+    target_user_id: invite.target_user_id,
+    type: invite.type,
+    status: invite.status
+  });
 
   // Update the collaboration - set collaborator_id if it was a target_user_id invite
   await sql`
@@ -597,6 +608,8 @@ export async function acceptDirectInvite(
         accepted_at = NOW()
     WHERE id = ${inviteId}
   `;
+
+  console.log(`[acceptDirectInvite] Updated invite ${inviteId} to accepted, collaborator_id=${userId}`);
 
   // Update shared lists to only include selected ones
   await sql`
@@ -848,7 +861,7 @@ export async function getFriends(userId: number): Promise<{
 // Check if two users are friends
 export async function areFriends(userId1: number, userId2: number): Promise<boolean> {
   const result = await sql`
-    SELECT id FROM collaborators
+    SELECT id, owner_id, collaborator_id, type, status FROM collaborators
     WHERE (
       (owner_id = ${userId1} AND collaborator_id = ${userId2})
       OR (owner_id = ${userId2} AND collaborator_id = ${userId1})
@@ -857,5 +870,9 @@ export async function areFriends(userId1: number, userId2: number): Promise<bool
     AND status = 'accepted'
     LIMIT 1
   `;
-  return result.rows.length > 0;
+
+  const isFriends = result.rows.length > 0;
+  console.log(`[areFriends] Checking (${userId1}, ${userId2}): ${isFriends}`, result.rows[0] || 'no match');
+
+  return isFriends;
 }

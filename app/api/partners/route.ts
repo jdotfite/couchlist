@@ -1,9 +1,14 @@
+/**
+ * @deprecated Partner functionality has been replaced by collaborative lists with friends.
+ * These routes are kept for backwards compatibility but the UI no longer uses them.
+ * Use /api/friends/[id]/collaborative-list instead.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getPartner, hasPartner, createPartnerInvite, removePartner } from '@/lib/partners';
 import { getPartnerLists } from '@/lib/partners';
 
-// GET /api/partners - Get current partner info
+// GET /api/partners - Get current partner info (DEPRECATED)
 export async function GET() {
   try {
     const session = await auth();

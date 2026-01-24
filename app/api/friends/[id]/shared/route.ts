@@ -107,28 +107,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         const displayName = await getListDisplayName(userId, listType);
         const isShared = sharedLists.some(s => s.listType === listType && s.listId === null);
 
-        // Get item count
-        let itemCount = 0;
-        const status = listType === 'favorites' || listType === 'rewatch' || listType === 'nostalgia'
-          ? null
-          : listType;
-
-        if (status) {
-          const countResult = await sql`
-            SELECT COUNT(*)::int as count FROM user_media
-            WHERE user_id = ${userId} AND status = ${status}
-          `;
-          itemCount = countResult.rows[0]?.count || 0;
-        } else {
-          const countResult = await sql`
-            SELECT COUNT(*)::int as count
-            FROM user_media_tags umt
-            JOIN tags t ON t.id = umt.tag_id
-            JOIN user_media um ON um.id = umt.user_media_id
-            WHERE um.user_id = ${userId} AND t.slug = ${listType}
-          `;
-          itemCount = countResult.rows[0]?.count || 0;
-        }
+        // Get item count - only core status lists now
+        const countResult = await sql`
+          SELECT COUNT(*)::int as count FROM user_media
+          WHERE user_id = ${userId} AND status = ${listType}
+        `;
+        const itemCount = countResult.rows[0]?.count || 0;
 
         return {
           listType,

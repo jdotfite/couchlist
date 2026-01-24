@@ -271,102 +271,158 @@ export function ListVisibilitySheet({
                 })}
               </div>
 
-              {/* Friends with access (for select_friends visibility) */}
-              {visibility === 'select_friends' && (
+              {/* Who has access section - shown for all non-private visibility levels */}
+              {visibility !== 'private' && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-white">Friends with access</h3>
-                    {friendsWithoutAccess.length > 0 && (
-                      <button
-                        onClick={() => setShowAddFriends(!showAddFriends)}
-                        className="flex items-center gap-1 text-brand-primary text-sm"
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        Add
-                      </button>
-                    )}
+                  <h3 className="font-semibold text-white flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-gray-400" />
+                    Who has access
+                  </h3>
+
+                  {/* Owner - always shown */}
+                  <div className="flex items-center gap-3 p-3 bg-zinc-800 rounded-lg">
+                    <div className="w-10 h-10 rounded-full bg-brand-primary/20 flex items-center justify-center">
+                      <span className="text-sm font-medium text-brand-primary">You</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-white">You</div>
+                      <div className="text-sm text-gray-500">Owner</div>
+                    </div>
                   </div>
 
-                  {/* Add friends section */}
-                  {showAddFriends && friendsWithoutAccess.length > 0 && (
-                    <div className="bg-zinc-800 rounded-lg p-3 space-y-2">
-                      <p className="text-sm text-gray-400 mb-2">Select friends to add:</p>
-                      {friendsWithoutAccess.map((friend) => (
-                        <button
-                          key={friend.user_id}
-                          onClick={() => handleAddFriend(friend.user_id)}
-                          disabled={saving}
-                          className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-700 transition"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-zinc-600 flex items-center justify-center overflow-hidden">
-                            {friend.image ? (
-                              <img
-                                src={friend.image}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-sm font-medium text-white">
-                                {friend.name?.charAt(0).toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex-1 text-left">
-                            <div className="text-white text-sm">{friend.name}</div>
-                            {friend.username && (
-                              <div className="text-xs text-gray-500">@{friend.username}</div>
-                            )}
-                          </div>
-                          <UserPlus className="w-4 h-4 text-gray-400" />
-                        </button>
-                      ))}
+                  {/* For "All Friends" visibility */}
+                  {visibility === 'friends' && (
+                    <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <Users className="w-5 h-5 text-blue-400" />
+                        <span>
+                          All {allFriends.length} friend{allFriends.length !== 1 ? 's' : ''} can view this list
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1 ml-7">
+                        Anyone you're connected with can see this
+                      </p>
                     </div>
                   )}
 
-                  {/* List of friends with access */}
-                  {friendsWithAccess.length > 0 ? (
-                    <div className="space-y-2">
-                      {friendsWithAccess.map((friend) => (
-                        <div
-                          key={friend.friendId}
-                          className="flex items-center gap-3 p-3 bg-zinc-800 rounded-lg"
-                        >
-                          <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center overflow-hidden">
-                            {friend.friendImage ? (
-                              <img
-                                src={friend.friendImage}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-sm font-medium text-white">
-                                {friend.friendName?.charAt(0).toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="font-medium text-white">{friend.friendName}</div>
-                            {friend.friendUsername && (
-                              <div className="text-sm text-gray-500">@{friend.friendUsername}</div>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => handleRemoveFriend(friend.friendId)}
-                            disabled={saving}
-                            className="p-2 text-gray-500 hover:text-red-400 transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6 text-gray-400">
-                      <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>No friends added yet</p>
-                      <p className="text-sm">Add friends to let them see this list</p>
+                  {/* For "Public" visibility */}
+                  {visibility === 'public' && (
+                    <div className="p-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                      <div className="flex items-center gap-2 text-gray-300">
+                        <Globe className="w-5 h-5 text-green-400" />
+                        <span>Anyone with the link</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1 ml-7">
+                        This list is publicly accessible
+                      </p>
                     </div>
                   )}
+
+                  {/* For "Select Friends" visibility - show add button and friends list */}
+                  {visibility === 'select_friends' && (
+                    <>
+                      {/* Add friends button */}
+                      {friendsWithoutAccess.length > 0 && (
+                        <button
+                          onClick={() => setShowAddFriends(!showAddFriends)}
+                          className="w-full flex items-center justify-center gap-2 py-2 text-brand-primary text-sm border border-dashed border-brand-primary/50 rounded-lg hover:bg-brand-primary/10 transition"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          Add Friends
+                        </button>
+                      )}
+
+                      {/* Add friends section */}
+                      {showAddFriends && friendsWithoutAccess.length > 0 && (
+                        <div className="bg-zinc-800 rounded-lg p-3 space-y-2">
+                          <p className="text-sm text-gray-400 mb-2">Select friends to add:</p>
+                          {friendsWithoutAccess.map((friend) => (
+                            <button
+                              key={friend.user_id}
+                              onClick={() => handleAddFriend(friend.user_id)}
+                              disabled={saving}
+                              className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-700 transition"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-zinc-600 flex items-center justify-center overflow-hidden">
+                                {friend.image ? (
+                                  <img
+                                    src={friend.image}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-sm font-medium text-white">
+                                    {friend.name?.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-1 text-left">
+                                <div className="text-white text-sm">{friend.name}</div>
+                                {friend.username && (
+                                  <div className="text-xs text-gray-500">@{friend.username}</div>
+                                )}
+                              </div>
+                              <UserPlus className="w-4 h-4 text-gray-400" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* List of friends with access */}
+                      {friendsWithAccess.length > 0 ? (
+                        <div className="space-y-2">
+                          {friendsWithAccess.map((friend) => (
+                            <div
+                              key={friend.friendId}
+                              className="flex items-center gap-3 p-3 bg-zinc-800 rounded-lg"
+                            >
+                              <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center overflow-hidden">
+                                {friend.friendImage ? (
+                                  <img
+                                    src={friend.friendImage}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-sm font-medium text-white">
+                                    {friend.friendName?.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium text-white">{friend.friendName}</div>
+                                <div className="text-xs text-gray-500">
+                                  {friend.canEdit ? 'Can edit' : 'Can view'}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleRemoveFriend(friend.friendId)}
+                                disabled={saving}
+                                className="p-2 text-gray-500 hover:text-red-400 transition"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 text-gray-400">
+                          <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p>No friends added yet</p>
+                          <p className="text-sm">Add friends to let them see this list</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Private visibility message */}
+              {visibility === 'private' && (
+                <div className="text-center py-4 text-gray-400">
+                  <EyeOff className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>This list is private</p>
+                  <p className="text-sm">Only you can see it</p>
                 </div>
               )}
             </>

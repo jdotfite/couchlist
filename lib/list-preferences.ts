@@ -9,16 +9,13 @@ async function ensureDb() {
   }
 }
 
-// System list types that can be renamed
+// Core system lists - onhold, dropped, rewatch, nostalgia (classics) were removed
+// Users can create custom lists for those use cases
+// favorites is now a tag, not a list
 export const SYSTEM_LISTS = [
   { type: 'watchlist', defaultName: 'Watchlist' },
   { type: 'watching', defaultName: 'Watching' },
   { type: 'finished', defaultName: 'Watched' },
-  { type: 'onhold', defaultName: 'On Hold' },
-  { type: 'dropped', defaultName: 'Dropped' },
-  { type: 'favorites', defaultName: 'Favorites' },
-  { type: 'rewatch', defaultName: 'Rewatch' },
-  { type: 'nostalgia', defaultName: 'Classics' },
 ] as const;
 
 export type SystemListType = typeof SYSTEM_LISTS[number]['type'];

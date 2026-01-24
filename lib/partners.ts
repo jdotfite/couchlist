@@ -1,3 +1,8 @@
+/**
+ * @deprecated Partner functionality has been replaced by collaborative lists with friends.
+ * Use lib/collaborative-lists.ts instead for bidirectional shared lists.
+ * This file is kept for backwards compatibility.
+ */
 import { sql } from '@vercel/postgres';
 import { createNotification } from './show-alerts';
 import { createInvite, generateInviteCode, hasPartner, getPartner } from './collaborators';

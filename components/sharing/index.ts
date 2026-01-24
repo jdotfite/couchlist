@@ -4,3 +4,7 @@ export type { ListOption, SimpleListOption } from './ListShareSelector';
 export { ListVisibilityBadge, ListVisibilityInline, ListVisibilityEditable } from './ListVisibilityBadge';
 
 export { ListVisibilitySheet } from './ListVisibilitySheet';
+
+export { FriendSharingSheet } from './FriendSharingSheet';
+
+export { FriendAcceptanceSheet } from './FriendAcceptanceSheet';

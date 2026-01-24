@@ -598,6 +598,14 @@ These are ideas to consider but not yet prioritized:
 
 ## Recent Changes (January 2025)
 
+### UI Polish & Consistency Fixes
+- Settings page icons now white on purple backgrounds (matching profile page)
+- Streaming service dark backgrounds changed to #181818 (Peacock, Apple TV, Pluto TV)
+- Layout toggle now shows the view you can switch TO (grid icon when in list view, etc.)
+- Removed redundant media type icon from list view (text already shows "Movie" or "TV Show")
+- "Create new list" card restyled to match list card layout with dotted border
+- iOS PWA install prompt improved with cleaner numbered steps and correct share icon
+
 ### Friend Suggestions & Notification UI Improvements
 
 #### Send to Friend Flow

@@ -1,27 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { useSession } from 'next-auth/react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import {
-  Heart,
-  Plus,
-  ChevronLeft,
-  Loader2,
-  AlertCircle,
-  XCircle,
-  Check,
-  Users,
-  User,
-  Trash2,
-  MoreVertical,
-  Film,
-  Tv,
-  ChevronRight,
-} from 'lucide-react';
+
+// Partner lists have been deprecated in favor of collaborative lists with friends
+export default function PartnerListsPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/profile');
+  }, [router]);
+
+  return null;
+}
 
 interface Partner {
   id: number;

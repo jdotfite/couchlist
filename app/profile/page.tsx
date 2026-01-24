@@ -7,25 +7,19 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
   ChevronRight, Bell, Shield, Share2, Upload, Download,
-  LogOut, Settings, Film, Tv, Heart, Users, UserPlus,
-  Search, Loader2, XCircle, X, Check, Trash2, MessageCircle, Camera, Info
+  LogOut, Settings, Film, Tv, Users, UserPlus,
+  Search, Loader2, XCircle, X, Check, Trash2, MessageCircle, Camera, Info, MoreVertical
 } from 'lucide-react';
 import ProfilePageSkeleton from '@/components/skeletons/ProfilePageSkeleton';
 import MainHeader from '@/components/ui/MainHeader';
 import { useProfileImage } from '@/hooks/useProfileImage';
+import { FriendCard } from '@/components/friends';
+import { FriendSharingSheet } from '@/components/sharing';
 
 interface LibraryCounts {
   movies: number;
   tv: number;
   total: number;
-}
-
-interface Partner {
-  id: number;
-  name: string;
-  username: string | null;
-  image: string | null;
-  connectedAt: string;
 }
 
 interface Friend {
@@ -52,7 +46,7 @@ interface Friend {
 
 interface PendingInvite {
   id: number;
-  type: 'partner' | 'friend';
+  type: 'friend' | 'pending-friend';
   targetUser: {
     id: number;
     name: string;
@@ -77,16 +71,13 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState<string | null>(null);
 
-  // Partner/Friends state
-  const [partner, setPartner] = useState<Partner | null>(null);
+  // Friends state
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [sharingLoading, setSharingLoading] = useState(true);
 
   // Modal state
-  const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [showFriendModal, setShowFriendModal] = useState(false);
-  const [showPartnerInfo, setShowPartnerInfo] = useState(false);
   const [showFriendInfo, setShowFriendInfo] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -102,7 +93,7 @@ export default function ProfilePage() {
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
     show: boolean;
-    type: 'partner' | 'friend';
+    type: 'friend' | 'pending-friend';
     name: string;
     id: number;
   } | null>(null);
@@ -111,6 +102,9 @@ export default function ProfilePage() {
   // Logout modal state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
+
+  // Friend sharing sheet state
+  const [friendSharingUserId, setFriendSharingUserId] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -188,29 +182,7 @@ export default function ProfilePage() {
     try {
       setSharingLoading(true);
 
-      const [partnerRes, friendsRes] = await Promise.all([
-        fetch('/api/partners'),
-        fetch('/api/friends'),
-      ]);
-
-      if (partnerRes.ok) {
-        const partnerData = await partnerRes.json();
-        setPartner(partnerData.partner || null);
-
-        // Get pending partner invites
-        if (!partnerData.partner) {
-          const pendingRes = await fetch('/api/partners/pending-invites');
-          if (pendingRes.ok) {
-            const pendingData = await pendingRes.json();
-            const partnerPending = (pendingData.invites || []).map((inv: any) => ({
-              ...inv,
-              type: 'partner' as const,
-            }));
-            setPendingInvites(prev => [...prev.filter(p => p.type !== 'partner'), ...partnerPending]);
-          }
-        }
-      }
-
+      const friendsRes = await fetch('/api/friends');
       if (friendsRes.ok) {
         const friendsData = await friendsRes.json();
         setFriends(friendsData.friends || []);
@@ -224,7 +196,7 @@ export default function ProfilePage() {
           ...inv,
           type: 'friend' as const,
         }));
-        setPendingInvites(prev => [...prev.filter(p => p.type !== 'friend'), ...friendPending]);
+        setPendingInvites(friendPending);
       }
     } catch (error) {
       console.error('Failed to fetch sharing data:', error);
@@ -250,35 +222,6 @@ export default function ProfilePage() {
       console.error('Failed to search users:', err);
     } finally {
       setSearchLoading(false);
-    }
-  };
-
-  const sendPartnerInvite = async () => {
-    if (!selectedUser) return;
-
-    setInviteLoading(true);
-    setInviteError(null);
-
-    try {
-      const response = await fetch('/api/partners/invite-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId: selectedUser.id }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setInviteError(data.error || 'Failed to send invite');
-        return;
-      }
-
-      setInviteSent(true);
-      fetchSharingData(); // Refresh to show pending
-    } catch (err) {
-      setInviteError('Failed to send invite');
-    } finally {
-      setInviteLoading(false);
     }
   };
 
@@ -311,13 +254,9 @@ export default function ProfilePage() {
     }
   };
 
-  const cancelInvite = async (inviteId: number, type: 'partner' | 'friend') => {
+  const cancelInvite = async (inviteId: number) => {
     try {
-      const endpoint = type === 'partner'
-        ? `/api/partners/pending-invites/${inviteId}`
-        : `/api/friends/pending-invites/${inviteId}`;
-
-      const response = await fetch(endpoint, { method: 'DELETE' });
+      const response = await fetch(`/api/friends/pending-invites/${inviteId}`, { method: 'DELETE' });
 
       if (response.ok) {
         setPendingInvites(prev => prev.filter(inv => inv.id !== inviteId));
@@ -325,16 +264,6 @@ export default function ProfilePage() {
     } catch (err) {
       console.error('Failed to cancel invite:', err);
     }
-  };
-
-  const showRemovePartnerConfirm = () => {
-    if (!partner) return;
-    setConfirmModal({
-      show: true,
-      type: 'partner',
-      name: partner.name,
-      id: 0, // Not needed for partner
-    });
   };
 
   const showRemoveFriendConfirm = (friend: Friend) => {
@@ -351,11 +280,9 @@ export default function ProfilePage() {
 
     setRemoveLoading(true);
     try {
-      if (confirmModal.type === 'partner') {
-        const response = await fetch('/api/partners', { method: 'DELETE' });
-        if (response.ok) {
-          setPartner(null);
-        }
+      if (confirmModal.type === 'pending-friend') {
+        // Cancel pending friend invite
+        await cancelInvite(confirmModal.id);
       } else {
         const response = await fetch(`/api/friends/${confirmModal.id}`, { method: 'DELETE' });
         if (response.ok) {
@@ -387,8 +314,7 @@ export default function ProfilePage() {
     return <ProfilePageSkeleton />;
   }
 
-  const partnerPendingInvites = pendingInvites.filter(inv => inv.type === 'partner');
-  const friendPendingInvites = pendingInvites.filter(inv => inv.type === 'friend');
+  const friendPendingInvites = pendingInvites.filter(inv => inv.type === 'friend' || inv.type === 'pending-friend');
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -447,111 +373,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Partner Section */}
-        <div className="card mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Heart className="w-5 h-5 text-pink-500" />
-              <h3 className="font-semibold">Partner</h3>
-            </div>
-            {partner && (
-              <Link href="/partner-lists" className="text-xs text-pink-400 hover:text-pink-300">
-                View Lists →
-              </Link>
-            )}
-          </div>
-
-          <p className="text-xs text-gray-400 mb-3 flex items-start gap-1">
-            <span>Create shared watchlists with your partner—both of you can add and see the same items.</span>
-            <button
-              onClick={() => setShowPartnerInfo(!showPartnerInfo)}
-              className="text-gray-400 hover:text-gray-300 transition flex-shrink-0"
-            >
-              <Info className="w-3.5 h-3.5" />
-            </button>
-          </p>
-
-          {showPartnerInfo && (
-            <div className="mb-3 p-3 bg-zinc-800 rounded-lg text-xs text-gray-300 space-y-2">
-              <p><strong className="text-white">Bi-directional sharing:</strong> Both you and your partner see the same shared lists. Items either of you add appear for both.</p>
-              <p><strong className="text-white">Watch together tracking:</strong> Mark movies as "watched together" to track your shared viewing history.</p>
-              <p><strong className="text-white">One partner limit:</strong> You can only have one partner at a time to keep lists focused.</p>
-            </div>
-          )}
-
-          {sharingLoading ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-            </div>
-          ) : partner ? (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center overflow-hidden">
-                {partner.image ? (
-                  <img src={partner.image} alt={partner.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-white font-semibold">
-                    {partner.name?.[0]?.toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{partner.name}</p>
-                {partner.username && (
-                  <p className="text-xs text-gray-400">@{partner.username}</p>
-                )}
-              </div>
-              <button
-                onClick={showRemovePartnerConfirm}
-                className="p-2 hover:bg-zinc-800 rounded-lg text-gray-400 hover:text-red-400 transition"
-                title="Remove partner"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : partnerPendingInvites.length > 0 ? (
-            <div className="space-y-2">
-              {partnerPendingInvites.map(inv => (
-                <div key={inv.id} className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl">
-                  <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
-                    {inv.targetUser ? (
-                      <span className="text-white font-semibold">
-                        {inv.targetUser.name?.[0]?.toUpperCase()}
-                      </span>
-                    ) : (
-                      <UserPlus className="w-5 h-5 text-pink-500" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">
-                      {inv.targetUser ? inv.targetUser.name : 'Invite link created'}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Pending · Sent {new Date(inv.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => cancelInvite(inv.id, 'partner')}
-                    className="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-zinc-700 rounded-lg transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                resetModal();
-                setShowPartnerModal(true);
-              }}
-              className="w-full py-3 border-2 border-dashed border-zinc-700 hover:border-pink-500 rounded-xl text-gray-400 hover:text-white transition flex items-center justify-center gap-2"
-            >
-              <UserPlus className="w-4 h-4" />
-              Add Partner
-            </button>
-          )}
-        </div>
-
         {/* Friends Section */}
         <div className="card mb-6">
           <div className="flex items-center justify-between mb-2">
@@ -576,9 +397,9 @@ export default function ProfilePage() {
 
           {showFriendInfo && (
             <div className="mb-3 p-3 bg-zinc-800 rounded-lg text-xs text-gray-300 space-y-2">
-              <p><strong className="text-white">One-way suggestions:</strong> Send movie recommendations to friends. They choose to add them or dismiss.</p>
-              <p><strong className="text-white">No shared lists:</strong> Unlike partners, friends have separate libraries. Suggestions are just recommendations.</p>
-              <p><strong className="text-white">Unlimited friends:</strong> Connect with as many friends as you like.</p>
+              <p><strong className="text-white">Share lists:</strong> Let friends view your watchlist, watching, or finished lists.</p>
+              <p><strong className="text-white">Collaborative lists:</strong> Create a shared list that you both can add to and manage together.</p>
+              <p><strong className="text-white">Suggestions:</strong> Send movie recommendations to friends. They choose to add them or dismiss.</p>
             </div>
           )}
 
@@ -590,67 +411,77 @@ export default function ProfilePage() {
             <div className="space-y-2">
               {/* Pending friend invites */}
               {friendPendingInvites.length > 0 && (
-                <div className="mb-3">
-                  {friendPendingInvites.map(inv => (
-                    <div key={inv.id} className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl mb-2">
-                      <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                        {inv.targetUser ? (
-                          <span className="text-white font-semibold">
-                            {inv.targetUser.name?.[0]?.toUpperCase()}
-                          </span>
-                        ) : (
-                          <UserPlus className="w-5 h-5 text-blue-500" />
-                        )}
+                <div className="mb-3 space-y-2">
+                  {friendPendingInvites.map(inv => {
+                    const sentDate = new Date(inv.createdAt);
+                    const dateStr = `${sentDate.getDate().toString().padStart(2, '0')}/${(sentDate.getMonth() + 1).toString().padStart(2, '0')}/${sentDate.getFullYear().toString().slice(-2)}`;
+
+                    return (
+                      <div key={inv.id} className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl relative">
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                          {inv.targetUser ? (
+                            <span className="text-white font-semibold">
+                              {inv.targetUser.name?.[0]?.toUpperCase()}
+                            </span>
+                          ) : (
+                            <UserPlus className="w-5 h-5 text-blue-500" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {inv.targetUser ? inv.targetUser.name : 'Invite link created'}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            <span className="text-amber-500">Pending</span> · Sent {dateStr}
+                          </p>
+                        </div>
+
+                        {/* 3-dot menu for consistency */}
+                        <div className="relative">
+                          <button
+                            onClick={() => setConfirmModal({
+                              show: true,
+                              type: 'pending-friend',
+                              name: inv.targetUser?.name || 'this invite',
+                              id: inv.id,
+                            })}
+                            className="p-1.5 hover:bg-zinc-700 rounded-lg transition text-gray-400 hover:text-white"
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {inv.targetUser ? inv.targetUser.name : 'Invite link created'}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          Pending · Sent {new Date(inv.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => cancelInvite(inv.id, 'friend')}
-                        className="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-zinc-700 rounded-lg transition"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
-              {/* Friends list */}
+              {/* Friends list - using FriendCard components */}
               {friends.length > 0 && (
-                friends.map(friend => (
-                  <div key={friend.id || friend.collaboratorId} className="flex items-center gap-3 p-2 hover:bg-zinc-800 rounded-lg transition">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center overflow-hidden">
-                      {friend.image ? (
-                        <img src={friend.image} alt={friend.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-white font-semibold text-sm">
-                          {friend.name?.[0]?.toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{friend.name}</p>
-                      {(friend.suggestionStats?.pending ?? 0) > 0 && (
-                        <p className="text-xs text-brand-primary">
-                          {friend.suggestionStats?.pending} pending suggestions
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => showRemoveFriendConfirm(friend)}
-                      className="p-1.5 hover:bg-zinc-700 rounded text-gray-400 hover:text-red-400 transition"
-                      title="Remove friend"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))
+                <div className="space-y-3">
+                  {friends.map(friend => (
+                    <FriendCard
+                      key={friend.id || friend.collaboratorId}
+                      friend={{
+                        id: friend.id || friend.collaboratorId || 0,
+                        user_id: friend.user_id || friend.oduserId || 0,
+                        name: friend.name,
+                        username: friend.username,
+                        image: friend.image,
+                        connected_at: friend.connected_at || friend.connectedAt || new Date().toISOString(),
+                      }}
+                      onManageSharing={(friendUserId) => setFriendSharingUserId(friendUserId)}
+                      onRemove={(collaboratorId, friendName) => {
+                        setConfirmModal({
+                          show: true,
+                          type: 'friend',
+                          name: friendName,
+                          id: collaboratorId,
+                        });
+                      }}
+                    />
+                  ))}
+                </div>
               )}
 
               {/* Add Friend button */}
@@ -711,154 +542,6 @@ export default function ProfilePage() {
           </button>
         </div>
       </main>
-
-      {/* Partner Invite Modal */}
-      {showPartnerModal && mounted && createPortal(
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setShowPartnerModal(false)}
-          />
-
-          <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6 max-h-[80vh] overflow-y-auto">
-            {!inviteSent ? (
-              <>
-                <h2 className="text-xl font-bold mb-2">Add Partner</h2>
-                <p className="text-gray-400 text-sm mb-4">
-                  Search for your partner by username to send them an invite.
-                </p>
-
-                {inviteError && (
-                  <div className="flex items-center gap-2 p-3 mb-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
-                    <XCircle className="w-4 h-4 flex-shrink-0" />
-                    {inviteError}
-                  </div>
-                )}
-
-                <div className="mb-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        searchUsers(e.target.value);
-                      }}
-                      placeholder="Search by name or @username"
-                      className="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-pink-500"
-                    />
-                  </div>
-
-                  {searchLoading && (
-                    <div className="flex justify-center py-4">
-                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                    </div>
-                  )}
-
-                  {!searchLoading && searchResults.length > 0 && !selectedUser && (
-                    <div className="mt-2 bg-zinc-800 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
-                      {searchResults.map(user => (
-                        <button
-                          key={user.id}
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setSearchQuery(user.name);
-                            setSearchResults([]);
-                          }}
-                          className="w-full flex items-center gap-3 p-3 hover:bg-zinc-700 transition"
-                        >
-                          <div className="w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center">
-                            <span className="text-pink-500 font-semibold text-sm">
-                              {user.name?.[0]?.toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="text-left">
-                            <p className="text-sm font-medium">{user.name}</p>
-                            {user.username && (
-                              <p className="text-xs text-gray-400">@{user.username}</p>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {!searchLoading && searchQuery.length >= 2 && searchResults.length === 0 && !selectedUser && (
-                    <p className="text-center text-gray-400 text-sm py-4">No users found</p>
-                  )}
-                </div>
-
-                {selectedUser && (
-                  <div className="mb-4 p-3 bg-pink-500/10 border border-pink-500/50 rounded-lg flex items-center gap-3">
-                    <div className="w-10 h-10 bg-pink-500/20 rounded-full flex items-center justify-center">
-                      <span className="text-white font-semibold">
-                        {selectedUser.name?.[0]?.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{selectedUser.name}</p>
-                      {selectedUser.username && (
-                        <p className="text-xs text-gray-400">@{selectedUser.username}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => {
-                        setSelectedUser(null);
-                        setSearchQuery('');
-                      }}
-                      className="p-1 hover:bg-zinc-700 rounded"
-                    >
-                      <X className="w-4 h-4 text-gray-400" />
-                    </button>
-                  </div>
-                )}
-
-                <button
-                  onClick={sendPartnerInvite}
-                  disabled={inviteLoading || !selectedUser}
-                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-xl font-semibold transition flex items-center justify-center gap-2"
-                >
-                  {inviteLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Heart className="w-5 h-5" />
-                      Send Partner Invite
-                    </>
-                  )}
-                </button>
-              </>
-            ) : (
-              <div className="text-center py-6">
-                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-green-500" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
-                <p className="text-gray-400 text-sm mb-4">
-                  {selectedUser?.name} will see your partner invite in their notifications.
-                </p>
-                <button
-                  onClick={() => setShowPartnerModal(false)}
-                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition"
-                >
-                  Done
-                </button>
-              </div>
-            )}
-
-            {!inviteSent && (
-              <button
-                onClick={() => setShowPartnerModal(false)}
-                className="w-full mt-3 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-xl font-semibold transition"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* Friend Invite Modal */}
       {showFriendModal && mounted && createPortal(
@@ -1022,12 +705,13 @@ export default function ProfilePage() {
                 <Trash2 className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-lg font-semibold mb-2">
-                Remove {confirmModal.type === 'partner' ? 'Partner' : 'Friend'}?
+                {confirmModal.type === 'pending-friend' ? 'Cancel Invite?' : 'Remove Friend?'}
               </h3>
               <p className="text-gray-400 text-sm mb-6">
-                Are you sure you want to remove <strong className="text-white">{confirmModal.name}</strong> as your {confirmModal.type}?
-                {confirmModal.type === 'partner' && (
-                  <span className="block mt-2 text-xs">Your shared lists will no longer be synced.</span>
+                {confirmModal.type === 'pending-friend' ? (
+                  <>Are you sure you want to cancel the friend invite to <strong className="text-white">{confirmModal.name}</strong>?</>
+                ) : (
+                  <>Are you sure you want to remove <strong className="text-white">{confirmModal.name}</strong> as your friend? Shared lists and collaborative lists with them will be removed.</>
                 )}
               </p>
 
@@ -1046,6 +730,8 @@ export default function ProfilePage() {
                 >
                   {removeLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : confirmModal.type === 'pending-friend' ? (
+                    'Cancel Invite'
                   ) : (
                     'Remove'
                   )}
@@ -1100,6 +786,17 @@ export default function ProfilePage() {
         </div>,
         document.body
       )}
+
+      {/* Friend Sharing Sheet */}
+      <FriendSharingSheet
+        isOpen={friendSharingUserId !== null}
+        onClose={() => setFriendSharingUserId(null)}
+        friendUserId={friendSharingUserId || 0}
+        onSharingUpdated={() => {
+          // Optionally refresh friend data
+          fetchSharingData();
+        }}
+      />
     </div>
   );
 }

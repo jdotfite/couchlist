@@ -8,6 +8,7 @@ import Link from 'next/link';
 import NotificationItem from './NotificationItem';
 import SuggestionGroup from './SuggestionGroup';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { FriendAcceptanceSheet } from '@/components/sharing';
 import type { GroupedSuggestions, FriendSuggestionWithDetails } from '@/types/sharing';
 
 interface CustomListInvite {
@@ -135,6 +136,17 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
   const [suggestions, setSuggestions] = useState<GroupedSuggestions[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  // Friend acceptance flow state
+  const [pendingFriendAccept, setPendingFriendAccept] = useState<{
+    inviteId: number;
+    friend: {
+      id: number;
+      name: string;
+      username: string | null;
+      image: string | null;
+    };
+  } | null>(null);
 
   // Library store for real-time updates
   const { addToWatchlist, invalidate, fetchLibrary } = useLibraryStore();
@@ -302,6 +314,20 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
   };
 
   const handleAccept = async (notification: CustomListInvite | CollaborationInvite) => {
+    // For friend invites, show the acceptance sheet to choose lists to share
+    if (notification.type === 'collaboration' && notification.inviteType === 'friend') {
+      setPendingFriendAccept({
+        inviteId: notification.id,
+        friend: {
+          id: notification.ownerId,
+          name: notification.ownerName,
+          username: notification.ownerUsername,
+          image: notification.ownerImage,
+        },
+      });
+      return;
+    }
+
     const key = `${notification.type}-${notification.id}`;
     setProcessingId(key);
     try {
@@ -325,6 +351,23 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const handleFriendAccepted = () => {
+    if (!pendingFriendAccept) return;
+
+    // Remove the accepted invite from notifications
+    const remainingNotifications = notifications.filter(
+      n => !(n.type === 'collaboration' && n.id === pendingFriendAccept.inviteId)
+    );
+    setNotifications(remainingNotifications);
+    setPendingFriendAccept(null);
+
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('connection-accepted'));
+
+    // Check if we should auto-close
+    checkAndAutoClose(remainingNotifications, suggestions);
   };
 
   const handleDecline = async (notification: CustomListInvite | CollaborationInvite) => {
@@ -607,6 +650,17 @@ export default function NotificationCenter({ isOpen, onClose, onCountChange }: N
 
   return createPortal(
     <>
+      {/* Friend Acceptance Sheet */}
+      {pendingFriendAccept && (
+        <FriendAcceptanceSheet
+          isOpen={true}
+          onClose={() => setPendingFriendAccept(null)}
+          friend={pendingFriendAccept.friend}
+          inviteId={pendingFriendAccept.inviteId}
+          onAccepted={handleFriendAccepted}
+        />
+      )}
+
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/70 z-[100]"

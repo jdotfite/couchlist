@@ -4,16 +4,12 @@ import { areFriends, getFriends } from './friends';
 // Visibility levels in order of openness
 export type VisibilityLevel = 'private' | 'select_friends' | 'friends' | 'public';
 
-// System list types
+// Core system list types - onhold, dropped, rewatch, nostalgia (classics) were removed
+// Users can create custom lists for those use cases
 export const SYSTEM_LIST_TYPES = [
   'watchlist',
   'watching',
   'finished',
-  'onhold',
-  'dropped',
-  'favorites',
-  'rewatch',
-  'nostalgia'
 ] as const;
 
 export type SystemListType = typeof SYSTEM_LIST_TYPES[number];
@@ -97,6 +93,8 @@ export async function setListVisibility(
   visibility: VisibilityLevel,
   listId: number | null = null
 ): Promise<void> {
+  console.log(`[setListVisibility] User ${userId} setting ${listType} to ${visibility}`);
+
   // Check if record exists
   const existing = await db`
     SELECT id FROM list_visibility
@@ -112,12 +110,14 @@ export async function setListVisibility(
       SET visibility = ${visibility}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ${existing.rows[0].id}
     `;
+    console.log(`[setListVisibility] Updated existing visibility record ${existing.rows[0].id}`);
   } else {
     // Insert new
     await db`
       INSERT INTO list_visibility (user_id, list_type, list_id, visibility, updated_at)
       VALUES (${userId}, ${listType}, ${listId}, ${visibility}, CURRENT_TIMESTAMP)
     `;
+    console.log(`[setListVisibility] Inserted new visibility record for ${listType}`);
   }
 
   // If changing from 'select_friends' to another visibility, we keep the friend access
@@ -150,8 +150,12 @@ export async function grantFriendAccess(
   listId: number | null = null,
   canEdit: boolean = false
 ): Promise<void> {
+  console.log(`[grantFriendAccess] Owner ${ownerId} granting ${friendId} access to ${listType}`);
+
   // Verify they are actually friends
   const friends = await areFriends(ownerId, friendId);
+  console.log(`[grantFriendAccess] areFriends(${ownerId}, ${friendId}) = ${friends}`);
+
   if (!friends) {
     throw new Error('Users are not friends');
   }
@@ -172,12 +176,14 @@ export async function grantFriendAccess(
       SET can_edit = ${canEdit}, granted_at = CURRENT_TIMESTAMP
       WHERE id = ${existing.rows[0].id}
     `;
+    console.log(`[grantFriendAccess] Updated existing access record ${existing.rows[0].id}`);
   } else {
     // Insert new
     await db`
       INSERT INTO friend_list_access (owner_id, friend_id, list_type, list_id, can_edit, granted_at)
       VALUES (${ownerId}, ${friendId}, ${listType}, ${listId}, ${canEdit}, CURRENT_TIMESTAMP)
     `;
+    console.log(`[grantFriendAccess] Inserted new access record for ${listType}`);
   }
 }
 
@@ -321,6 +327,91 @@ export async function getSharedListsSummary(userId: number): Promise<ListWithAcc
   }));
 }
 
+/**
+ * Get all lists a user shares with a specific friend
+ * Returns lists where the friend has explicit access OR visibility is 'friends'
+ */
+export async function getListsSharedWithFriend(
+  ownerId: number,
+  friendId: number
+): Promise<Array<{
+  listType: string;
+  listId: number | null;
+  listName: string;
+  visibility: VisibilityLevel;
+  canEdit: boolean;
+  itemCount: number;
+}>> {
+  // Get all lists where this friend has access
+  // Either via explicit friend_list_access OR via 'friends' visibility
+  const result = await db`
+    WITH friend_accessible_lists AS (
+      -- Lists with explicit access
+      SELECT DISTINCT
+        fla.list_type,
+        fla.list_id,
+        fla.can_edit,
+        'select_friends' as visibility
+      FROM friend_list_access fla
+      WHERE fla.owner_id = ${ownerId}
+        AND fla.friend_id = ${friendId}
+
+      UNION
+
+      -- Lists with 'friends' or 'public' visibility
+      SELECT DISTINCT
+        lv.list_type,
+        lv.list_id,
+        false as can_edit,
+        lv.visibility
+      FROM list_visibility lv
+      WHERE lv.user_id = ${ownerId}
+        AND lv.visibility IN ('friends', 'public')
+    )
+    SELECT DISTINCT ON (list_type, list_id)
+      list_type,
+      list_id,
+      can_edit,
+      visibility
+    FROM friend_accessible_lists
+    ORDER BY list_type, list_id, can_edit DESC
+  `;
+
+  // Enhance with item counts
+  const lists = await Promise.all(
+    result.rows.map(async (row) => {
+      let itemCount = 0;
+
+      if (row.list_id) {
+        // Custom list
+        const countResult = await db`
+          SELECT COUNT(*)::int as count FROM custom_list_items
+          WHERE custom_list_id = ${row.list_id}
+        `;
+        itemCount = countResult.rows[0]?.count || 0;
+      } else {
+        // System list - only core statuses (watchlist, watching, finished)
+        const countResult = await db`
+          SELECT COUNT(*)::int as count FROM user_media
+          WHERE user_id = ${ownerId} AND status = ${row.list_type}
+        `;
+        itemCount = countResult.rows[0]?.count || 0;
+      }
+
+      return {
+        listType: row.list_type,
+        listId: row.list_id,
+        listName: row.list_type, // Will be resolved to display name by caller
+        visibility: row.visibility as VisibilityLevel,
+        canEdit: row.can_edit,
+        itemCount
+      };
+    })
+  );
+
+  return lists;
+}
+
 // ============================================================================
 // Access Checking
 // ============================================================================
@@ -400,8 +491,12 @@ export async function canEditList(
  * Get all lists a friend has shared with the viewer
  */
 export async function getListsSharedWithMe(viewerId: number, ownerId: number): Promise<ListWithAccess[]> {
+  console.log(`[getListsSharedWithMe] Viewer ${viewerId} checking lists from owner ${ownerId}`);
+
   // First check if they're friends
   const friends = await areFriends(viewerId, ownerId);
+  console.log(`[getListsSharedWithMe] areFriends(${viewerId}, ${ownerId}) = ${friends}`);
+
   if (!friends) {
     return [];
   }
@@ -427,6 +522,8 @@ export async function getListsSharedWithMe(viewerId: number, ownerId: number): P
       )
     ORDER BY lv.list_type, lv.list_id
   `;
+
+  console.log(`[getListsSharedWithMe] Query returned ${result.rows.length} rows:`, result.rows);
 
   return result.rows.map(row => ({
     listType: row.list_type,
