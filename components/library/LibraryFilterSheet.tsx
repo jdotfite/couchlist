@@ -2,12 +2,33 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Film, Tv, Baby, Star, Check, ArrowDownAZ, ArrowUpAZ, Clock, StarIcon } from 'lucide-react';
+import { X, Film, Tv, Star, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { SortOption } from '@/components/SortFilterBar';
+import { GENRE_MAP } from '@/lib/genres';
+
+// Popular genres for filtering (subset of GENRE_MAP)
+const FILTER_GENRES = [
+  { id: 28, name: 'Action' },
+  { id: 12, name: 'Adventure' },
+  { id: 16, name: 'Animation' },
+  { id: 35, name: 'Comedy' },
+  { id: 80, name: 'Crime' },
+  { id: 99, name: 'Documentary' },
+  { id: 18, name: 'Drama' },
+  { id: 10751, name: 'Family' },
+  { id: 14, name: 'Fantasy' },
+  { id: 27, name: 'Horror' },
+  { id: 9648, name: 'Mystery' },
+  { id: 10749, name: 'Romance' },
+  { id: 878, name: 'Sci-Fi' },
+  { id: 53, name: 'Thriller' },
+  { id: 10752, name: 'War' },
+  { id: 37, name: 'Western' },
+];
 
 export interface LibraryFilters {
   mediaType: 'all' | 'movie' | 'tv';
-  kidsContent: 'all' | 'kids' | 'exclude';
+  genres: number[];
   minRating: number | null;
   maxRating: number | null;
   minYear: number | null;
@@ -16,7 +37,7 @@ export interface LibraryFilters {
 
 export const DEFAULT_LIBRARY_FILTERS: LibraryFilters = {
   mediaType: 'all',
-  kidsContent: 'all',
+  genres: [],
   minRating: null,
   maxRating: null,
   minYear: null,
@@ -54,10 +75,27 @@ export default function LibraryFilterSheet({
   resultCount,
 }: LibraryFilterSheetProps) {
   const [mounted, setMounted] = useState(false);
+  const [isSortExpanded, setIsSortExpanded] = useState(false);
+  const [isYearCustom, setIsYearCustom] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Check if custom year range is active (not a preset)
+  useEffect(() => {
+    const isPreset =
+      (filters.minYear === 2020 && filters.maxYear === null) ||
+      (filters.minYear === 2010 && filters.maxYear === 2019) ||
+      (filters.minYear === 2000 && filters.maxYear === 2009) ||
+      (filters.minYear === 1990 && filters.maxYear === 1999) ||
+      (filters.minYear === null && filters.maxYear === 1989) ||
+      (filters.minYear === null && filters.maxYear === null);
+
+    if (!isPreset && (filters.minYear !== null || filters.maxYear !== null)) {
+      setIsYearCustom(true);
+    }
+  }, [filters.minYear, filters.maxYear]);
 
   useEffect(() => {
     if (isOpen) {
@@ -72,6 +110,7 @@ export default function LibraryFilterSheet({
 
   const clearAll = () => {
     onFiltersChange(DEFAULT_LIBRARY_FILTERS);
+    setIsYearCustom(false);
   };
 
   const handleApply = () => {
@@ -79,11 +118,23 @@ export default function LibraryFilterSheet({
     onClose();
   };
 
+  const toggleGenre = (genreId: number) => {
+    const newGenres = filters.genres.includes(genreId)
+      ? filters.genres.filter(id => id !== genreId)
+      : [...filters.genres, genreId];
+    onFiltersChange({ ...filters, genres: newGenres });
+  };
+
+  const handleYearPreset = (minYear: number | null, maxYear: number | null) => {
+    onFiltersChange({ ...filters, minYear, maxYear });
+    setIsYearCustom(false);
+  };
+
   if (!isOpen || !mounted) return null;
 
   const hasFilters =
     filters.mediaType !== 'all' ||
-    filters.kidsContent !== 'all' ||
+    filters.genres.length > 0 ||
     filters.minRating !== null ||
     filters.maxRating !== null ||
     filters.minYear !== null ||
@@ -108,7 +159,7 @@ export default function LibraryFilterSheet({
             >
               <X className="w-5 h-5" />
             </button>
-            <h2 className="text-lg font-semibold">Filter Library</h2>
+            <h2 className="text-lg font-semibold">Filter & Sort</h2>
           </div>
           {hasFilters && (
             <button
@@ -122,26 +173,45 @@ export default function LibraryFilterSheet({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-4 py-4">
-          {/* Sort Options */}
+          {/* Sort Options - Collapsible */}
           {onSortChange && sortBy && (
             <section className="mb-6">
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Sort By</h3>
-              <div className="flex gap-2 flex-wrap">
-                {sortOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => onSortChange(option.value)}
-                    className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition ${
-                      sortBy === option.value
-                        ? 'bg-brand-primary text-white'
-                        : 'bg-zinc-800 text-white hover:bg-zinc-700'
-                    }`}
-                  >
-                    {option.label}
-                    {sortBy === option.value && <Check className="w-3.5 h-3.5" />}
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={() => setIsSortExpanded(!isSortExpanded)}
+                className="w-full flex items-center justify-between mb-3"
+              >
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                  Sort By
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-white">
+                    {sortOptions.find(o => o.value === sortBy)?.label}
+                  </span>
+                  {isSortExpanded ? (
+                    <ChevronUp className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  )}
+                </div>
+              </button>
+              {isSortExpanded && (
+                <div className="flex gap-2 flex-wrap">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => onSortChange(option.value)}
+                      className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition ${
+                        sortBy === option.value
+                          ? 'bg-brand-primary text-white'
+                          : 'bg-zinc-800 text-white hover:bg-zinc-700'
+                      }`}
+                    >
+                      {option.label}
+                      {sortBy === option.value && <Check className="w-3.5 h-3.5" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
@@ -184,46 +254,29 @@ export default function LibraryFilterSheet({
             </div>
           </section>
 
-          {/* Kids Content Filter */}
+          {/* Genre Filter */}
           <section className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              <span className="flex items-center gap-2">
-                <Baby className="w-4 h-4" />
-                Kids Content
-              </span>
-            </h3>
+            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Genre</h3>
             <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => onFiltersChange({ ...filters, kidsContent: 'all' })}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  filters.kidsContent === 'all'
-                    ? 'bg-brand-primary text-white'
-                    : 'bg-zinc-800 text-white hover:bg-zinc-700'
-                }`}
-              >
-                All Content
-              </button>
-              <button
-                onClick={() => onFiltersChange({ ...filters, kidsContent: 'kids' })}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  filters.kidsContent === 'kids'
-                    ? 'bg-pink-500 text-white'
-                    : 'bg-zinc-800 text-white hover:bg-zinc-700'
-                }`}
-              >
-                Kids Only
-              </button>
-              <button
-                onClick={() => onFiltersChange({ ...filters, kidsContent: 'exclude' })}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                  filters.kidsContent === 'exclude'
-                    ? 'bg-brand-primary text-white'
-                    : 'bg-zinc-800 text-white hover:bg-zinc-700'
-                }`}
-              >
-                Exclude Kids
-              </button>
+              {FILTER_GENRES.map((genre) => (
+                <button
+                  key={genre.id}
+                  onClick={() => toggleGenre(genre.id)}
+                  className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                    filters.genres.includes(genre.id)
+                      ? 'bg-brand-primary text-white'
+                      : 'bg-zinc-800 text-white hover:bg-zinc-700'
+                  }`}
+                >
+                  {genre.name}
+                </button>
+              ))}
             </div>
+            {filters.genres.length > 0 && (
+              <p className="text-xs text-gray-500 mt-2">
+                Showing items with any selected genre
+              </p>
+            )}
           </section>
 
           {/* Your Rating */}
@@ -258,96 +311,108 @@ export default function LibraryFilterSheet({
             <p className="text-xs text-gray-500 mt-2">Tap to filter by exact rating</p>
           </section>
 
-          {/* Year Range */}
+          {/* Release Year - Progressive Disclosure */}
           <section className="mb-6">
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Release Year</h3>
-            <div className="flex items-center gap-4">
-              <input
-                type="number"
-                placeholder="From"
-                min={1900}
-                max={new Date().getFullYear()}
-                value={filters.minYear || ''}
-                onChange={(e) =>
-                  onFiltersChange({
-                    ...filters,
-                    minYear: e.target.value ? parseInt(e.target.value) : null,
-                  })
-                }
-                className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-              />
-              <span className="text-gray-500">to</span>
-              <input
-                type="number"
-                placeholder="To"
-                min={1900}
-                max={new Date().getFullYear()}
-                value={filters.maxYear || ''}
-                onChange={(e) =>
-                  onFiltersChange({
-                    ...filters,
-                    maxYear: e.target.value ? parseInt(e.target.value) : null,
-                  })
-                }
-                className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-              />
-            </div>
-          </section>
 
-          {/* Quick Year Presets */}
-          <section className="mb-6">
-            <div className="flex gap-2 flex-wrap">
+            {/* Decade Presets */}
+            <div className="flex gap-2 flex-wrap mb-3">
               <button
-                onClick={() => onFiltersChange({ ...filters, minYear: 2020, maxYear: null })}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  filters.minYear === 2020 && filters.maxYear === null
+                onClick={() => handleYearPreset(2020, null)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  filters.minYear === 2020 && filters.maxYear === null && !isYearCustom
                     ? 'bg-brand-primary text-white'
-                    : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'
+                    : 'bg-zinc-800 text-white hover:bg-zinc-700'
                 }`}
               >
                 2020s
               </button>
               <button
-                onClick={() => onFiltersChange({ ...filters, minYear: 2010, maxYear: 2019 })}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  filters.minYear === 2010 && filters.maxYear === 2019
+                onClick={() => handleYearPreset(2010, 2019)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  filters.minYear === 2010 && filters.maxYear === 2019 && !isYearCustom
                     ? 'bg-brand-primary text-white'
-                    : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'
+                    : 'bg-zinc-800 text-white hover:bg-zinc-700'
                 }`}
               >
                 2010s
               </button>
               <button
-                onClick={() => onFiltersChange({ ...filters, minYear: 2000, maxYear: 2009 })}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  filters.minYear === 2000 && filters.maxYear === 2009
+                onClick={() => handleYearPreset(2000, 2009)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  filters.minYear === 2000 && filters.maxYear === 2009 && !isYearCustom
                     ? 'bg-brand-primary text-white'
-                    : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'
+                    : 'bg-zinc-800 text-white hover:bg-zinc-700'
                 }`}
               >
                 2000s
               </button>
               <button
-                onClick={() => onFiltersChange({ ...filters, minYear: 1990, maxYear: 1999 })}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  filters.minYear === 1990 && filters.maxYear === 1999
+                onClick={() => handleYearPreset(1990, 1999)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  filters.minYear === 1990 && filters.maxYear === 1999 && !isYearCustom
                     ? 'bg-brand-primary text-white'
-                    : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'
+                    : 'bg-zinc-800 text-white hover:bg-zinc-700'
                 }`}
               >
                 90s
               </button>
               <button
-                onClick={() => onFiltersChange({ ...filters, minYear: null, maxYear: 1989 })}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-                  filters.minYear === null && filters.maxYear === 1989
+                onClick={() => handleYearPreset(null, 1989)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  filters.minYear === null && filters.maxYear === 1989 && !isYearCustom
                     ? 'bg-brand-primary text-white'
-                    : 'bg-zinc-800 text-gray-400 hover:bg-zinc-700'
+                    : 'bg-zinc-800 text-white hover:bg-zinc-700'
                 }`}
               >
                 Classics
               </button>
+              <button
+                onClick={() => setIsYearCustom(!isYearCustom)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+                  isYearCustom
+                    ? 'bg-brand-primary text-white'
+                    : 'bg-zinc-800 text-white hover:bg-zinc-700'
+                }`}
+              >
+                Custom
+              </button>
             </div>
+
+            {/* Custom Year Range - Only visible when Custom is tapped */}
+            {isYearCustom && (
+              <div className="flex items-center gap-4 animate-fade-in">
+                <input
+                  type="number"
+                  placeholder="From"
+                  min={1900}
+                  max={new Date().getFullYear()}
+                  value={filters.minYear || ''}
+                  onChange={(e) =>
+                    onFiltersChange({
+                      ...filters,
+                      minYear: e.target.value ? parseInt(e.target.value) : null,
+                    })
+                  }
+                  className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                />
+                <span className="text-gray-500">to</span>
+                <input
+                  type="number"
+                  placeholder="To"
+                  min={1900}
+                  max={new Date().getFullYear()}
+                  value={filters.maxYear || ''}
+                  onChange={(e) =>
+                    onFiltersChange({
+                      ...filters,
+                      maxYear: e.target.value ? parseInt(e.target.value) : null,
+                    })
+                  }
+                  className="flex-1 bg-zinc-800 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                />
+              </div>
+            )}
           </section>
         </div>
 
@@ -371,7 +436,7 @@ export default function LibraryFilterSheet({
 export function countActiveFilters(filters: LibraryFilters): number {
   let count = 0;
   if (filters.mediaType !== 'all') count++;
-  if (filters.kidsContent !== 'all') count++;
+  if (filters.genres.length > 0) count++;
   if (filters.minRating !== null || filters.maxRating !== null) count++;
   if (filters.minYear !== null || filters.maxYear !== null) count++;
   return count;

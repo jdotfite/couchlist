@@ -5,7 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft, Settings, Plus, Grid3X3, LayoutList, Users, ChevronRight, ChevronDown, Settings2 } from 'lucide-react';
+import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft, Settings, Plus, Users, ChevronRight, ChevronDown, Settings2 } from 'lucide-react';
+import LayoutToggle, { LayoutOption } from '@/components/ui/LayoutToggle';
 import AllListsSkeleton from '@/components/AllListsSkeleton';
 import ListSettingsSheet from '@/components/ListSettingsSheet';
 import ListCardSettingsSheet from '@/components/ListCardSettingsSheet';
@@ -56,7 +57,7 @@ export default function AllShowsListsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [layout, setLayout] = useState<'grid' | 'list'>('grid');
+  const [layout, setLayout] = useState<LayoutOption>('grid');
   const [showMoreLists, setShowMoreLists] = useState(false);
   const { getListName, isListHidden, getListCardSettings, updateListCardSettings, refetch: refetchPreferences } = useListPreferences();
   const [cardSettingsOpen, setCardSettingsOpen] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export default function AllShowsListsPage() {
     }
   }, []);
 
-  const handleLayoutChange = (newLayout: 'grid' | 'list') => {
+  const handleLayoutChange = (newLayout: LayoutOption) => {
     setLayout(newLayout);
     localStorage.setItem('showListsLayout', newLayout);
   };
@@ -251,24 +252,7 @@ export default function AllShowsListsPage() {
             <h1 className="text-xl font-bold">All TV Lists</h1>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
-              <button
-                onClick={() => handleLayoutChange('list')}
-                className={`p-2 rounded-md transition ${
-                  layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <LayoutList className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => handleLayoutChange('grid')}
-                className={`p-2 rounded-md transition ${
-                  layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </button>
-            </div>
+            <LayoutToggle layout={layout} onLayoutChange={handleLayoutChange} />
             <button
               onClick={() => setIsSettingsOpen(true)}
               className="p-2 hover:bg-zinc-800 rounded-full transition"

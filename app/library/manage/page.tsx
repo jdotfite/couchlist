@@ -6,23 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import ManageListView, { ManageableItem } from '@/components/library/ManageListView';
-import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
+import SortFilterBar, { SortOption, LayoutOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
-
-const STATUS_OPTIONS = [
-  { value: '', label: 'All' },
-  { value: 'watchlist', label: 'Watchlist' },
-  { value: 'watching', label: 'Watching' },
-  { value: 'finished', label: 'Watched' },
-];
-
-const KIDS_GENRES = [10762, 10751, 16]; // Kids, Family, Animation
-
-const isKidsContent = (genreIds: string | null): boolean => {
-  if (!genreIds) return false;
-  const genres = genreIds.split(',').map(Number);
-  return genres.some((g) => KIDS_GENRES.includes(g));
-};
 
 export default function LibraryManagePage() {
   const { status: authStatus } = useSession();
@@ -31,13 +16,13 @@ export default function LibraryManagePage() {
   const [items, setItems] = useState<ManageableItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Search, sort, and filters
+  // Search, sort, filters, and layout
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('added-desc');
   const [filters, setFilters] = useState<LibraryFilters>(DEFAULT_LIBRARY_FILTERS);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>('');
   const [isSelectMode, setIsSelectMode] = useState(false);
+  const [layout, setLayout] = useState<LayoutOption>('grid');
 
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
@@ -66,16 +51,20 @@ export default function LibraryManagePage() {
   const filteredItems = useMemo(() => {
     let result = [...items];
 
-    // Status filter
-    if (statusFilter) {
-      result = result.filter(item => item.status === statusFilter);
-    }
-
     // Media type filter
     if (filters.mediaType === 'movie') {
       result = result.filter(item => item.media_type === 'movie');
     } else if (filters.mediaType === 'tv') {
       result = result.filter(item => item.media_type === 'tv');
+    }
+
+    // Genre filter
+    if (filters.genres.length > 0) {
+      result = result.filter(item => {
+        if (!item.genre_ids) return false;
+        const itemGenres = item.genre_ids.split(',').map(Number);
+        return filters.genres.some(g => itemGenres.includes(g));
+      });
     }
 
     // Rating filter
@@ -86,17 +75,18 @@ export default function LibraryManagePage() {
       result = result.filter(item => item.rating && item.rating <= filters.maxRating!);
     }
 
-    // Kids content filter
-    if (filters.kidsContent === 'kids') {
-      result = result.filter(item => isKidsContent(item.genre_ids));
-    } else if (filters.kidsContent === 'exclude') {
-      result = result.filter(item => !isKidsContent(item.genre_ids));
+    // Year filter
+    if (filters.minYear !== null) {
+      result = result.filter(item => item.release_year && item.release_year >= filters.minYear!);
+    }
+    if (filters.maxYear !== null) {
+      result = result.filter(item => item.release_year && item.release_year <= filters.maxYear!);
     }
 
     // Search and sort
     const searched = filterItems(result, searchQuery);
     return sortItems(searched, sortBy);
-  }, [items, statusFilter, filters, searchQuery, sortBy]);
+  }, [items, filters, searchQuery, sortBy]);
 
   const handleDelete = async (mediaIds: number[]) => {
     const res = await fetch('/api/library/bulk', {
@@ -138,7 +128,7 @@ export default function LibraryManagePage() {
     );
   }
 
-  const activeFilterCount = countActiveFilters(filters) + (statusFilter ? 1 : 0);
+  const activeFilterCount = countActiveFilters(filters) + (sortBy !== 'added-desc' ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -161,34 +151,20 @@ export default function LibraryManagePage() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onFilterClick={() => setIsFilterOpen(true)}
-          filterCount={activeFilterCount + (sortBy !== 'added-desc' ? 1 : 0)}
+          filterCount={activeFilterCount}
           resultCount={searchQuery ? filteredItems.length : undefined}
           placeholder="Search your library..."
+          layout={layout}
+          onLayoutChange={setLayout}
           isSelectMode={isSelectMode}
           onSelectModeChange={handleSelectModeChange}
         />
-
-        {/* Status Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
-          {STATUS_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              onClick={() => setStatusFilter(option.value)}
-              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition ${
-                statusFilter === option.value
-                  ? 'bg-brand-primary text-white'
-                  : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Manage List View */}
       <ManageListView
         items={filteredItems}
+        layout={layout}
         showStatus={true}
         isSelectMode={isSelectMode}
         onDelete={handleDelete}

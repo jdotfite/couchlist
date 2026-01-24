@@ -4,17 +4,16 @@ import { useState, useEffect, use, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, ChevronLeft, Users } from 'lucide-react';
+import { CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, ChevronLeft, Users } from 'lucide-react';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import MediaCard, { MediaCardItem } from '@/components/MediaCard';
 import EmptyState from '@/components/EmptyState';
 import MediaListSkeleton from '@/components/MediaListSkeleton';
 import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
+import LayoutToggle, { LayoutOption } from '@/components/ui/LayoutToggle';
 import { useListPreferences } from '@/hooks/useListPreferences';
 
 type ListItem = MediaCardItem;
-
-type LayoutType = 'list' | 'grid';
 
 type IconType = 'finished' | 'watchlist' | 'watching' | 'onhold' | 'dropped' | 'rewatch' | 'classics' | 'favorites';
 
@@ -108,7 +107,7 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
   const router = useRouter();
   const [items, setItems] = useState<ListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [layout, setLayout] = useState<LayoutType>('list');
+  const [layout, setLayout] = useState<LayoutOption>('list');
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isShared, setIsShared] = useState(false);
@@ -261,24 +260,7 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
             </div>
             <p className="text-xs text-gray-400">{filteredItems.length} movies</p>
           </div>
-          <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
-            <button
-              onClick={() => setLayout('list')}
-              className={`p-2 rounded-md transition ${
-                layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setLayout('grid')}
-              className={`p-2 rounded-md transition ${
-                layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-          </div>
+          <LayoutToggle layout={layout} onLayoutChange={setLayout} />
         </div>
       </header>
 

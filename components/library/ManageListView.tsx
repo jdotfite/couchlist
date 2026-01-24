@@ -17,6 +17,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
+import { LayoutOption } from '@/components/ui/LayoutToggle';
 
 export interface ManageableItem {
   user_media_id: number;
@@ -33,6 +34,7 @@ export interface ManageableItem {
 
 interface ManageListViewProps {
   items: ManageableItem[];
+  layout?: LayoutOption; // 'list' or 'grid'
   showStatus?: boolean; // Show status badge (useful for full library view)
   currentList?: string; // Current list context (e.g., 'watchlist', 'watching')
   isSelectMode?: boolean; // Whether selection mode is active
@@ -52,6 +54,7 @@ const STATUS_OPTIONS = [
 
 export default function ManageListView({
   items,
+  layout = 'grid',
   showStatus = false,
   currentList,
   isSelectMode = true,
@@ -164,13 +167,102 @@ export default function ManageListView({
         </div>
       )}
 
-      {/* Items Grid */}
+      {/* Items */}
       <div className="px-4 py-4">
         {filteredItems.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-400">No items found</p>
           </div>
+        ) : layout === 'list' ? (
+          /* List View */
+          <div className="space-y-1">
+            {filteredItems.map((item) => {
+              const isSelected = selectedIds.has(item.media_id);
+
+              const listContent = (
+                <div
+                  className={`flex items-center gap-3 p-2 rounded-lg transition ${
+                    isSelectMode ? 'cursor-pointer' : ''
+                  } ${isSelected ? 'bg-brand-primary/20 ring-1 ring-brand-primary' : 'hover:bg-zinc-900'}`}
+                >
+                  {/* Checkbox (select mode) */}
+                  {isSelectMode && (
+                    <div className="flex-shrink-0">
+                      {isSelected ? (
+                        <CheckSquare className="w-5 h-5 text-brand-primary" />
+                      ) : (
+                        <Square className="w-5 h-5 text-gray-500" />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Poster */}
+                  <div className="relative w-12 h-16 flex-shrink-0 rounded-md overflow-hidden bg-zinc-800">
+                    <Image
+                      src={getImageUrl(item.poster_path)}
+                      alt={item.title}
+                      fill
+                      className="object-cover"
+                      sizes="48px"
+                    />
+                    {!isSelectMode && (
+                      <div className="absolute bottom-1 left-1 w-5 h-5 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
+                        {item.media_type === 'movie' ? (
+                          <Film className="w-3 h-3 text-white" />
+                        ) : (
+                          <Tv className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
+                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                      <span className="capitalize">{item.media_type === 'tv' ? 'TV Show' : 'Movie'}</span>
+                      {item.release_year && (
+                        <>
+                          <span>·</span>
+                          <span>{item.release_year}</span>
+                        </>
+                      )}
+                      {item.rating && (
+                        <>
+                          <span>·</span>
+                          <Star className="w-3 h-3 text-yellow-500" />
+                          <span>{item.rating}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status badge */}
+                  {showStatus && item.status && (
+                    <div className="flex-shrink-0">
+                      {getStatusBadge(item.status)}
+                    </div>
+                  )}
+                </div>
+              );
+
+              if (isSelectMode) {
+                return (
+                  <div key={item.user_media_id} onClick={() => toggleSelect(item.media_id)}>
+                    {listContent}
+                  </div>
+                );
+              }
+
+              return (
+                <Link key={item.user_media_id} href={`/${item.media_type}/${item.tmdb_id}`}>
+                  {listContent}
+                </Link>
+              );
+            })}
+          </div>
         ) : (
+          /* Grid View */
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             {filteredItems.map((item) => {
               const isSelected = selectedIds.has(item.media_id);

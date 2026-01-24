@@ -17,8 +17,6 @@ import { ListVisibilitySheet } from '@/components/sharing/ListVisibilitySheet';
 import { getImageUrl } from '@/lib/tmdb';
 import { useListPreferences } from '@/hooks/useListPreferences';
 
-const KIDS_GENRES = [10762, 10751, 16]; // Kids, Family, Animation
-
 interface ListItem {
   id: number;
   media_id: number;
@@ -162,13 +160,6 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   // Get display name from preferences or fallback to config
   const displayName = getListName(slug) || config?.title || slug;
 
-  // Helper to check if item is kids content
-  const isKidsContent = (item: ListItem): boolean => {
-    if (!item.genre_ids) return false;
-    const genres = item.genre_ids.split(',').map(Number);
-    return genres.some((g) => KIDS_GENRES.includes(g));
-  };
-
   // Filter, search, and sort items
   const filteredItems = useMemo(() => {
     let result = items;
@@ -180,6 +171,15 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
       result = result.filter(item => item.media_type === 'tv');
     }
 
+    // Genre filter
+    if (filters.genres.length > 0) {
+      result = result.filter(item => {
+        if (!item.genre_ids) return false;
+        const itemGenres = item.genre_ids.split(',').map(Number);
+        return filters.genres.some(g => itemGenres.includes(g));
+      });
+    }
+
     // Rating filter
     if (filters.minRating !== null) {
       result = result.filter(item => item.rating && item.rating >= filters.minRating!);
@@ -188,11 +188,12 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
       result = result.filter(item => item.rating && item.rating <= filters.maxRating!);
     }
 
-    // Kids content filter
-    if (filters.kidsContent === 'kids') {
-      result = result.filter(item => isKidsContent(item));
-    } else if (filters.kidsContent === 'exclude') {
-      result = result.filter(item => !isKidsContent(item));
+    // Year filter
+    if (filters.minYear !== null || filters.maxYear !== null) {
+      result = result.filter(item => {
+        // Try to extract year from added_date or watched_date if no release_year field
+        return true; // Genre-only filter for now since ListItem doesn't have release_year
+      });
     }
 
     // Search filter

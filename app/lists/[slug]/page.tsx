@@ -7,8 +7,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import {
   ChevronLeft,
-  Grid3X3,
-  List,
   Loader2,
   MoreVertical,
   Users,
@@ -25,6 +23,7 @@ import EditListModal from '@/components/custom-lists/EditListModal';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
+import LayoutToggle, { LayoutOption } from '@/components/ui/LayoutToggle';
 import { ListVisibilityBadge, ListVisibilitySheet } from '@/components/sharing';
 import { getImageUrl } from '@/lib/tmdb';
 
@@ -52,7 +51,6 @@ interface ListItem {
   rating?: number;
 }
 
-type LayoutType = 'list' | 'grid';
 
 export default function CustomListPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -62,7 +60,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
   const [list, setList] = useState<CustomList | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [layout, setLayout] = useState<LayoutType>('list');
+  const [layout, setLayout] = useState<LayoutOption>('list');
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -283,24 +281,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
             >
               {isManageMode ? <X className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
             </button>
-            <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
-              <button
-                onClick={() => setLayout('list')}
-                className={`p-2 rounded-md transition ${
-                  layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setLayout('grid')}
-                className={`p-2 rounded-md transition ${
-                  layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Grid3X3 className="w-4 h-4" />
-              </button>
-            </div>
+            <LayoutToggle layout={layout} onLayoutChange={setLayout} />
             <button
               onClick={() => setIsEditOpen(true)}
               className="p-2 hover:bg-zinc-800 rounded-lg transition text-gray-400"
