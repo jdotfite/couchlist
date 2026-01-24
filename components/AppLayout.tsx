@@ -35,7 +35,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main Content - pushes right when sidebar opens */}
       <div
-        className={`min-h-screen transition-transform duration-300 ease-out ${
+        className={`min-h-screen min-h-dvh bg-black transition-transform duration-300 ease-out ${
           showSidebar ? 'translate-x-[280px]' : 'translate-x-0'
         }`}
       >

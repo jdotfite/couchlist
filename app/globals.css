@@ -166,7 +166,11 @@ body {
 
 html, body {
   height: 100%;
-  background: var(--background);
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  background: #000000;
+  background-color: #000000;
 }
 
 /* Headings use Montserrat 500 */
