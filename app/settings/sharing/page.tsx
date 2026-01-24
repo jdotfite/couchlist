@@ -25,6 +25,7 @@ import {
   Settings2,
 } from 'lucide-react';
 import { ListShareSelectorCompact, type SimpleListOption } from '@/components/sharing';
+import { StateDisplay } from '@/components/ui';
 
 interface Partner {
   id: number;
@@ -990,21 +991,14 @@ export default function SharingSettingsPage() {
 
             {/* Direct invite sent success */}
             {partnerInviteTab === 'search' && partnerInviteSent && (
-              <div className="text-center py-6">
-                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
-                <p className="text-gray-400 text-sm mb-4">
-                  {selectedUser?.name} will see your partner invitation in their notifications.
-                </p>
-                <button
-                  onClick={resetPartnerModal}
-                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition"
-                >
-                  Done
-                </button>
-              </div>
+              <StateDisplay
+                icon={Check}
+                variant="success"
+                title="Invite Sent!"
+                message={`${selectedUser?.name} will see your partner invitation in their notifications.`}
+                buttonText="Done"
+                onButtonClick={resetPartnerModal}
+              />
             )}
 
             {/* Link Tab */}
@@ -1227,21 +1221,14 @@ export default function SharingSettingsPage() {
 
             {/* Direct invite sent success */}
             {friendInviteTab === 'search' && friendInviteSent && (
-              <div className="text-center py-6">
-                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
-                <p className="text-gray-400 text-sm mb-4">
-                  {selectedUser?.name} will see your friend invitation in their notifications.
-                </p>
-                <button
-                  onClick={resetFriendModal}
-                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark rounded-xl font-semibold transition"
-                >
-                  Done
-                </button>
-              </div>
+              <StateDisplay
+                icon={Check}
+                variant="success"
+                title="Invite Sent!"
+                message={`${selectedUser?.name} will see your friend invitation in their notifications.`}
+                buttonText="Done"
+                onButtonClick={resetFriendModal}
+              />
             )}
 
             {/* Link Tab */}

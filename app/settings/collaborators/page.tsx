@@ -30,6 +30,7 @@ import {
   Plus,
   X,
 } from 'lucide-react';
+import { StateDisplay } from '@/components/ui';
 
 interface Collaboration {
   collaboration: {
@@ -922,21 +923,14 @@ export default function CollaboratorsSettingsPage() {
 
             {/* Direct invite sent success */}
             {inviteTab === 'search' && directInviteSent && (
-              <div className="text-center py-6">
-                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
-                <p className="text-gray-400 text-sm mb-4">
-                  {selectedUser?.name} will see your invitation in their notifications.
-                </p>
-                <button
-                  onClick={() => setShowInviteModal(false)}
-                  className="w-full py-3 bg-brand-primary hover:bg-brand-primary-light rounded-xl font-semibold transition"
-                >
-                  Done
-                </button>
-              </div>
+              <StateDisplay
+                icon={Check}
+                variant="success"
+                title="Invite Sent!"
+                message={`${selectedUser?.name} will see your invitation in their notifications.`}
+                buttonText="Done"
+                onButtonClick={() => setShowInviteModal(false)}
+              />
             )}
 
             {/* Share Link Tab */}

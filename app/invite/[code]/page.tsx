@@ -469,7 +469,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
           {/* Success header */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-500" />
+              <Check className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold mb-2">You're friends with {invite.ownerName}!</h1>
             <p className="text-gray-400">

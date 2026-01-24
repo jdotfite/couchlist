@@ -346,7 +346,7 @@ export default function CollaborativeListPage({ params }: PageProps) {
         ) : (
           <div className="text-center py-16 bg-zinc-900 rounded-xl">
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-8 h-8 text-green-500" />
+              <Users className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-lg font-semibold mb-2">Your shared list is empty</h3>
             <p className="text-gray-400 text-sm max-w-xs mx-auto">
@@ -411,7 +411,7 @@ export default function CollaborativeListPage({ params }: PageProps) {
           <div className="relative w-full max-w-md bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-6">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-500" />
+                <Check className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-xl font-bold mb-2">Mark as Watched</h2>
               <p className="text-gray-400 text-sm">
@@ -478,7 +478,7 @@ export default function CollaborativeListPage({ params }: PageProps) {
           <div className="relative w-full max-w-sm bg-zinc-900 rounded-2xl p-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-500" />
+                <Trash2 className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-lg font-semibold mb-2">Remove Item?</h3>
               <p className="text-gray-400 text-sm mb-6">
