@@ -81,7 +81,7 @@ export default function NotificationSettingsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-4 space-y-6">
+      <main className="px-4 space-y-6">
         {/* Show Alerts Section */}
         <section>
           <div className="flex items-center gap-2 mb-4">

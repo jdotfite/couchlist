@@ -76,7 +76,7 @@ export default function ExportPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-4 space-y-6">
+      <main className="px-4 space-y-6">
         {/* Info Box */}
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
           <p className="text-sm text-gray-400">

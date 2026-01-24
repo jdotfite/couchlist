@@ -11,7 +11,7 @@ export default function ProfilePageSkeleton() {
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Profile Card */}
         <div className="card mb-6">
           <div className="flex items-center gap-4 mb-4">

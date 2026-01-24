@@ -75,6 +75,16 @@ const GENRE_COLORS: Record<number, string> = {
 
 const getGenreColor = (genreId: number) => GENRE_COLORS[genreId] || 'from-zinc-600 to-zinc-800';
 
+// Convert hex to rgba with opacity
+const hexToRgba = (hex: string, opacity: number): string => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return hex;
+  const r = parseInt(result[1], 16);
+  const g = parseInt(result[2], 16);
+  const b = parseInt(result[3], 16);
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
 export default function BrowseCards({
   userProviderIds = [],
   onProviderClick,
@@ -109,7 +119,7 @@ export default function BrowseCards({
                 className={`relative aspect-square rounded-xl overflow-hidden transition group flex items-center justify-center ${
                   isUserService ? 'ring-2 ring-brand-primary ring-offset-2 ring-offset-black' : ''
                 }`}
-                style={{ backgroundColor: bgColor }}
+                style={{ backgroundColor: hexToRgba(bgColor, 0.65) }}
               >
                 <StreamingServiceIcon
                   providerId={provider.provider_id}

@@ -282,7 +282,7 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Sort and Filter Bar */}
         {items.filter(item => item.media_type === 'tv').length > 0 && (
           <SortFilterBar

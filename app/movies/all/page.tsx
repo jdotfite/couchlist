@@ -267,7 +267,7 @@ export default function AllMoviesListsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {layout === 'grid' ? (<>
           <div className="grid grid-cols-2 gap-3">
             {/* System Lists - Grid View */}

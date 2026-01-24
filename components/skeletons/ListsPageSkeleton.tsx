@@ -11,7 +11,7 @@ export default function ListsPageSkeleton() {
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Info box */}
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 mb-6">
           <div className="h-4 w-full bg-zinc-800 rounded animate-pulse mb-2" />

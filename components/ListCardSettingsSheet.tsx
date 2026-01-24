@@ -231,7 +231,7 @@ export default function ListCardSettingsSheet({
           </div>
 
           {/* Save Button */}
-          <div className="px-4 pt-4">
+          <div className="px-4">
             <button
               onClick={handleSave}
               disabled={!hasChanges || isSaving}

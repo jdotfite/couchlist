@@ -5,12 +5,12 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star, ChevronLeft, Film, Tv, Settings, X, CheckSquare, Square, Trash2, ArrowRightLeft, Loader2, Eye } from 'lucide-react';
+import { MoreVertical, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star, ChevronLeft, Film, Tv, Square, CheckSquare, Trash2, ArrowRightLeft, Loader2, Eye, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import EmptyState from '@/components/EmptyState';
 import MediaListSkeleton from '@/components/MediaListSkeleton';
-import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
+import SortFilterBar, { SortOption, LayoutOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
 import { ListVisibilityBadge } from '@/components/sharing/ListVisibilityBadge';
 import { ListVisibilitySheet } from '@/components/sharing/ListVisibilitySheet';
@@ -25,6 +25,7 @@ interface ListItem {
   media_type: string;
   title: string;
   poster_path: string;
+  genre_ids?: string | null;
   added_date?: string;
   watched_date?: string;
   rating?: number;
@@ -32,7 +33,6 @@ interface ListItem {
 }
 
 
-type LayoutType = 'list' | 'grid';
 
 type IconType = 'finished' | 'watchlist' | 'watching' | 'onhold' | 'dropped' | 'rewatch' | 'classics' | 'favorites';
 
@@ -127,7 +127,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   const { getListName } = useListPreferences();
   const [items, setItems] = useState<ListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [layout, setLayout] = useState<LayoutType>('grid');
+  const [layout, setLayout] = useState<LayoutOption>('grid');
   const [selectedItem, setSelectedItem] = useState<ListItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,9 +164,9 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
 
   // Helper to check if item is kids content
   const isKidsContent = (item: ListItem): boolean => {
-    // Check genre_ids if available (would need to add to interface)
-    // For now, we'll skip this check in basic list view
-    return false;
+    if (!item.genre_ids) return false;
+    const genres = item.genre_ids.split(',').map(Number);
+    return genres.some((g) => KIDS_GENRES.includes(g));
   };
 
   // Filter, search, and sort items
@@ -186,6 +186,13 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
     }
     if (filters.maxRating !== null) {
       result = result.filter(item => item.rating && item.rating <= filters.maxRating!);
+    }
+
+    // Kids content filter
+    if (filters.kidsContent === 'kids') {
+      result = result.filter(item => isKidsContent(item));
+    } else if (filters.kidsContent === 'exclude') {
+      result = result.filter(item => !isKidsContent(item));
     }
 
     // Search filter
@@ -267,9 +274,12 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   };
 
   // Manage mode handlers
-  const toggleManageMode = () => {
-    setIsManageMode(!isManageMode);
-    setSelectedIds(new Set());
+  const toggleManageMode = (newState?: boolean) => {
+    const newMode = newState !== undefined ? newState : !isManageMode;
+    setIsManageMode(newMode);
+    if (!newMode) {
+      setSelectedIds(new Set());
+    }
   };
 
   const toggleSelect = (mediaId: number) => {
@@ -376,7 +386,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => router.push('/library')}
             className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition"
@@ -394,38 +404,11 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
               />
             </div>
           </div>
-          <button
-            onClick={toggleManageMode}
-            className={`p-2 rounded-full transition ${
-              isManageMode ? 'bg-brand-primary text-white' : 'hover:bg-zinc-800 text-gray-400'
-            }`}
-            title={isManageMode ? 'Exit manage mode' : 'Manage list'}
-          >
-            {isManageMode ? <X className="w-5 h-5" /> : <Settings className="w-5 h-5" />}
-          </button>
-          <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
-            <button
-              onClick={() => setLayout('list')}
-              className={`p-2 rounded-md transition ${
-                layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setLayout('grid')}
-              className={`p-2 rounded-md transition ${
-                layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-          </div>
         </div>
 
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Sort, Search, and Filter Bar */}
         {items.length > 0 && (
           <SortFilterBar
@@ -437,6 +420,11 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
             placeholder={`Search ${displayName.toLowerCase()}...`}
             onFilterClick={() => setIsFilterOpen(true)}
             filterCount={countActiveFilters(filters)}
+            layout={layout}
+            onLayoutChange={setLayout}
+            isSelectMode={isManageMode}
+            onSelectModeChange={toggleManageMode}
+            selectedCount={selectedIds.size}
           />
         )}
 

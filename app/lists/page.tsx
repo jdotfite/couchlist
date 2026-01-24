@@ -153,7 +153,7 @@ export default function ListsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-4 pb-24">
+      <main className="px-4 pb-24">
         {/* Pending Invites Banner */}
         {pendingInvites.length > 0 && (
           <div className="mb-6 space-y-3">

@@ -1,23 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  Filter,
-  Baby,
-  Film,
-  Tv,
-  X,
-  Loader2,
-} from 'lucide-react';
-import ProfileMenu from '@/components/ProfileMenu';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import ManageListView, { ManageableItem } from '@/components/library/ManageListView';
+import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
+import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
 
 const STATUS_OPTIONS = [
-  { value: '', label: 'All Statuses' },
+  { value: '', label: 'All' },
   { value: 'watchlist', label: 'Watchlist' },
   { value: 'watching', label: 'Watching' },
   { value: 'finished', label: 'Finished' },
@@ -25,24 +18,28 @@ const STATUS_OPTIONS = [
   { value: 'dropped', label: 'Dropped' },
 ];
 
+const KIDS_GENRES = [10762, 10751, 16]; // Kids, Family, Animation
+
+const isKidsContent = (genreIds: string | null): boolean => {
+  if (!genreIds) return false;
+  const genres = genreIds.split(',').map(Number);
+  return genres.some((g) => KIDS_GENRES.includes(g));
+};
+
 export default function LibraryManagePage() {
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
 
   const [items, setItems] = useState<ManageableItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Search, sort, and filters
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Filters
-  const [mediaType, setMediaType] = useState<string>('');
-  const [status, setStatus] = useState<string>('');
-  const [isKids, setIsKids] = useState<boolean | null>(null);
-  const [minRating, setMinRating] = useState<number | null>(null);
-  const [maxRating, setMaxRating] = useState<number | null>(null);
-  const [minYear, setMinYear] = useState<number | null>(null);
-  const [maxYear, setMaxYear] = useState<number | null>(null);
-
-  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('added-desc');
+  const [filters, setFilters] = useState<LibraryFilters>(DEFAULT_LIBRARY_FILTERS);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [isSelectMode, setIsSelectMode] = useState(false);
 
   useEffect(() => {
     if (authStatus === 'unauthenticated') {
@@ -55,16 +52,7 @@ export default function LibraryManagePage() {
   const fetchItems = async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (mediaType) params.set('mediaType', mediaType);
-      if (status) params.set('status', status);
-      if (isKids !== null) params.set('isKids', String(isKids));
-      if (minRating) params.set('minRating', String(minRating));
-      if (maxRating) params.set('maxRating', String(maxRating));
-      if (minYear) params.set('minYear', String(minYear));
-      if (maxYear) params.set('maxYear', String(maxYear));
-
-      const res = await fetch(`/api/library/bulk?${params.toString()}`);
+      const res = await fetch('/api/library/bulk');
       if (res.ok) {
         const data = await res.json();
         setItems(data.items || []);
@@ -75,6 +63,42 @@ export default function LibraryManagePage() {
       setIsLoading(false);
     }
   };
+
+  // Apply filters, search, and sort
+  const filteredItems = useMemo(() => {
+    let result = [...items];
+
+    // Status filter
+    if (statusFilter) {
+      result = result.filter(item => item.status === statusFilter);
+    }
+
+    // Media type filter
+    if (filters.mediaType === 'movie') {
+      result = result.filter(item => item.media_type === 'movie');
+    } else if (filters.mediaType === 'tv') {
+      result = result.filter(item => item.media_type === 'tv');
+    }
+
+    // Rating filter
+    if (filters.minRating !== null) {
+      result = result.filter(item => item.rating && item.rating >= filters.minRating!);
+    }
+    if (filters.maxRating !== null) {
+      result = result.filter(item => item.rating && item.rating <= filters.maxRating!);
+    }
+
+    // Kids content filter
+    if (filters.kidsContent === 'kids') {
+      result = result.filter(item => isKidsContent(item.genre_ids));
+    } else if (filters.kidsContent === 'exclude') {
+      result = result.filter(item => !isKidsContent(item.genre_ids));
+    }
+
+    // Search and sort
+    const searched = filterItems(result, searchQuery);
+    return sortItems(searched, sortBy);
+  }, [items, statusFilter, filters, searchQuery, sortBy]);
 
   const handleDelete = async (mediaIds: number[]) => {
     const res = await fetch('/api/library/bulk', {
@@ -94,33 +118,9 @@ export default function LibraryManagePage() {
     if (!res.ok) throw new Error('Failed to move');
   };
 
-  const applyFilters = () => {
-    setShowFilters(false);
-    fetchItems();
+  const handleSelectModeChange = (newState: boolean) => {
+    setIsSelectMode(newState);
   };
-
-  const clearFilters = () => {
-    setMediaType('');
-    setStatus('');
-    setIsKids(null);
-    setMinRating(null);
-    setMaxRating(null);
-    setMinYear(null);
-    setMaxYear(null);
-    setSearchQuery('');
-    setShowFilters(false);
-    setTimeout(fetchItems, 0);
-  };
-
-  const activeFilterCount = [
-    mediaType,
-    status,
-    isKids !== null,
-    minRating,
-    maxRating,
-    minYear,
-    maxYear,
-  ].filter(Boolean).length;
 
   if (authStatus === 'loading' || isLoading) {
     return (
@@ -128,9 +128,9 @@ export default function LibraryManagePage() {
         <header className="sticky top-0 z-20 bg-black px-4 py-3 border-b border-zinc-800">
           <div className="flex items-center gap-3">
             <Link href="/library" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full">
-              <ArrowLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-xl font-bold">Manage Library</h1>
+            <h1 className="text-xl font-bold">All Items</h1>
           </div>
         </header>
         <main className="flex items-center justify-center py-20">
@@ -140,272 +140,77 @@ export default function LibraryManagePage() {
     );
   }
 
+  const activeFilterCount = countActiveFilters(filters) + (statusFilter ? 1 : 0);
+
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-black px-4 py-3 border-b border-zinc-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/library" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-xl font-bold">Manage Library</h1>
+        <div className="flex items-center gap-3">
+          <Link href="/library" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold">All Items</h1>
+            <p className="text-xs text-gray-400">{items.length} items total</p>
           </div>
-          <ProfileMenu />
         </div>
       </header>
 
-      {/* Filter Bar */}
-      <div className="sticky top-[57px] z-10 bg-black px-4 py-3 border-b border-zinc-800">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowFilters(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-            {activeFilterCount > 0 && (
-              <span className="bg-brand-primary text-white text-xs px-1.5 py-0.5 rounded-full">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
+      {/* Search, Sort, Filter Bar */}
+      <div className="px-4">
+        <SortFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          onFilterClick={() => setIsFilterOpen(true)}
+          filterCount={activeFilterCount}
+          resultCount={searchQuery ? filteredItems.length : undefined}
+          placeholder="Search your library..."
+          isSelectMode={isSelectMode}
+          onSelectModeChange={handleSelectModeChange}
+        />
 
-          {/* Quick Kids Filter */}
-          <button
-            onClick={() => {
-              setIsKids(isKids === true ? null : true);
-              setTimeout(fetchItems, 0);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition ${
-              isKids === true
-                ? 'bg-brand-primary text-white'
-                : 'bg-zinc-800 hover:bg-zinc-700'
-            }`}
-          >
-            <Baby className="w-4 h-4" />
-            Kids
-          </button>
-
-          {/* Search */}
-          <input
-            type="text"
-            placeholder="Search titles..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 px-3 py-2 bg-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
-          />
-        </div>
-
-        {/* Active Filters */}
-        {activeFilterCount > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {mediaType && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-zinc-800 rounded-full text-xs">
-                {mediaType === 'movie' ? <Film className="w-3 h-3" /> : <Tv className="w-3 h-3" />}
-                {mediaType === 'movie' ? 'Movies' : 'TV Shows'}
-                <button onClick={() => { setMediaType(''); fetchItems(); }}>
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-            {status && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-zinc-800 rounded-full text-xs">
-                {STATUS_OPTIONS.find((s) => s.value === status)?.label}
-                <button onClick={() => { setStatus(''); fetchItems(); }}>
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
-            {isKids === true && (
-              <span className="flex items-center gap-1 px-2 py-1 bg-brand-primary rounded-full text-xs">
-                <Baby className="w-3 h-3" />
-                Kids Content
-                <button onClick={() => { setIsKids(null); fetchItems(); }}>
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            )}
+        {/* Status Pills */}
+        <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+          {STATUS_OPTIONS.map((option) => (
             <button
-              onClick={clearFilters}
-              className="text-xs text-gray-400 hover:text-white"
+              key={option.value}
+              onClick={() => setStatusFilter(option.value)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition ${
+                statusFilter === option.value
+                  ? 'bg-brand-primary text-white'
+                  : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700'
+              }`}
             >
-              Clear all
+              {option.label}
             </button>
-          </div>
-        )}
+          ))}
+        </div>
       </div>
 
       {/* Manage List View */}
       <ManageListView
-        items={items}
+        items={filteredItems}
         showStatus={true}
+        isSelectMode={isSelectMode}
         onDelete={handleDelete}
         onMove={handleMove}
         onRefresh={fetchItems}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        searchQuery=""
+        onSearchChange={() => {}}
       />
 
       {/* Filter Sheet */}
-      {showFilters && (
-        <div className="fixed inset-0 z-50 bg-black/80" onClick={() => setShowFilters(false)}>
-          <div
-            className="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-2xl max-h-[80vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 bg-zinc-600 rounded-full" />
-            </div>
-
-            <div className="px-4 pb-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">Filters</h2>
-                <button
-                  onClick={() => setShowFilters(false)}
-                  className="p-2 hover:bg-zinc-800 rounded-full"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* Media Type */}
-                <div>
-                  <label className="text-sm text-gray-400 mb-2 block">Type</label>
-                  <div className="flex gap-2">
-                    {[
-                      { value: '', label: 'All', icon: null },
-                      { value: 'movie', label: 'Movies', icon: Film },
-                      { value: 'tv', label: 'TV Shows', icon: Tv },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setMediaType(option.value)}
-                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm transition ${
-                          mediaType === option.value
-                            ? 'bg-brand-primary text-white'
-                            : 'bg-zinc-800 hover:bg-zinc-700'
-                        }`}
-                      >
-                        {option.icon && <option.icon className="w-4 h-4" />}
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="text-sm text-gray-400 mb-2 block">Status</label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                  >
-                    {STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Kids Content */}
-                <div>
-                  <label className="text-sm text-gray-400 mb-2 block">Content Type</label>
-                  <div className="flex gap-2">
-                    {[
-                      { value: null, label: 'All' },
-                      { value: true, label: 'Kids Only' },
-                      { value: false, label: 'Exclude Kids' },
-                    ].map((option) => (
-                      <button
-                        key={String(option.value)}
-                        onClick={() => setIsKids(option.value)}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition ${
-                          isKids === option.value
-                            ? 'bg-brand-primary text-white'
-                            : 'bg-zinc-800 hover:bg-zinc-700'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Rating Range */}
-                <div>
-                  <label className="text-sm text-gray-400 mb-2 block">Your Rating</label>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={minRating || ''}
-                      onChange={(e) => setMinRating(e.target.value ? Number(e.target.value) : null)}
-                      className="flex-1 px-3 py-2 bg-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                    >
-                      <option value="">Min</option>
-                      {[1, 2, 3, 4, 5].map((r) => (
-                        <option key={r} value={r}>{r} ★</option>
-                      ))}
-                    </select>
-                    <span className="text-gray-400">to</span>
-                    <select
-                      value={maxRating || ''}
-                      onChange={(e) => setMaxRating(e.target.value ? Number(e.target.value) : null)}
-                      className="flex-1 px-3 py-2 bg-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                    >
-                      <option value="">Max</option>
-                      {[1, 2, 3, 4, 5].map((r) => (
-                        <option key={r} value={r}>{r} ★</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Year Range */}
-                <div>
-                  <label className="text-sm text-gray-400 mb-2 block">Release Year</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      placeholder="From"
-                      value={minYear || ''}
-                      onChange={(e) => setMinYear(e.target.value ? Number(e.target.value) : null)}
-                      className="flex-1 px-3 py-2 bg-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                    />
-                    <span className="text-gray-400">to</span>
-                    <input
-                      type="number"
-                      placeholder="To"
-                      value={maxYear || ''}
-                      onChange={(e) => setMaxYear(e.target.value ? Number(e.target.value) : null)}
-                      className="flex-1 px-3 py-2 bg-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 mt-8">
-                <button
-                  onClick={clearFilters}
-                  className="flex-1 px-4 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg font-medium transition"
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={applyFilters}
-                  className="flex-1 px-4 py-3 bg-brand-primary hover:bg-brand-primary/90 rounded-lg font-medium transition"
-                >
-                  Apply Filters
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <LibraryFilterSheet
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onApply={() => setIsFilterOpen(false)}
+        resultCount={filteredItems.length}
+      />
     </div>
   );
 }

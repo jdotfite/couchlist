@@ -3,9 +3,7 @@
 import { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import ProfileMenu from '@/components/ProfileMenu';
-import NotificationBell from '@/components/notifications/NotificationBell';
+import MainHeader from '@/components/ui/MainHeader';
 import SearchHero from '@/components/home/SearchHero';
 import MediaRow from '@/components/home/MediaRow';
 import ListsGrid from '@/components/home/ListsGrid';
@@ -113,24 +111,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ProfileMenu />
-            <Image
-              src="/logo-flicklog.svg"
-              alt="FlickLog"
-              width={105}
-              height={27}
-              className="h-7 w-auto"
-              priority
-            />
-          </div>
-          <NotificationBell />
-        </div>
-      </header>
+      <MainHeader showLogo />
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Search Hero */}
         <SearchHero />
 

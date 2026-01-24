@@ -282,7 +282,7 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Sort and Filter Bar */}
         {items.filter(item => item.media_type === 'movie').length > 0 && (
           <SortFilterBar

@@ -11,7 +11,7 @@ import {
   Search, Loader2, XCircle, X, Check, Trash2, MessageCircle, Camera, Info
 } from 'lucide-react';
 import ProfilePageSkeleton from '@/components/skeletons/ProfilePageSkeleton';
-import NotificationBell from '@/components/notifications/NotificationBell';
+import MainHeader from '@/components/ui/MainHeader';
 import { useProfileImage } from '@/hooks/useProfileImage';
 
 interface LibraryCounts {
@@ -393,14 +393,9 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Profile</h1>
-          <NotificationBell />
-        </div>
-      </header>
+      <MainHeader title="Profile" />
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Profile Card */}
         <div className="card mb-6">
           <div className="flex items-center gap-4 mb-4">
@@ -494,7 +489,7 @@ export default function ProfilePage() {
                 {partner.image ? (
                   <img src={partner.image} alt={partner.name} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-pink-500 font-semibold">
+                  <span className="text-white font-semibold">
                     {partner.name?.[0]?.toUpperCase()}
                   </span>
                 )}
@@ -519,7 +514,7 @@ export default function ProfilePage() {
                 <div key={inv.id} className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl">
                   <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
                     {inv.targetUser ? (
-                      <span className="text-pink-500 font-semibold">
+                      <span className="text-white font-semibold">
                         {inv.targetUser.name?.[0]?.toUpperCase()}
                       </span>
                     ) : (
@@ -600,7 +595,7 @@ export default function ProfilePage() {
                     <div key={inv.id} className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl mb-2">
                       <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
                         {inv.targetUser ? (
-                          <span className="text-blue-500 font-semibold">
+                          <span className="text-white font-semibold">
                             {inv.targetUser.name?.[0]?.toUpperCase()}
                           </span>
                         ) : (
@@ -797,7 +792,7 @@ export default function ProfilePage() {
                 {selectedUser && (
                   <div className="mb-4 p-3 bg-pink-500/10 border border-pink-500/50 rounded-lg flex items-center gap-3">
                     <div className="w-10 h-10 bg-pink-500/20 rounded-full flex items-center justify-center">
-                      <span className="text-pink-500 font-semibold">
+                      <span className="text-white font-semibold">
                         {selectedUser.name?.[0]?.toUpperCase()}
                       </span>
                     </div>
@@ -945,7 +940,7 @@ export default function ProfilePage() {
                 {selectedUser && (
                   <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/50 rounded-lg flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                      <span className="text-blue-500 font-semibold">
+                      <span className="text-white font-semibold">
                         {selectedUser.name?.[0]?.toUpperCase()}
                       </span>
                     </div>
@@ -1024,7 +1019,7 @@ export default function ProfilePage() {
           <div className="relative w-full max-w-sm bg-zinc-900 rounded-2xl p-6">
             <div className="text-center">
               <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-500" />
+                <Trash2 className="w-8 h-8 text-white" />
               </div>
               <h3 className="text-lg font-semibold mb-2">
                 Remove {confirmModal.type === 'partner' ? 'Partner' : 'Friend'}?

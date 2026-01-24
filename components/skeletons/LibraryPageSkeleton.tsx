@@ -14,7 +14,7 @@ export default function LibraryPageSkeleton() {
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Total Count */}
         <div className="h-5 w-40 bg-zinc-800 rounded animate-pulse mb-6" />
 

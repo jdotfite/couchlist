@@ -36,7 +36,7 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         <div className="space-y-2">
           <Link
             href="/settings/services"

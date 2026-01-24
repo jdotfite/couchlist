@@ -167,7 +167,7 @@ export default function ImportPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Step: Source Selection */}
         {step === 'source' && (
           <div className="space-y-4">

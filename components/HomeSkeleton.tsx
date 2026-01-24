@@ -23,7 +23,7 @@ export default function HomeSkeleton() {
         </div>
       </header>
 
-      <main className="px-4 pt-4 space-y-8">
+      <main className="px-4 space-y-8">
         <section>
           <div className="h-6 w-28 bg-zinc-800 rounded animate-pulse mb-3" />
           <div className="grid grid-cols-2 gap-2">

@@ -296,7 +296,7 @@ export default function CommunityPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-4 space-y-6">
+      <main className="px-4 space-y-6">
         {/* Find Friends Section */}
         <section>
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">

@@ -14,7 +14,7 @@ export default function HomePageSkeleton() {
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Search Hero Skeleton */}
         <div className="card w-full mb-6">
           <div className="flex items-center gap-3">

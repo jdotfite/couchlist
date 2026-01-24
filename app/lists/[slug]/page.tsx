@@ -318,7 +318,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
         </div>
       )}
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Sort, Search, and Filter Bar */}
         {items.length > 0 && (
           <SortFilterBar

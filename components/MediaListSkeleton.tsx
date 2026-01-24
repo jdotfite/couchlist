@@ -30,7 +30,7 @@ export default function MediaListSkeleton({
         </header>
       )}
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {layout === 'list' ? (
           <div className="space-y-1">
             {Array.from({ length: count }).map((_, i) => (

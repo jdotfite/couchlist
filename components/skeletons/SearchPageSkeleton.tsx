@@ -11,7 +11,7 @@ export default function SearchPageSkeleton() {
         <div className="w-full h-12 bg-zinc-900 rounded-lg animate-pulse" />
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Filter Pills */}
         <div className="flex gap-2 mb-6">
           {[1, 2, 3].map((i) => (

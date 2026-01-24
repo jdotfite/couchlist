@@ -5,7 +5,7 @@ import { Search, Loader2, X, SlidersHorizontal } from 'lucide-react';
 import SearchResults from '@/components/SearchResults';
 import TrendingRow from '@/components/home/TrendingRow';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
-import NotificationBell from '@/components/notifications/NotificationBell';
+import MainHeader from '@/components/ui/MainHeader';
 import FilterBottomSheet from '@/components/search/FilterBottomSheet';
 import ActiveFilters from '@/components/search/ActiveFilters';
 import BrowseCards from '@/components/search/BrowseCards';
@@ -320,13 +320,7 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-black px-4 py-3">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold">Search</h1>
-          <NotificationBell />
-        </div>
-
+      <MainHeader title="Search">
         {/* Search Input with Filter */}
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -342,7 +336,7 @@ export default function SearchPage() {
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search movies & TV shows..."
-              className="w-full h-12 pl-11 pr-12 bg-zinc-900 rounded-xl border border-transparent text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary transition-all"
+              className="w-full h-12 pl-11 pr-12 bg-zinc-900 rounded-lg border border-transparent text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary transition-all"
             />
 
             {query && (
@@ -360,7 +354,7 @@ export default function SearchPage() {
           {/* Filter Button - connected to search */}
           <button
             onClick={() => setIsFilterOpen(true)}
-            className={`relative h-12 px-4 rounded-xl flex items-center gap-2 transition font-medium ${
+            className={`relative h-12 px-4 rounded-lg flex items-center gap-2 transition font-medium ${
               hasActiveFilters
                 ? 'bg-brand-primary text-white'
                 : 'bg-zinc-900 text-gray-400 hover:text-white'
@@ -372,9 +366,9 @@ export default function SearchPage() {
             )}
           </button>
         </div>
-      </header>
+      </MainHeader>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Active Filters */}
         {hasActiveFilters && (
           <div className="mb-4">

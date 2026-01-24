@@ -82,7 +82,7 @@ export default function ServicesSettingsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Description */}
         <p className="text-gray-400 mb-6">
           Select the streaming services you subscribe to. Your services will appear first when

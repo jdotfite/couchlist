@@ -265,7 +265,7 @@ export default function TraktSettingsPage() {
         </div>
       </header>
 
-      <main className="px-4 pt-4 space-y-6">
+      <main className="px-4 space-y-6">
         <p className="text-gray-400">
           Connect your Trakt account to automatically sync your watch history
           from Kodi, Plex, Jellyfin, and other apps.

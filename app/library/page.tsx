@@ -13,14 +13,14 @@ import {
   Plus,
 } from 'lucide-react';
 import LibraryPageSkeleton from '@/components/skeletons/LibraryPageSkeleton';
-import ProfileMenu from '@/components/ProfileMenu';
-import NotificationBell from '@/components/notifications/NotificationBell';
+import MainHeader from '@/components/ui/MainHeader';
 import QuickStats from '@/components/stats/QuickStats';
 import { getImageUrl } from '@/lib/tmdb';
 import { useListPreferences } from '@/hooks/useListPreferences';
 import { getIconComponent } from '@/components/custom-lists/IconPicker';
 import { getColorValue } from '@/components/custom-lists/ColorPicker';
 import { ListVisibilityInline } from '@/components/sharing';
+import SectionHeader from '@/components/ui/SectionHeader';
 
 interface ListData {
   slug: string;
@@ -124,20 +124,17 @@ export default function LibraryPage() {
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-black px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ProfileMenu />
-            <h1 className="text-2xl font-bold">Library</h1>
-          </div>
-          <NotificationBell />
-        </div>
-      </header>
+      <MainHeader title="Library" />
 
-      <main className="px-4 pt-4">
+      <main className="px-4">
         {/* Total Count */}
-        <p className="text-sm text-gray-400 mb-6">{totalCount} items in your library</p>
+        <SectionHeader
+          title="Your Library"
+          subtitle={`${totalCount} items`}
+          ctaText="View All"
+          ctaHref="/library/manage"
+          className="mb-6"
+        />
 
         {/* List Cards */}
         <div className="space-y-3">
@@ -205,12 +202,12 @@ export default function LibraryPage() {
 
         {/* Custom Lists Section */}
         <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Custom Lists</h2>
-            <Link href="/lists" className="text-sm text-gray-400 hover:text-white">
-              Manage
-            </Link>
-          </div>
+          <SectionHeader
+            title="Custom Lists"
+            ctaText="Manage"
+            ctaHref="/lists"
+            className="mb-4"
+          />
 
           {customLists.length > 0 ? (
             <div className="space-y-3">
@@ -281,14 +278,22 @@ export default function LibraryPage() {
           ) : (
             <Link
               href="/lists"
-              className="block border-2 border-dashed border-zinc-700 hover:border-brand-primary rounded-xl p-6 transition group"
+              className="block border-2 border-dashed border-zinc-700 hover:border-brand-primary rounded-xl overflow-hidden transition group"
             >
-              <div className="flex flex-col items-center justify-center text-center">
-                <div className="w-12 h-12 bg-zinc-800 group-hover:bg-brand-primary/20 rounded-full flex items-center justify-center mb-3 transition">
+              <div className="flex items-center p-4">
+                {/* Icon */}
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-zinc-800 group-hover:bg-brand-primary/20 transition flex-shrink-0">
                   <Plus className="w-6 h-6 text-gray-400 group-hover:text-brand-primary transition" />
                 </div>
-                <h3 className="font-semibold text-gray-300 group-hover:text-white transition">Create Custom List</h3>
-                <p className="text-sm text-gray-400 mt-1">Organize your movies and shows your way</p>
+
+                {/* Info */}
+                <div className="flex-1 ml-4 min-w-0">
+                  <h3 className="font-semibold text-lg text-gray-300 group-hover:text-white transition">Create Custom List</h3>
+                  <p className="text-sm text-gray-400">Organize your way</p>
+                </div>
+
+                {/* Arrow */}
+                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition flex-shrink-0" />
               </div>
             </Link>
           )}
