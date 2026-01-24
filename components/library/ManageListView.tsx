@@ -180,14 +180,29 @@ export default function ManageListView({
                 <>
                   {/* Poster */}
                   <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800">
-                    {/* Selection Checkbox - only in select mode */}
-                    {isSelectMode && (
-                      <div className="absolute top-2 left-2 z-[1]">
-                        {isSelected ? (
+                    {/* Top Left: Checkbox in select mode, otherwise media type icon */}
+                    <div className="absolute top-2 left-2 z-[1]">
+                      {isSelectMode ? (
+                        isSelected ? (
                           <CheckSquare className="w-5 h-5 text-brand-primary bg-black rounded" />
                         ) : (
                           <Square className="w-5 h-5 text-white/60 bg-black/50 rounded" />
-                        )}
+                        )
+                      ) : (
+                        <div className="w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
+                          {item.media_type === 'movie' ? (
+                            <Film className="w-3.5 h-3.5 text-white" />
+                          ) : (
+                            <Tv className="w-3.5 h-3.5 text-white" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Top Right: Status badge */}
+                    {showStatus && item.status && (
+                      <div className="absolute top-2 right-2 z-[1]">
+                        {getStatusBadge(item.status)}
                       </div>
                     )}
 
@@ -208,29 +223,17 @@ export default function ManageListView({
                   {/* Title */}
                   <p className="mt-1 text-xs truncate">{item.title}</p>
 
-                  {/* Meta Row */}
+                  {/* Meta Row - year and rating */}
                   <div className="flex items-center gap-1 text-[10px] text-gray-500 mt-0.5">
-                    {item.media_type === 'movie' ? (
-                      <Film className="w-3 h-3 flex-shrink-0" />
-                    ) : (
-                      <Tv className="w-3 h-3 flex-shrink-0" />
-                    )}
                     {item.release_year && <span>{item.release_year}</span>}
                     {item.rating && (
                       <>
-                        <span>·</span>
+                        {item.release_year && <span>·</span>}
                         <Star className="w-3 h-3 text-yellow-500 flex-shrink-0" />
                         <span>{item.rating}</span>
                       </>
                     )}
                   </div>
-
-                  {/* Status Badge (when showing full library) */}
-                  {showStatus && item.status && (
-                    <div className="mt-1">
-                      {getStatusBadge(item.status)}
-                    </div>
-                  )}
                 </>
               );
 
