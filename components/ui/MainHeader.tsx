@@ -15,8 +15,8 @@ export default function MainHeader({
   showLogo = false,
   children,
 }: MainHeaderProps) {
-  // Use higher z-index when there are children (like search input)
-  const zIndex = children ? 'z-20' : 'z-10';
+  // Use z-30 to stay above page content (buttons have z-10), z-40 with children
+  const zIndex = children ? 'z-40' : 'z-30';
 
   return (
     <header className={`sticky top-0 ${zIndex} bg-black px-4 py-3`}>
