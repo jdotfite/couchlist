@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronRight, Users, Mail, Check, XCircle, Plus, Loader2 } from 'lucide-react';
+import { ChevronRight, Users, Mail, Check, XCircle, Plus, Loader2, Users2 } from 'lucide-react';
 import ListsPageSkeleton from '@/components/skeletons/ListsPageSkeleton';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import Image from 'next/image';
@@ -39,6 +39,16 @@ interface PendingInvite {
   };
 }
 
+interface CollaborativeList {
+  id: number;
+  name: string;
+  itemCount: number;
+  createdAt: string;
+  friendUserId: number;
+  friendName: string;
+  friendImage: string | null;
+}
+
 const MAX_LISTS = 10;
 
 export default function ListsPage() {
@@ -50,11 +60,13 @@ export default function ListsPage() {
   const [editingList, setEditingList] = useState<CustomList | null>(null);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [processingInvite, setProcessingInvite] = useState<number | null>(null);
+  const [collaborativeLists, setCollaborativeLists] = useState<CollaborativeList[]>([]);
 
   useEffect(() => {
     if (status === 'authenticated') {
       fetchLists();
       fetchPendingInvites();
+      fetchCollaborativeLists();
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }
@@ -83,6 +95,18 @@ export default function ListsPage() {
       }
     } catch (error) {
       console.error('Failed to fetch pending invites:', error);
+    }
+  };
+
+  const fetchCollaborativeLists = async () => {
+    try {
+      const response = await fetch('/api/collaborative-lists');
+      if (response.ok) {
+        const data = await response.json();
+        setCollaborativeLists(data.lists || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch collaborative lists:', error);
     }
   };
 
@@ -229,6 +253,57 @@ export default function ListsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Collaborative Lists Section */}
+        {collaborativeLists.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-3">
+              <Users2 className="w-4 h-4 text-green-400" />
+              Shared With Friends ({collaborativeLists.length})
+            </h2>
+            <div className="space-y-2">
+              {collaborativeLists.map((list) => (
+                <Link
+                  key={list.id}
+                  href={`/friends/${list.friendUserId}`}
+                  className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 rounded-xl transition"
+                >
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-green-500/20">
+                    <Users2 className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold truncate">{list.name}</h3>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <span>{list.itemCount} items</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        {list.friendImage ? (
+                          <Image
+                            src={list.friendImage}
+                            alt={list.friendName}
+                            width={16}
+                            height={16}
+                            className="rounded-full"
+                          />
+                        ) : (
+                          <div className="w-4 h-4 bg-zinc-600 rounded-full flex items-center justify-center">
+                            <span className="text-[8px] font-medium">
+                              {list.friendName?.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        with {list.friendName}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 
