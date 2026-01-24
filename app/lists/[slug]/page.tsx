@@ -319,17 +319,15 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
       )}
 
       <main className="px-4">
-        {/* Sort, Search, and Filter Bar */}
+        {/* Search and Filter Bar */}
         {items.length > 0 && (
           <SortFilterBar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
             resultCount={searchQuery ? filteredItems.length : undefined}
             placeholder="Search this list..."
             onFilterClick={() => setIsFilterOpen(true)}
-            filterCount={countActiveFilters(filters)}
+            filterCount={countActiveFilters(filters) + (sortBy !== 'added-desc' ? 1 : 0)}
           />
         )}
 
@@ -552,6 +550,8 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
         onClose={() => setIsFilterOpen(false)}
         filters={filters}
         onFiltersChange={setFilters}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
         onApply={() => setIsFilterOpen(false)}
         resultCount={filteredItems.length}
       />

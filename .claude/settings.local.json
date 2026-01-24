@@ -53,7 +53,14 @@
       "WebFetch(domain:simpleicons.org)",
       "WebFetch(domain:cdn.simpleicons.org)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx next build --no-lint)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:dribbble.com)",
+      "WebFetch(domain:cdn.dribbble.com)",
+      "WebFetch(domain:www.serializd.com)",
+      "Bash(timeout:*)",
+      "WebFetch(domain:sudoku.jull.dev)"
     ]
   }
 }

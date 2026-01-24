@@ -157,15 +157,13 @@ export default function LibraryManagePage() {
         </div>
       </header>
 
-      {/* Search, Sort, Filter Bar */}
+      {/* Search, Filter Bar */}
       <div className="px-4">
         <SortFilterBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
           onFilterClick={() => setIsFilterOpen(true)}
-          filterCount={activeFilterCount}
+          filterCount={activeFilterCount + (sortBy !== 'added-desc' ? 1 : 0)}
           resultCount={searchQuery ? filteredItems.length : undefined}
           placeholder="Search your library..."
           isSelectMode={isSelectMode}
@@ -208,6 +206,8 @@ export default function LibraryManagePage() {
         onClose={() => setIsFilterOpen(false)}
         filters={filters}
         onFiltersChange={setFilters}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
         onApply={() => setIsFilterOpen(false)}
         resultCount={filteredItems.length}
       />

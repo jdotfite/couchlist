@@ -329,3 +329,29 @@ TRAKT_CLIENT_SECRET=      # Optional: Trakt sync integration
 - Try/catch in API routes
 - Error states in UI components
 - Fallback images for missing posters
+
+## Development Standards
+
+### Design System First
+- **Always use existing design tokens** from `/tokens` (colors, spacing, typography, shadows, radii) — never hardcode values
+- **Check for existing components** in `/components/ui` before writing new ones. If a component exists, use it. If it needs extension, extend it — don't duplicate
+- **Follow established patterns** in `/components` for layout, spacing, and composition
+- **Token hierarchy**: semantic tokens → component tokens → primitive tokens. Reference semantically (e.g., `color.background.primary`, not `color.blue.500`)
+
+### Component Guidelines
+- Build components to be **composable and reusable** — avoid one-off implementations
+- Use **compound component patterns** where appropriate (e.g., `Card`, `Card.Header`, `Card.Body`)
+- Props should be **minimal and intentional** — prefer composition over configuration
+- All new components must support **design token overrides** via props or CSS variables
+- Follow existing **naming conventions** and file structure
+
+### Before Writing Code
+1. Search the codebase for similar components or patterns
+2. Reference the design system documentation at [your docs location]
+3. If creating something new, ensure it's generic enough to be reused
+
+### What NOT to Do
+- No inline styles with hardcoded values
+- No custom colors, spacing, or typography outside the token system
+- No "quick fix" components that duplicate existing functionality
+- No skipping the component library to "just get it done"

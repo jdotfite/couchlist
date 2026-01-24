@@ -409,22 +409,19 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
       </header>
 
       <main className="px-4">
-        {/* Sort, Search, and Filter Bar */}
+        {/* Search and Filter Bar */}
         {items.length > 0 && (
           <SortFilterBar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
             resultCount={searchQuery ? filteredItems.length : undefined}
             placeholder={`Search ${displayName.toLowerCase()}...`}
             onFilterClick={() => setIsFilterOpen(true)}
-            filterCount={countActiveFilters(filters)}
+            filterCount={countActiveFilters(filters) + (sortBy !== 'added-desc' ? 1 : 0)}
             layout={layout}
             onLayoutChange={setLayout}
             isSelectMode={isManageMode}
             onSelectModeChange={toggleManageMode}
-            selectedCount={selectedIds.size}
           />
         )}
 
@@ -660,6 +657,8 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
         onClose={() => setIsFilterOpen(false)}
         filters={filters}
         onFiltersChange={setFilters}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
         onApply={() => setIsFilterOpen(false)}
         resultCount={filteredItems.length}
       />

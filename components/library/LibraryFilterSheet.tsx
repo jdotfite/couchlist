@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Film, Tv, Baby, Star } from 'lucide-react';
+import { X, Film, Tv, Baby, Star, Check, ArrowDownAZ, ArrowUpAZ, Clock, StarIcon } from 'lucide-react';
+import { SortOption } from '@/components/SortFilterBar';
 
 export interface LibraryFilters {
   mediaType: 'all' | 'movie' | 'tv';
@@ -22,11 +23,22 @@ export const DEFAULT_LIBRARY_FILTERS: LibraryFilters = {
   maxYear: null,
 };
 
+const sortOptions: { value: SortOption; label: string }[] = [
+  { value: 'added-desc', label: 'Recently Added' },
+  { value: 'added-asc', label: 'Oldest Added' },
+  { value: 'title-asc', label: 'Title A-Z' },
+  { value: 'title-desc', label: 'Title Z-A' },
+  { value: 'rating-desc', label: 'Highest Rated' },
+  { value: 'rating-asc', label: 'Lowest Rated' },
+];
+
 interface LibraryFilterSheetProps {
   isOpen: boolean;
   onClose: () => void;
   filters: LibraryFilters;
   onFiltersChange: (filters: LibraryFilters) => void;
+  sortBy?: SortOption;
+  onSortChange?: (sort: SortOption) => void;
   onApply: () => void;
   resultCount?: number;
 }
@@ -36,6 +48,8 @@ export default function LibraryFilterSheet({
   onClose,
   filters,
   onFiltersChange,
+  sortBy,
+  onSortChange,
   onApply,
   resultCount,
 }: LibraryFilterSheetProps) {
@@ -108,6 +122,29 @@ export default function LibraryFilterSheet({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-4 py-4">
+          {/* Sort Options */}
+          {onSortChange && sortBy && (
+            <section className="mb-6">
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Sort By</h3>
+              <div className="flex gap-2 flex-wrap">
+                {sortOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => onSortChange(option.value)}
+                    className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition ${
+                      sortBy === option.value
+                        ? 'bg-brand-primary text-white'
+                        : 'bg-zinc-800 text-white hover:bg-zinc-700'
+                    }`}
+                  >
+                    {option.label}
+                    {sortBy === option.value && <Check className="w-3.5 h-3.5" />}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Type Filter */}
           <section className="mb-6">
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Type</h3>

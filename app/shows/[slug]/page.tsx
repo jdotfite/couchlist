@@ -283,13 +283,11 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
       </header>
 
       <main className="px-4">
-        {/* Sort and Filter Bar */}
+        {/* Search Bar */}
         {items.filter(item => item.media_type === 'tv').length > 0 && (
           <SortFilterBar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
             resultCount={searchQuery ? filteredItems.length : undefined}
             placeholder="Search TV shows..."
           />

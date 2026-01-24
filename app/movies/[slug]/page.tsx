@@ -283,13 +283,11 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
       </header>
 
       <main className="px-4">
-        {/* Sort and Filter Bar */}
+        {/* Search Bar */}
         {items.filter(item => item.media_type === 'movie').length > 0 && (
           <SortFilterBar
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
             resultCount={searchQuery ? filteredItems.length : undefined}
             placeholder="Search movies..."
           />
