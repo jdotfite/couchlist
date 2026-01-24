@@ -205,15 +205,6 @@ export default function ManageListView({
                       className="object-cover"
                       sizes="48px"
                     />
-                    {!isSelectMode && (
-                      <div className="absolute bottom-1 left-1 w-5 h-5 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
-                        {item.media_type === 'movie' ? (
-                          <Film className="w-3 h-3 text-white" />
-                        ) : (
-                          <Tv className="w-3 h-3 text-white" />
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   {/* Info */}

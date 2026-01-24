@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Download, Share } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -89,36 +89,40 @@ export default function InstallPrompt() {
 
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-brand-primary rounded-xl flex items-center justify-center flex-shrink-0">
-            {isIOS ? <Share className="w-6 h-6 text-white" /> : <Download className="w-6 h-6 text-white" />}
+            <Download className="w-6 h-6 text-white" />
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-white mb-1">Add FlickLog to Home Screen</h3>
+            <h3 className="font-semibold text-white mb-1">Install FlickLog</h3>
             {isIOS ? (
-              <div className="text-sm text-gray-400">
-                <p className="mb-2">Tap the share button in Safari:</p>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="inline-flex items-center justify-center w-8 h-8 bg-zinc-800 rounded-lg">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2l3 3h-2v6h-2V5H9l3-3zm-7 9v10h14V11h-2v8H7v-8H5z"/>
-                    </svg>
-                  </span>
-                  <span>Then &quot;Add to Home Screen&quot;</span>
+              <div className="text-sm text-gray-400 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-medium">1.</span>
+                  <span>Tap</span>
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
+                  </svg>
+                  <span>in Safari</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-medium">2.</span>
+                  <span>Select &quot;Add to Home Screen&quot;</span>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-400 mb-3">
-                Install our app for a better experience with offline access
-              </p>
-            )}
-
-            {!isIOS && deferredPrompt && (
-              <button
-                onClick={handleInstall}
-                className="bg-brand-primary hover:bg-brand-primary-dark text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
-              >
-                Install App
-              </button>
+              <>
+                <p className="text-sm text-gray-400 mb-3">
+                  Add to your home screen for quick access
+                </p>
+                {deferredPrompt && (
+                  <button
+                    onClick={handleInstall}
+                    className="bg-brand-primary hover:bg-brand-primary-dark text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+                  >
+                    Install
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

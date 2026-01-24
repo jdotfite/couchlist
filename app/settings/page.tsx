@@ -43,7 +43,7 @@ export default function SettingsPage() {
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Tv2 className="w-5 h-5 text-brand-primary" />
+              <Tv2 className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">My Services</h3>
@@ -57,7 +57,7 @@ export default function SettingsPage() {
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Bell className="w-5 h-5 text-brand-primary" />
+              <Bell className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">Notifications</h3>
@@ -71,7 +71,7 @@ export default function SettingsPage() {
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Shield className="w-5 h-5 text-brand-primary" />
+              <Shield className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">Privacy & Profile</h3>
@@ -85,7 +85,7 @@ export default function SettingsPage() {
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Upload className="w-5 h-5 text-brand-primary" />
+              <Upload className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">Import Data</h3>
@@ -99,7 +99,7 @@ export default function SettingsPage() {
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <RefreshCw className="w-5 h-5 text-brand-primary" />
+              <RefreshCw className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">Trakt Sync</h3>
@@ -113,7 +113,7 @@ export default function SettingsPage() {
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Download className="w-5 h-5 text-brand-primary" />
+              <Download className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">Export Data</h3>

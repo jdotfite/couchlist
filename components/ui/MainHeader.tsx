@@ -29,8 +29,8 @@ export default function MainHeader({
               src="/logo-flicklog.svg"
               alt="FlickLog"
               width={105}
-              height={27}
-              className="h-7 w-auto"
+              height={26}
+              className="h-[26px] w-auto"
               priority
             />
           ) : title ? (

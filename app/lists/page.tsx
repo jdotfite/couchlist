@@ -242,14 +242,19 @@ export default function ListsPage() {
 
         {/* Lists */}
         {lists.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-400 mb-4">No custom lists yet</p>
+          <div className="space-y-2">
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary-light rounded-lg transition"
+              className="w-full flex items-center gap-3 p-3 border-2 border-dashed border-zinc-700 hover:border-zinc-500 rounded-xl transition group"
             >
-              <Plus className="w-5 h-5" />
-              Create your first list
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-zinc-800 group-hover:bg-zinc-700">
+                <Plus className="w-6 h-6 text-gray-400 group-hover:text-white" />
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <h3 className="font-semibold text-gray-300 group-hover:text-white">Create your first list</h3>
+                <p className="text-sm text-gray-500">Organize your way</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white flex-shrink-0" />
             </button>
           </div>
         ) : (
@@ -310,10 +315,16 @@ export default function ListsPage() {
         {lists.length > 0 && canCreateMore && (
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="w-full mt-4 px-4 py-2.5 border border-dashed border-zinc-700 hover:border-zinc-500 rounded-xl text-gray-400 hover:text-white transition flex items-center gap-3"
+            className="w-full mt-4 flex items-center gap-3 p-3 border-2 border-dashed border-zinc-700 hover:border-zinc-500 rounded-xl transition group"
           >
-            <Plus className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm">Create new list</span>
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-zinc-800 group-hover:bg-zinc-700">
+              <Plus className="w-6 h-6 text-gray-400 group-hover:text-white" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <h3 className="font-semibold text-gray-300 group-hover:text-white">Create new list</h3>
+              <p className="text-sm text-gray-500">Organize your way</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white flex-shrink-0" />
           </button>
         )}
       </main>

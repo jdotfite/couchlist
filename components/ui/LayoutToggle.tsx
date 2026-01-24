@@ -10,8 +10,8 @@ interface LayoutToggleProps {
 }
 
 /**
- * Compact layout toggle - shows only the current view icon.
- * Tapping switches to the other view.
+ * Compact layout toggle - shows the icon for the view you can switch TO.
+ * Tapping switches to that view.
  */
 export default function LayoutToggle({ layout, onLayoutChange }: LayoutToggleProps) {
   const toggleLayout = () => {
@@ -25,9 +25,9 @@ export default function LayoutToggle({ layout, onLayoutChange }: LayoutTogglePro
       title={layout === 'list' ? 'Switch to grid view' : 'Switch to list view'}
     >
       {layout === 'list' ? (
-        <List className="w-4 h-4 text-gray-400" />
-      ) : (
         <Grid3X3 className="w-4 h-4 text-gray-400" />
+      ) : (
+        <List className="w-4 h-4 text-gray-400" />
       )}
     </button>
   );
