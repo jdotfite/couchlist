@@ -56,7 +56,6 @@ export default function LibraryPage() {
   const [lists, setLists] = useState<ListData[]>([]);
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -104,7 +103,6 @@ export default function LibraryPage() {
       ]);
 
       setLists(systemListsResults);
-      setTotalCount(systemListsResults.reduce((sum, list) => sum + list.count, 0));
 
       // Parse custom lists
       if (customListsRes.ok) {
@@ -127,10 +125,8 @@ export default function LibraryPage() {
       <MainHeader title="Library" />
 
       <main className="px-4">
-        {/* Total Count */}
         <SectionHeader
           title="Your Library"
-          subtitle={`${totalCount} items`}
           ctaText="View All"
           ctaHref="/library/manage"
           className="mb-6"
