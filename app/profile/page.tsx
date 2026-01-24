@@ -57,6 +57,19 @@ interface PendingInvite {
   expiresAt: string;
 }
 
+interface IncomingInvite {
+  id: number;
+  inviteCode: string;
+  createdAt: string;
+  expiresAt: string;
+  sender: {
+    id: number;
+    name: string;
+    username: string | null;
+    image: string | null;
+  };
+}
+
 interface SearchUser {
   id: number;
   name: string;
@@ -75,7 +88,10 @@ export default function ProfilePage() {
   // Friends state
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [incomingInvites, setIncomingInvites] = useState<IncomingInvite[]>([]);
   const [sharingLoading, setSharingLoading] = useState(true);
+  const [acceptingInvite, setAcceptingInvite] = useState<number | null>(null);
+  const [decliningInvite, setDecliningInvite] = useState<number | null>(null);
 
   // Modal state
   const [showFriendModal, setShowFriendModal] = useState(false);
@@ -189,7 +205,7 @@ export default function ProfilePage() {
         setFriends(friendsData.friends || []);
       }
 
-      // Get pending friend invites
+      // Get pending friend invites (outgoing)
       const friendPendingRes = await fetch('/api/friends/pending-invites');
       if (friendPendingRes.ok) {
         const friendPendingData = await friendPendingRes.json();
@@ -198,6 +214,13 @@ export default function ProfilePage() {
           type: 'friend' as const,
         }));
         setPendingInvites(friendPending);
+      }
+
+      // Get incoming friend invites (requests from others)
+      const incomingRes = await fetch('/api/friends/incoming-invites');
+      if (incomingRes.ok) {
+        const incomingData = await incomingRes.json();
+        setIncomingInvites(incomingData.invites || []);
       }
     } catch (error) {
       console.error('Failed to fetch sharing data:', error);
@@ -264,6 +287,42 @@ export default function ProfilePage() {
       }
     } catch (err) {
       console.error('Failed to cancel invite:', err);
+    }
+  };
+
+  const acceptIncomingInvite = async (inviteId: number) => {
+    setAcceptingInvite(inviteId);
+    try {
+      const response = await fetch(`/api/friends/incoming-invites/${inviteId}`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        // Remove from incoming and refresh friends list
+        setIncomingInvites(prev => prev.filter(inv => inv.id !== inviteId));
+        fetchSharingData();
+      }
+    } catch (err) {
+      console.error('Failed to accept invite:', err);
+    } finally {
+      setAcceptingInvite(null);
+    }
+  };
+
+  const declineIncomingInvite = async (inviteId: number) => {
+    setDecliningInvite(inviteId);
+    try {
+      const response = await fetch(`/api/friends/incoming-invites/${inviteId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setIncomingInvites(prev => prev.filter(inv => inv.id !== inviteId));
+      }
+    } catch (err) {
+      console.error('Failed to decline invite:', err);
+    } finally {
+      setDecliningInvite(null);
     }
   };
 
@@ -410,7 +469,77 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {/* Pending friend invites */}
+              {/* Incoming friend requests */}
+              {incomingInvites.length > 0 && (
+                <div className="mb-3 space-y-2">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Friend Requests</p>
+                  {incomingInvites.map(inv => {
+                    const sentDate = new Date(inv.createdAt);
+                    const dateStr = `${sentDate.getDate().toString().padStart(2, '0')}/${(sentDate.getMonth() + 1).toString().padStart(2, '0')}/${sentDate.getFullYear().toString().slice(-2)}`;
+                    const isAccepting = acceptingInvite === inv.id;
+                    const isDeclining = decliningInvite === inv.id;
+
+                    return (
+                      <div key={inv.id} className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center overflow-hidden">
+                            {inv.sender.image ? (
+                              <img
+                                src={inv.sender.image}
+                                alt={inv.sender.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-white font-semibold">
+                                {inv.sender.name?.[0]?.toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{inv.sender.name}</p>
+                            <p className="text-xs text-gray-400">
+                              {inv.sender.username && <span>@{inv.sender.username} · </span>}
+                              Sent {dateStr}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          <button
+                            onClick={() => acceptIncomingInvite(inv.id)}
+                            disabled={isAccepting || isDeclining}
+                            className="flex-1 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1.5"
+                          >
+                            {isAccepting ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="w-4 h-4" />
+                                Accept
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => declineIncomingInvite(inv.id)}
+                            disabled={isAccepting || isDeclining}
+                            className="flex-1 py-2 bg-zinc-700 hover:bg-zinc-600 disabled:bg-zinc-700/50 rounded-lg text-sm font-medium transition flex items-center justify-center gap-1.5 text-gray-300"
+                          >
+                            {isDeclining ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <X className="w-4 h-4" />
+                                Decline
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Pending outgoing friend invites */}
               {friendPendingInvites.length > 0 && (
                 <div className="mb-3 space-y-2">
                   {friendPendingInvites.map(inv => {

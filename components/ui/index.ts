@@ -1,5 +1,5 @@
 export { IconCircle } from './IconCircle';
 export { StateDisplay } from './StateDisplay';
-export { LayoutToggle } from './LayoutToggle';
-export { MainHeader } from './MainHeader';
-export { SectionHeader } from './SectionHeader';
+export { default as LayoutToggle } from './LayoutToggle';
+export { default as MainHeader } from './MainHeader';
+export { default as SectionHeader } from './SectionHeader';
