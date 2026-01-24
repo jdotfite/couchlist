@@ -25,6 +25,7 @@ import EditListModal from '@/components/custom-lists/EditListModal';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
+import { ListVisibilityBadge, ListVisibilitySheet } from '@/components/sharing';
 import { getImageUrl } from '@/lib/tmdb';
 
 interface CustomList {
@@ -70,6 +71,7 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
   const [sortBy, setSortBy] = useState<SortOption>('added-desc');
   const [filters, setFilters] = useState<LibraryFilters>(DEFAULT_LIBRARY_FILTERS);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isVisibilitySheetOpen, setIsVisibilitySheetOpen] = useState(false);
 
   // Manage mode state
   const [isManageMode, setIsManageMode] = useState(false);
@@ -262,7 +264,14 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400">{items.length} items</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-gray-400">{items.length} items</p>
+              <ListVisibilityBadge
+                listType="custom"
+                listId={list.id}
+                onOpenSheet={() => setIsVisibilitySheetOpen(true)}
+              />
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -600,6 +609,15 @@ export default function CustomListPage({ params }: { params: Promise<{ slug: str
         </div>,
         document.body
       )}
+
+      {/* List Visibility Sheet */}
+      <ListVisibilitySheet
+        isOpen={isVisibilitySheetOpen}
+        onClose={() => setIsVisibilitySheetOpen(false)}
+        listType="custom"
+        listId={list.id}
+        listName={list.name}
+      />
     </div>
   );
 }

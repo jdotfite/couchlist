@@ -12,6 +12,7 @@ import CreateListModal from '@/components/custom-lists/CreateListModal';
 import EditListModal from '@/components/custom-lists/EditListModal';
 import { getIconComponent } from '@/components/custom-lists/IconPicker';
 import { getColorValue } from '@/components/custom-lists/ColorPicker';
+import { ListVisibilityInline } from '@/components/sharing';
 
 interface CustomList {
   id: number;
@@ -279,10 +280,11 @@ export default function ListsPage() {
                           <Users className="w-4 h-4 text-brand-primary flex-shrink-0" />
                         )}
                       </div>
-                      <p className="text-sm text-gray-400">
-                        {list.item_count || 0} items
-                        {list.description && ` • ${list.description}`}
-                      </p>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <span>{list.item_count || 0} items</span>
+                        <ListVisibilityInline listType="custom" listId={list.id} />
+                        {list.description && <span className="truncate">• {list.description}</span>}
+                      </div>
                     </div>
                   </Link>
                   <button

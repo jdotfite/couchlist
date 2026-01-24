@@ -2,6 +2,7 @@ import { sql } from '@vercel/postgres';
 import { createNotification } from './show-alerts';
 import { createInvite, getFriends as getCollaboratorFriends, areFriends } from './collaborators';
 import { getSuggestionStats } from './suggestions';
+import { cleanupFriendshipAccess } from './list-visibility';
 import type { Friend } from '@/types/sharing';
 
 // Re-export for convenience
@@ -23,7 +24,7 @@ export async function createFriendInvite(
 export async function acceptFriendInvite(
   inviteCode: string,
   acceptorId: number
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; friendUserId?: number }> {
   // Get the invite
   const inviteResult = await sql`
     SELECT c.*, u.name as owner_name
@@ -83,7 +84,7 @@ export async function acceptFriendInvite(
     },
   });
 
-  return { success: true };
+  return { success: true, friendUserId: invite.owner_id };
 }
 
 // ============================================================================
@@ -159,6 +160,11 @@ export async function removeFriend(
 
   const collab = collabResult.rows[0];
   const otherUserId = collab.other_user_id;
+
+  // Clean up list visibility access for both users
+  if (otherUserId) {
+    await cleanupFriendshipAccess(userId, otherUserId);
+  }
 
   // Delete the collaborator record
   await sql`DELETE FROM collaborators WHERE id = ${collaboratorId}`;

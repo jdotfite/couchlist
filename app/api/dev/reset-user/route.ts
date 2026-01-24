@@ -196,6 +196,37 @@ export async function POST(request: NextRequest) {
       results.traktConnections = 0;
     }
 
+    // 18. Clear list visibility settings
+    try {
+      const listVisibilityResult = await sql`
+        DELETE FROM list_visibility WHERE user_id = ${userId}
+      `;
+      results.listVisibility = listVisibilityResult.rowCount || 0;
+    } catch (e) {
+      results.listVisibility = 0;
+    }
+
+    // 19. Clear friend list access (both directions)
+    try {
+      const friendListAccessResult = await sql`
+        DELETE FROM friend_list_access
+        WHERE owner_id = ${userId} OR friend_id = ${userId}
+      `;
+      results.friendListAccess = friendListAccessResult.rowCount || 0;
+    } catch (e) {
+      results.friendListAccess = 0;
+    }
+
+    // 20. Clear friend default sharing preferences
+    try {
+      const friendDefaultSharingResult = await sql`
+        DELETE FROM friend_default_sharing WHERE user_id = ${userId}
+      `;
+      results.friendDefaultSharing = friendDefaultSharingResult.rowCount || 0;
+    } catch (e) {
+      results.friendDefaultSharing = 0;
+    }
+
     // Calculate total deleted
     const totalDeleted = Object.values(results).reduce((sum, count) => sum + count, 0);
 

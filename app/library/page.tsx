@@ -20,6 +20,7 @@ import { getImageUrl } from '@/lib/tmdb';
 import { useListPreferences } from '@/hooks/useListPreferences';
 import { getIconComponent } from '@/components/custom-lists/IconPicker';
 import { getColorValue } from '@/components/custom-lists/ColorPicker';
+import { ListVisibilityInline } from '@/components/sharing';
 
 interface ListData {
   slug: string;
@@ -159,7 +160,10 @@ export default function LibraryPage() {
                   {/* Info */}
                   <div className="flex-1 ml-4 min-w-0">
                     <h3 className="font-semibold text-lg">{displayName}</h3>
-                    <p className="text-sm text-gray-400">{list.count} items</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <span>{list.count} items</span>
+                      <ListVisibilityInline listType={list.slug} />
+                    </div>
                   </div>
 
                   {/* Preview Posters - stacked with rightmost on top */}
@@ -232,7 +236,10 @@ export default function LibraryPage() {
                       {/* Info */}
                       <div className="flex-1 ml-4 min-w-0">
                         <h3 className="font-semibold text-lg">{list.name}</h3>
-                        <p className="text-sm text-gray-400">{list.item_count} items</p>
+                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                          <span>{list.item_count} items</span>
+                          <ListVisibilityInline listType="custom" listId={list.id} />
+                        </div>
                       </div>
 
                       {/* Preview Posters - stacked with rightmost on top */}

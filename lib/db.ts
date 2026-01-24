@@ -902,6 +902,124 @@ export async function initDb() {
       ON user_streaming_services(user_id);
     `;
 
+    // ========================================================================
+    // Friend List Visibility System (Phase 1)
+    // Allows friends to see each other's lists with granular control
+    // ========================================================================
+
+    // List visibility settings - controls who can see each list
+    // visibility options: 'private' (default), 'select_friends', 'friends', 'public'
+    await sql`
+      CREATE TABLE IF NOT EXISTS list_visibility (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        list_type VARCHAR(30) NOT NULL,
+        list_id INTEGER,
+        visibility VARCHAR(20) DEFAULT 'private',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_list_visibility_user
+      ON list_visibility(user_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_list_visibility_lookup
+      ON list_visibility(user_id, list_type, list_id);
+    `;
+
+    // Unique index for system lists (list_id IS NULL)
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_list_visibility_system_unique
+      ON list_visibility(user_id, list_type)
+      WHERE list_id IS NULL;
+    `;
+
+    // Unique index for custom lists (list_id IS NOT NULL)
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_list_visibility_custom_unique
+      ON list_visibility(user_id, list_type, list_id)
+      WHERE list_id IS NOT NULL;
+    `;
+
+    // Friend list access - grants specific friends access to specific lists
+    // Used when visibility is 'select_friends' to track who has access
+    // can_edit: false = view only (default), true = can add/remove items (collaborator)
+    await sql`
+      CREATE TABLE IF NOT EXISTS friend_list_access (
+        id SERIAL PRIMARY KEY,
+        owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        friend_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        list_type VARCHAR(30) NOT NULL,
+        list_id INTEGER,
+        can_edit BOOLEAN DEFAULT false,
+        granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_friend_list_access_owner
+      ON friend_list_access(owner_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_friend_list_access_friend
+      ON friend_list_access(friend_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_friend_list_access_lookup
+      ON friend_list_access(owner_id, list_type, list_id);
+    `;
+
+    // Unique index for system lists (list_id IS NULL)
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_friend_list_access_system_unique
+      ON friend_list_access(owner_id, friend_id, list_type)
+      WHERE list_id IS NULL;
+    `;
+
+    // Unique index for custom lists (list_id IS NOT NULL)
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_friend_list_access_custom_unique
+      ON friend_list_access(owner_id, friend_id, list_type, list_id)
+      WHERE list_id IS NOT NULL;
+    `;
+
+    // Default sharing preferences - what lists to share with new friends automatically
+    await sql`
+      CREATE TABLE IF NOT EXISTS friend_default_sharing (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        list_type VARCHAR(30) NOT NULL,
+        list_id INTEGER,
+        share_by_default BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_friend_default_sharing_user
+      ON friend_default_sharing(user_id);
+    `;
+
+    // Unique index for system lists (list_id IS NULL)
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_friend_default_sharing_system_unique
+      ON friend_default_sharing(user_id, list_type)
+      WHERE list_id IS NULL;
+    `;
+
+    // Unique index for custom lists (list_id IS NOT NULL)
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_friend_default_sharing_custom_unique
+      ON friend_default_sharing(user_id, list_type, list_id)
+      WHERE list_id IS NOT NULL;
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },

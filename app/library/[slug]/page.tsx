@@ -5,13 +5,15 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star, ChevronLeft, Film, Tv, Settings, X, CheckSquare, Square, Trash2, ArrowRightLeft, Loader2 } from 'lucide-react';
+import { MoreVertical, Grid3X3, List, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star, ChevronLeft, Film, Tv, Settings, X, CheckSquare, Square, Trash2, ArrowRightLeft, Loader2, Eye } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import EmptyState from '@/components/EmptyState';
 import MediaListSkeleton from '@/components/MediaListSkeleton';
 import SortFilterBar, { SortOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
+import { ListVisibilityBadge } from '@/components/sharing/ListVisibilityBadge';
+import { ListVisibilitySheet } from '@/components/sharing/ListVisibilitySheet';
 import { getImageUrl } from '@/lib/tmdb';
 import { useListPreferences } from '@/hooks/useListPreferences';
 
@@ -141,6 +143,9 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   const [showMoveSheet, setShowMoveSheet] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [portalMounted, setPortalMounted] = useState(false);
+
+  // Visibility sheet state
+  const [isVisibilitySheetOpen, setIsVisibilitySheetOpen] = useState(false);
 
   useEffect(() => {
     setPortalMounted(true);
@@ -380,7 +385,14 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold truncate">{displayName}</h1>
-            <p className="text-xs text-gray-400">{items.length} items</p>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <span>{items.length} items</span>
+              <span className="text-gray-600">•</span>
+              <ListVisibilityBadge
+                listType={slug}
+                onOpenSheet={() => setIsVisibilitySheetOpen(true)}
+              />
+            </div>
           </div>
           <button
             onClick={toggleManageMode}
@@ -766,6 +778,14 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
         </div>,
         document.body
       )}
+
+      {/* List Visibility Sheet */}
+      <ListVisibilitySheet
+        isOpen={isVisibilitySheetOpen}
+        onClose={() => setIsVisibilitySheetOpen(false)}
+        listType={slug}
+        listName={displayName}
+      />
     </div>
   );
 }

@@ -239,3 +239,105 @@ export interface SharingState {
   pendingSuggestionsCount: number;
   isLoading: boolean;
 }
+
+// ============================================================================
+// List Visibility Types (Friend List Sharing)
+// ============================================================================
+
+export type VisibilityLevel = 'private' | 'select_friends' | 'friends' | 'public';
+
+export const SYSTEM_LIST_TYPES = [
+  'watchlist',
+  'watching',
+  'finished',
+  'onhold',
+  'dropped',
+  'favorites',
+  'rewatch',
+  'nostalgia'
+] as const;
+
+export type SystemListType = typeof SYSTEM_LIST_TYPES[number];
+
+export interface ListVisibilitySetting {
+  listType: string;
+  listId: number | null; // null for system lists
+  visibility: VisibilityLevel;
+  updatedAt?: string;
+}
+
+export interface FriendListAccess {
+  id: number;
+  friendId: number;
+  friendName: string;
+  friendUsername: string | null;
+  friendImage: string | null;
+  listType: string;
+  listId: number | null;
+  canEdit: boolean;
+  grantedAt: string;
+}
+
+export interface ListWithAccessInfo {
+  listType: string;
+  listId: number | null;
+  listName: string;
+  visibility: VisibilityLevel;
+  friendCount: number;
+  itemCount?: number;
+}
+
+export interface FriendWithSharedLists {
+  friendId: number;
+  friendName: string;
+  friendUsername: string | null;
+  friendImage: string | null;
+  sharedListCount: number;
+}
+
+export interface SharedListSummary {
+  listType: string;
+  listId: number | null;
+  listName: string;
+  itemCount: number;
+  canEdit: boolean;
+}
+
+// API Request/Response types for list visibility
+
+export interface SetListVisibilityRequest {
+  listType: string;
+  listId?: number | null;
+  visibility: VisibilityLevel;
+}
+
+export interface GrantFriendAccessRequest {
+  friendId: number;
+  listType: string;
+  listId?: number | null;
+  canEdit?: boolean;
+}
+
+export interface GrantMultipleFriendsAccessRequest {
+  friendIds: number[];
+  listType: string;
+  listId?: number | null;
+  canEdit?: boolean;
+}
+
+export interface SetDefaultSharingRequest {
+  lists: Array<{
+    listType: string;
+    listId?: number | null;
+    shareByDefault: boolean;
+  }>;
+}
+
+export interface FriendAcceptedListSelectionRequest {
+  friendId: number;
+  listsToShare: Array<{
+    listType: string;
+    listId?: number | null;
+  }>;
+  saveAsDefault?: boolean;
+}

@@ -22,7 +22,10 @@ export async function POST(
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      friendUserId: result.friendUserId,
+    });
   } catch (error) {
     console.error('Error accepting friend invite:', error);
     return NextResponse.json({ error: 'Failed to accept invite' }, { status: 500 });

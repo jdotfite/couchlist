@@ -21,7 +21,10 @@ import {
   X,
   MessageCircle,
   ChevronRight,
+  Eye,
+  Settings2,
 } from 'lucide-react';
+import { ListShareSelectorCompact, type SimpleListOption } from '@/components/sharing';
 
 interface Partner {
   id: number;
@@ -64,6 +67,11 @@ export default function SharingSettingsPage() {
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Default sharing preferences state
+  const [availableLists, setAvailableLists] = useState<SimpleListOption[]>([]);
+  const [defaultSharedLists, setDefaultSharedLists] = useState<string[]>([]);
+  const [savingDefaults, setSavingDefaults] = useState(false);
 
   // Partner invite modal state
   const [showPartnerInviteModal, setShowPartnerInviteModal] = useState(false);
@@ -111,9 +119,11 @@ export default function SharingSettingsPage() {
       setLoading(true);
 
       // Fetch partner, friends, and pending invites in parallel
-      const [partnerRes, friendsRes] = await Promise.all([
+      const [partnerRes, friendsRes, listsRes, defaultsRes] = await Promise.all([
         fetch('/api/partners'),
         fetch('/api/friends'),
+        fetch('/api/list-visibility'),
+        fetch('/api/list-visibility/defaults'),
       ]);
 
       const partnerData = await partnerRes.json();
@@ -125,6 +135,36 @@ export default function SharingSettingsPage() {
 
       if (friendsRes.ok) {
         setFriends(friendsData.friends || []);
+      }
+
+      // Parse available lists for sharing
+      if (listsRes.ok) {
+        const listsData = await listsRes.json();
+        const listOptions: SimpleListOption[] = [
+          ...(listsData.systemLists || []).map((l: { listType: string; visibility: string }) => ({
+            id: l.listType,
+            name: l.listType.charAt(0).toUpperCase() + l.listType.slice(1),
+            type: 'system' as const,
+          })),
+          ...(listsData.customLists || []).map((l: { listId: number; listName: string; visibility: string }) => ({
+            id: `custom-${l.listId}`,
+            name: l.listName,
+            type: 'custom' as const,
+            listId: l.listId,
+          })),
+        ];
+        setAvailableLists(listOptions);
+      }
+
+      // Parse default sharing preferences
+      if (defaultsRes.ok) {
+        const defaultsData = await defaultsRes.json();
+        const defaults = (defaultsData.defaults || [])
+          .filter((d: { shareByDefault: boolean }) => d.shareByDefault)
+          .map((d: { listType: string; listId: number | null }) =>
+            d.listId ? `custom-${d.listId}` : d.listType
+          );
+        setDefaultSharedLists(defaults);
       }
 
       // Fetch pending invites from both partner and friend endpoints
@@ -343,6 +383,45 @@ export default function SharingSettingsPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleDefaultSharingChange = async (selectedIds: string[]) => {
+    setDefaultSharedLists(selectedIds);
+    setSavingDefaults(true);
+
+    try {
+      // Build the defaults array
+      const defaults = availableLists.map((list) => {
+        const isSelected = selectedIds.includes(list.id);
+        if (list.type === 'custom' && list.listId) {
+          return {
+            listType: 'custom',
+            listId: list.listId,
+            shareByDefault: isSelected,
+          };
+        }
+        return {
+          listType: list.id,
+          listId: null,
+          shareByDefault: isSelected,
+        };
+      });
+
+      const response = await fetch('/api/list-visibility/defaults', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defaults }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to save default sharing preferences');
+      }
+    } catch (err) {
+      setError('Failed to save default sharing preferences');
+    } finally {
+      setSavingDefaults(false);
+    }
+  };
+
   const resetPartnerModal = () => {
     setShowPartnerInviteModal(false);
     setPartnerInviteTab('search');
@@ -384,7 +463,7 @@ export default function SharingSettingsPage() {
           </Link>
           <div className="flex-1">
             <h1 className="text-xl font-bold">Sharing</h1>
-            <p className="text-xs text-gray-400">Partner & Friends</p>
+            <p className="text-xs text-gray-400">Friends & List Sharing</p>
           </div>
         </div>
       </header>
@@ -401,17 +480,26 @@ export default function SharingSettingsPage() {
           </div>
         )}
 
-        {/* Partner Section */}
-        <section>
+        {/* Partner Section (Deprecated) */}
+        <section className="opacity-75">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center">
               <Heart className="w-4 h-4 text-pink-500" />
             </div>
             <div>
-              <h2 className="font-semibold">Partner</h2>
-              <p className="text-xs text-gray-500">Watch together, share lists bidirectionally</p>
+              <h2 className="font-semibold">Partner <span className="text-xs text-yellow-500 font-normal">(Legacy)</span></h2>
+              <p className="text-xs text-gray-500">Being replaced by Friends with sharing permissions</p>
             </div>
           </div>
+
+          {/* Deprecation notice */}
+          {!partner && partnerPendingInvites.length === 0 && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-4">
+              <p className="text-sm text-yellow-200">
+                Partner mode is being phased out. Use the Friends system below with list sharing instead.
+              </p>
+            </div>
+          )}
 
           {/* Partner pending invites */}
           {partnerPendingInvites.length > 0 && !partner && (
@@ -709,6 +797,49 @@ export default function SharingSettingsPage() {
               </div>
             )
           )}
+        </section>
+
+        {/* Default Sharing Section */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-brand-primary/20 rounded-full flex items-center justify-center">
+              <Settings2 className="w-4 h-4 text-brand-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold">Default List Sharing</h2>
+              <p className="text-xs text-gray-500">Auto-share these lists with new friends</p>
+            </div>
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <div className="flex items-start gap-3 mb-4">
+              <Eye className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-gray-400">
+                Select which lists to automatically share when you accept a new friend request.
+                You can always change sharing settings for individual friends later.
+              </p>
+            </div>
+
+            {availableLists.length > 0 ? (
+              <ListShareSelectorCompact
+                lists={availableLists}
+                selectedIds={defaultSharedLists}
+                onChange={handleDefaultSharingChange}
+                disabled={savingDefaults}
+              />
+            ) : (
+              <p className="text-sm text-gray-500 text-center py-4">
+                No lists available. Create lists first.
+              </p>
+            )}
+
+            {savingDefaults && (
+              <div className="flex items-center justify-center gap-2 mt-3 text-sm text-gray-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving...
+              </div>
+            )}
+          </div>
         </section>
       </main>
 
