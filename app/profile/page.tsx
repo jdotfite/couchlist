@@ -600,7 +600,7 @@ export default function ProfilePage() {
                           className="w-full flex items-center gap-3 p-3 hover:bg-zinc-700 transition"
                         >
                           <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
-                            <span className="text-blue-500 font-semibold text-sm">
+                            <span className="text-white font-semibold text-sm">
                               {user.name?.[0]?.toUpperCase()}
                             </span>
                           </div>
