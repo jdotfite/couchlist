@@ -629,7 +629,7 @@ export default function ProfilePage() {
                       {friend.image ? (
                         <img src={friend.image} alt={friend.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-blue-500 font-semibold text-sm">
+                        <span className="text-white font-semibold text-sm">
                           {friend.name?.[0]?.toUpperCase()}
                         </span>
                       )}
@@ -675,7 +675,7 @@ export default function ProfilePage() {
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Bell className="w-5 h-5 text-brand-primary" />
+              <Bell className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">Notifications</h3>
@@ -689,7 +689,7 @@ export default function ProfilePage() {
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Settings className="w-5 h-5 text-brand-primary" />
+              <Settings className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">Settings</h3>
@@ -702,8 +702,8 @@ export default function ProfilePage() {
             onClick={() => setShowLogoutModal(true)}
             className="card card-interactive w-full flex items-center gap-4"
           >
-            <div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center">
-              <LogOut className="w-5 h-5 text-gray-400" />
+            <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
+              <LogOut className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 text-left">
               <h3 className="font-semibold text-white">Log Out</h3>
