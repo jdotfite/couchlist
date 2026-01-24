@@ -119,7 +119,7 @@ export default function BrowseCards({
                 className={`relative aspect-square rounded-xl overflow-hidden transition group flex items-center justify-center ${
                   isUserService ? 'ring-2 ring-brand-primary ring-offset-2 ring-offset-black' : ''
                 }`}
-                style={{ backgroundColor: hexToRgba(bgColor, 0.65) }}
+                style={{ backgroundColor: hexToRgba(bgColor, 0.70) }}
               >
                 <StreamingServiceIcon
                   providerId={provider.provider_id}
