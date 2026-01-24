@@ -992,7 +992,7 @@ export default function SharingSettingsPage() {
             {partnerInviteTab === 'search' && partnerInviteSent && (
               <div className="text-center py-6">
                 <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-green-500" />
+                  <Check className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
                 <p className="text-gray-400 text-sm mb-4">
@@ -1229,7 +1229,7 @@ export default function SharingSettingsPage() {
             {friendInviteTab === 'search' && friendInviteSent && (
               <div className="text-center py-6">
                 <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-green-500" />
+                  <Check className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Invite Sent!</h3>
                 <p className="text-gray-400 text-sm mb-4">
