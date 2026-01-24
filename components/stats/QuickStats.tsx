@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Clock, Film, Tv, Star, ChevronRight, Play } from 'lucide-react';
+import { Clock, Film, Tv, Star, Play } from 'lucide-react';
+import SectionHeader from '@/components/ui/SectionHeader';
 
 interface StatsOverview {
   totalItems: number;
@@ -66,16 +66,12 @@ export default function QuickStats() {
 
   return (
     <div className="mt-8">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold">Your Stats</h2>
-        <Link
-          href="/stats"
-          className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
-        >
-          View all
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-      </div>
+      <SectionHeader
+        title="Your Stats"
+        ctaText="View all"
+        ctaHref="/stats"
+        className="mb-3"
+      />
 
       {/* Top Row - Watch Time & Library */}
       <div className="grid grid-cols-2 gap-4 mb-4">

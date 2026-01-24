@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   CheckSquare,
   Square,
@@ -11,7 +12,6 @@ import {
   X,
   Film,
   Tv,
-  Baby,
   Star,
   Loader2,
   ChevronDown,
@@ -35,6 +35,7 @@ interface ManageListViewProps {
   items: ManageableItem[];
   showStatus?: boolean; // Show status badge (useful for full library view)
   currentList?: string; // Current list context (e.g., 'watchlist', 'watching')
+  isSelectMode?: boolean; // Whether selection mode is active
   onDelete: (mediaIds: number[]) => Promise<void>;
   onMove: (mediaIds: number[], targetStatus: string) => Promise<void>;
   onRefresh: () => void;
@@ -50,12 +51,12 @@ const STATUS_OPTIONS = [
   { value: 'dropped', label: 'Dropped', color: 'bg-red-500' },
 ];
 
-const KIDS_GENRES = [10762, 10751, 16]; // Kids, Family, Animation
 
 export default function ManageListView({
   items,
   showStatus = false,
   currentList,
+  isSelectMode = true,
   onDelete,
   onMove,
   onRefresh,
@@ -129,11 +130,6 @@ export default function ManageListView({
     }
   };
 
-  const isKidsContent = (item: ManageableItem): boolean => {
-    const genres = item.genre_ids ? item.genre_ids.split(',').map(Number) : [];
-    return genres.some((g) => KIDS_GENRES.includes(g));
-  };
-
   const getStatusBadge = (status: string) => {
     const option = STATUS_OPTIONS.find((o) => o.value === status);
     if (!option) return null;
@@ -149,24 +145,26 @@ export default function ManageListView({
 
   return (
     <>
-      {/* Selection Controls */}
-      <div className="px-4 py-3 flex items-center justify-between text-sm border-b border-zinc-800">
-        <span className="text-gray-400">
-          {filteredItems.length} items
-          {selectedIds.size > 0 && <span className="text-white"> · {selectedIds.size} selected</span>}
-        </span>
-        <div className="flex items-center gap-3">
-          {selectedIds.size > 0 ? (
-            <button onClick={deselectAll} className="text-gray-400 hover:text-white">
-              Deselect all
-            </button>
-          ) : (
-            <button onClick={selectAll} className="text-gray-400 hover:text-white">
-              Select all
-            </button>
-          )}
+      {/* Selection Controls - only show in select mode */}
+      {isSelectMode && (
+        <div className="px-4 py-3 flex items-center justify-between text-sm border-b border-zinc-800">
+          <span className="text-gray-400">
+            {filteredItems.length} items
+            {selectedIds.size > 0 && <span className="text-white"> · {selectedIds.size} selected</span>}
+          </span>
+          <div className="flex items-center gap-3">
+            {selectedIds.size > 0 ? (
+              <button onClick={deselectAll} className="text-gray-400 hover:text-white">
+                Deselect all
+              </button>
+            ) : (
+              <button onClick={selectAll} className="text-gray-400 hover:text-white">
+                Select all
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Items Grid */}
       <div className="px-4 py-4">
@@ -178,31 +176,18 @@ export default function ManageListView({
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             {filteredItems.map((item) => {
               const isSelected = selectedIds.has(item.media_id);
-              const isKids = isKidsContent(item);
-
-              return (
-                <div
-                  key={item.user_media_id}
-                  onClick={() => toggleSelect(item.media_id)}
-                  className={`relative cursor-pointer transition ${
-                    isSelected ? 'ring-2 ring-brand-primary rounded-lg' : ''
-                  }`}
-                >
+              const itemContent = (
+                <>
                   {/* Poster */}
                   <div className="relative aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800">
-                    {/* Selection Checkbox */}
-                    <div className="absolute top-2 left-2 z-[1]">
-                      {isSelected ? (
-                        <CheckSquare className="w-5 h-5 text-brand-primary bg-black rounded" />
-                      ) : (
-                        <Square className="w-5 h-5 text-white/60 bg-black/50 rounded" />
-                      )}
-                    </div>
-
-                    {/* Kids Badge */}
-                    {isKids && (
-                      <div className="absolute top-2 right-2 z-[1] bg-pink-500 text-white text-[10px] px-1.5 py-0.5 rounded">
-                        <Baby className="w-3 h-3" />
+                    {/* Selection Checkbox - only in select mode */}
+                    {isSelectMode && (
+                      <div className="absolute top-2 left-2 z-[1]">
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-brand-primary bg-black rounded" />
+                        ) : (
+                          <Square className="w-5 h-5 text-white/60 bg-black/50 rounded" />
+                        )}
                       </div>
                     )}
 
@@ -210,11 +195,16 @@ export default function ManageListView({
                       src={getImageUrl(item.poster_path)}
                       alt={item.title}
                       fill
-                      className={`object-cover ${isSelected ? 'opacity-80' : ''}`}
+                      className={`object-cover ${isSelectMode && isSelected ? 'opacity-80' : ''}`}
                       sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw"
                     />
                   </div>
+                </>
+              );
 
+              // Shared content for title and meta
+              const metaContent = (
+                <>
                   {/* Title */}
                   <p className="mt-1 text-xs truncate">{item.title}</p>
 
@@ -241,7 +231,34 @@ export default function ManageListView({
                       {getStatusBadge(item.status)}
                     </div>
                   )}
-                </div>
+                </>
+              );
+
+              // In select mode, use div with onClick; otherwise use Link
+              if (isSelectMode) {
+                return (
+                  <div
+                    key={item.user_media_id}
+                    onClick={() => toggleSelect(item.media_id)}
+                    className={`relative cursor-pointer transition ${
+                      isSelected ? 'ring-2 ring-brand-primary rounded-lg' : ''
+                    }`}
+                  >
+                    {itemContent}
+                    {metaContent}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={item.user_media_id}
+                  href={`/${item.media_type}/${item.tmdb_id}`}
+                  className="relative block transition hover:opacity-80"
+                >
+                  {itemContent}
+                  {metaContent}
+                </Link>
               );
             })}
           </div>

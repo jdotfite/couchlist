@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Search, SlidersHorizontal, X, ChevronDown, Check, Filter } from 'lucide-react';
+import { Search, SlidersHorizontal, X, ChevronDown, Check, Filter, List, Grid3X3, CheckSquare } from 'lucide-react';
 
 export type SortOption = 'title-asc' | 'title-desc' | 'rating-desc' | 'rating-asc' | 'added-desc' | 'added-asc';
+export type LayoutOption = 'list' | 'grid';
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: 'added-desc', label: 'Recently Added' },
@@ -24,6 +25,13 @@ interface SortFilterBarProps {
   // Optional filter button
   onFilterClick?: () => void;
   filterCount?: number;
+  // Optional layout toggle
+  layout?: LayoutOption;
+  onLayoutChange?: (layout: LayoutOption) => void;
+  // Optional select/manage mode
+  isSelectMode?: boolean;
+  onSelectModeChange?: (isSelectMode: boolean) => void;
+  selectedCount?: number;
 }
 
 export default function SortFilterBar({
@@ -35,6 +43,11 @@ export default function SortFilterBar({
   placeholder = 'Search...',
   onFilterClick,
   filterCount = 0,
+  layout,
+  onLayoutChange,
+  isSelectMode,
+  onSelectModeChange,
+  selectedCount = 0,
 }: SortFilterBarProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -152,9 +165,58 @@ export default function SortFilterBar({
             </button>
           )}
 
+          {/* Spacer to push right-side controls */}
+          <div className="flex-1" />
+
+          {/* Layout Toggle (optional) */}
+          {onLayoutChange && layout && (
+            <div className="flex items-center gap-1 bg-zinc-800 rounded-lg p-1">
+              <button
+                onClick={() => onLayoutChange('list')}
+                className={`p-1.5 rounded-md transition ${
+                  layout === 'list' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onLayoutChange('grid')}
+                className={`p-1.5 rounded-md transition ${
+                  layout === 'grid' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Select Mode Toggle (optional) */}
+          {onSelectModeChange !== undefined && (
+            <button
+              onClick={() => onSelectModeChange(!isSelectMode)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition ${
+                isSelectMode
+                  ? 'bg-brand-primary text-white'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-gray-400'
+              }`}
+            >
+              {isSelectMode ? (
+                <>
+                  <X className="w-4 h-4" />
+                  <span className="text-sm">Cancel</span>
+                </>
+              ) : (
+                <>
+                  <CheckSquare className="w-4 h-4" />
+                  <span className="text-sm">Select</span>
+                </>
+              )}
+            </button>
+          )}
+
           {/* Result count */}
           {resultCount !== undefined && searchQuery && (
-            <span className="text-xs text-gray-500 ml-auto">
+            <span className="text-xs text-gray-500">
               {resultCount} result{resultCount !== 1 ? 's' : ''}
             </span>
           )}
@@ -165,7 +227,7 @@ export default function SortFilterBar({
 }
 
 // Helper function to sort items
-export function sortItems<T extends { title: string; rating?: number; added_date?: string }>(
+export function sortItems<T extends { title: string; rating?: number | null; added_date?: string }>(
   items: T[],
   sortBy: SortOption
 ): T[] {
