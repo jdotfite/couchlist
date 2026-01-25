@@ -156,10 +156,18 @@ export function FriendAcceptanceSheet({
     console.log('[FriendAcceptanceSheet] createCollaborativeList:', createCollaborativeList);
 
     try {
-      // First accept the invite
+      // Accept the invite and set up sharing in one call
       console.log('[FriendAcceptanceSheet] Calling accept endpoint...');
+      console.log('[FriendAcceptanceSheet] Lists to share:', Array.from(selectedLists));
+      console.log('[FriendAcceptanceSheet] Create collaborative list:', createCollaborativeList);
+
       const acceptRes = await fetch(`/api/collaborators/direct-invites/${inviteId}/accept`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lists: Array.from(selectedLists),
+          createCollaborativeList,
+        }),
       });
 
       if (!acceptRes.ok) {
@@ -167,50 +175,17 @@ export function FriendAcceptanceSheet({
         console.error('[FriendAcceptanceSheet] Accept failed:', errorData);
         throw new Error('Failed to accept invite');
       }
-      console.log('[FriendAcceptanceSheet] Accept succeeded');
 
-      // Then set up sharing for selected lists
-      console.log('[FriendAcceptanceSheet] selectedLists.size:', selectedLists.size);
-      console.log('[FriendAcceptanceSheet] selectedLists contents:', Array.from(selectedLists));
+      const acceptData = await acceptRes.json().catch(() => ({}));
+      console.log('[FriendAcceptanceSheet] Accept succeeded:', acceptData);
 
-      if (selectedLists.size > 0) {
-        const listsToShare = Array.from(selectedLists).map(listType => ({
-          listType,
-          canEdit: false, // Default to view-only
-        }));
-        console.log('[FriendAcceptanceSheet] About to call sharing PATCH with:', listsToShare);
-        console.log('[FriendAcceptanceSheet] friend.id:', friend.id, 'type:', typeof friend.id);
-
-        try {
-          const sharingRes = await fetch(`/api/friends/${friend.id}/sharing`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              listsToShare,
-              listsToRemove: [],
-            }),
-          });
-
-          const sharingData = await sharingRes.json().catch(() => ({}));
-          console.log('[FriendAcceptanceSheet] Sharing response:', sharingRes.status, sharingData);
-
-          if (!sharingRes.ok) {
-            console.error('[FriendAcceptanceSheet] Failed to set up sharing:', sharingData);
-            // Continue anyway - friendship was established, sharing can be set up later
-          } else {
-            console.log('[FriendAcceptanceSheet] Sharing setup successful');
-          }
-        } catch (sharingError) {
-          console.error('[FriendAcceptanceSheet] Exception during sharing setup:', sharingError);
-        }
-      } else {
-        console.log('[FriendAcceptanceSheet] No lists selected, skipping sharing setup');
-      }
+      // Use friendUserId from accept response, fallback to friend.id
+      const friendUserId = acceptData.friendUserId || friend.id;
 
       // Create collaborative list if opted in
       let collaborativeListName: string | undefined;
       if (createCollaborativeList) {
-        const collabRes = await fetch(`/api/friends/${friend.id}/collaborative-list`, {
+        const collabRes = await fetch(`/api/friends/${friendUserId}/collaborative-list`, {
           method: 'POST',
         });
 
@@ -226,12 +201,12 @@ export function FriendAcceptanceSheet({
 
       // Notify the friend (who sent the invite) about what was shared
       try {
-        await fetch(`/api/friends/${friend.id}/notify-acceptance`, {
+        await fetch(`/api/friends/${friendUserId}/notify-acceptance`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sharedLists: Array.from(selectedLists),
-            createdCollaborativeList,
+            createdCollaborativeList: createCollaborativeList,
             collaborativeListName,
           }),
         });
