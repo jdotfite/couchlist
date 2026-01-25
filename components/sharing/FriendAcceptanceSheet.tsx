@@ -383,6 +383,11 @@ export function FriendAcceptanceSheet({
                           {list.itemCount} {list.itemCount === 1 ? 'item' : 'items'}
                         </p>
                       </div>
+
+                      {/* View only indicator */}
+                      <span className="text-xs text-gray-500 bg-zinc-700/50 px-2 py-1 rounded flex-shrink-0">
+                        View only
+                      </span>
                     </button>
                   );
                 })}
