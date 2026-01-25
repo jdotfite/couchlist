@@ -440,7 +440,7 @@ export function FriendAcceptanceSheet({
                   </div>
 
                   {/* Can edit indicator */}
-                  <span className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded flex items-center gap-1 flex-shrink-0">
+                  <span className="text-xs text-gray-500 bg-zinc-700/50 px-2 py-1 rounded flex items-center gap-1 flex-shrink-0">
                     <Pencil className="w-3 h-3" />
                     Can edit
                   </span>
