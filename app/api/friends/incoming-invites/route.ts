@@ -22,7 +22,7 @@ export async function GET() {
         c.owner_id,
         u.name as sender_name,
         u.username as sender_username,
-        u.image as sender_image
+        u.profile_image as sender_image
       FROM collaborators c
       JOIN users u ON c.owner_id = u.id
       WHERE c.collaborator_id = ${userId}
