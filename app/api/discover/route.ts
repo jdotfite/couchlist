@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
+const TMDB_ACCESS_TOKEN = process.env.TMDB_ACCESS_TOKEN;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 
 interface DiscoverResult {
@@ -40,13 +41,17 @@ export async function GET(request: Request) {
     // Build common params
     const buildParams = (mediaType: 'movie' | 'tv') => {
       const params = new URLSearchParams({
-        api_key: TMDB_API_KEY!,
         language: 'en-US',
         page,
         sort_by: sortBy,
         'vote_count.gte': '50', // Filter out obscure content
         watch_region: 'US',
       });
+
+      // Add API key if using key-based auth (not token-based)
+      if (TMDB_API_KEY && !TMDB_ACCESS_TOKEN) {
+        params.set('api_key', TMDB_API_KEY);
+      }
 
       if (providers) {
         params.set('with_watch_providers', providers);
@@ -78,11 +83,16 @@ export async function GET(request: Request) {
       return params;
     };
 
+    // Build fetch options with auth
+    const fetchOptions: RequestInit = TMDB_ACCESS_TOKEN
+      ? { headers: { Authorization: `Bearer ${TMDB_ACCESS_TOKEN}` } }
+      : {};
+
     // Fetch movies
     if (type === 'all' || type === 'movie') {
       const movieParams = buildParams('movie');
       fetchPromises.push(
-        fetch(`${TMDB_BASE_URL}/discover/movie?${movieParams}`)
+        fetch(`${TMDB_BASE_URL}/discover/movie?${movieParams}`, fetchOptions)
           .then(res => res.json())
           .then(data => {
             if (data.results) {
@@ -101,7 +111,7 @@ export async function GET(request: Request) {
     if (type === 'all' || type === 'tv') {
       const tvParams = buildParams('tv');
       fetchPromises.push(
-        fetch(`${TMDB_BASE_URL}/discover/tv?${tvParams}`)
+        fetch(`${TMDB_BASE_URL}/discover/tv?${tvParams}`, fetchOptions)
           .then(res => res.json())
           .then(data => {
             if (data.results) {

@@ -4,7 +4,8 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_ACCESS_TOKEN = process.env.TMDB_ACCESS_TOKEN;
 
-if (!TMDB_API_KEY && !TMDB_ACCESS_TOKEN) {
+// Only warn on server-side (client imports this for getImageUrl but doesn't need credentials)
+if (typeof window === 'undefined' && !TMDB_API_KEY && !TMDB_ACCESS_TOKEN) {
   console.warn('TMDb API credentials not found. Set TMDB_API_KEY or TMDB_ACCESS_TOKEN in .env.local');
 }
 
