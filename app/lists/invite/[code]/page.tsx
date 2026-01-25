@@ -154,7 +154,7 @@ export default function CustomListInvitePage({ params }: { params: Promise<{ cod
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
         <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-6">
-          <Check className="w-8 h-8 text-green-500" />
+          <Check className="w-8 h-8 text-white" />
         </div>
         <h1 className="text-2xl font-bold mb-2">You're in!</h1>
         <p className="text-gray-400 mb-4 text-center">

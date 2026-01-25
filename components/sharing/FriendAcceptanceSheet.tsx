@@ -287,7 +287,7 @@ export function FriendAcceptanceSheet({
         <div className="px-4 pb-4 border-b border-zinc-800">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-              <UserPlus className="w-6 h-6 text-green-500" />
+              <UserPlus className="w-6 h-6 text-white" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
