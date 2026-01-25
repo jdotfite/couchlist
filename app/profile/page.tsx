@@ -503,7 +503,7 @@ export default function ProfilePage() {
                   <p className="text-xs text-gray-400 uppercase tracking-wide">Friend Requests</p>
                   {incomingInvites.map(inv => {
                     const sentDate = new Date(inv.createdAt);
-                    const dateStr = `${sentDate.getDate().toString().padStart(2, '0')}/${(sentDate.getMonth() + 1).toString().padStart(2, '0')}/${sentDate.getFullYear().toString().slice(-2)}`;
+                    const dateStr = `${(sentDate.getMonth() + 1).toString().padStart(2, '0')}/${sentDate.getDate().toString().padStart(2, '0')}/${sentDate.getFullYear().toString().slice(-2)}`;
                     const isAccepting = acceptingInvite === inv.id;
                     const isDeclining = decliningInvite === inv.id;
 
@@ -572,7 +572,7 @@ export default function ProfilePage() {
                 <div className="mb-3 space-y-2">
                   {friendPendingInvites.map(inv => {
                     const sentDate = new Date(inv.createdAt);
-                    const dateStr = `${sentDate.getDate().toString().padStart(2, '0')}/${(sentDate.getMonth() + 1).toString().padStart(2, '0')}/${sentDate.getFullYear().toString().slice(-2)}`;
+                    const dateStr = `${(sentDate.getMonth() + 1).toString().padStart(2, '0')}/${sentDate.getDate().toString().padStart(2, '0')}/${sentDate.getFullYear().toString().slice(-2)}`;
 
                     return (
                       <div key={inv.id} className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl relative">

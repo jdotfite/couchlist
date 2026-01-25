@@ -8,10 +8,10 @@ import {
   Loader2,
   ChevronRight,
   ArrowDownLeft,
+  ArrowUpRight,
   Eye,
   Users,
   Plus,
-  List,
   Save,
 } from 'lucide-react';
 import { SYSTEM_LISTS, SYSTEM_LIST_MAP } from '@/lib/list-config';
@@ -303,7 +303,7 @@ export function FriendSharingSheet({
           </div>
 
           <p className="text-sm text-gray-400 mt-3">
-            Choose which lists {friend?.name} can see. You can also create a shared list that you both can add to.
+            Choose which lists {friend?.name} can view. You can also create a shared list that you both can add to.
           </p>
         </div>
 
@@ -318,11 +318,11 @@ export function FriendSharingSheet({
               {/* Your Lists Section */}
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-1">
-                  <List className="w-4 h-4 text-brand-primary" />
+                  <ArrowUpRight className="w-4 h-4 text-brand-primary" />
                   <h3 className="font-semibold text-white">Your Lists</h3>
                 </div>
                 <p className="text-sm text-gray-500 mb-3">
-                  Select the lists you want {friend?.name} to see
+                  Select the lists you want {friend?.name} to view
                 </p>
 
                 <div className="space-y-2">
@@ -358,8 +358,54 @@ export function FriendSharingSheet({
                 </div>
               </div>
 
-              {/* Shared Together Section */}
+              {/* Their Lists Section */}
               <div className="pt-4 border-t border-zinc-800 mb-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <ArrowDownLeft className="w-4 h-4 text-brand-primary" />
+                  <h3 className="font-semibold text-white">
+                    {friend?.name}'s Lists
+                  </h3>
+                </div>
+                <p className="text-sm text-gray-500 mb-3">
+                  Lists shared with you
+                </p>
+
+                {theyShare.length > 0 ? (
+                  <div className="space-y-2">
+                    {theyShare.map((list) => (
+                      <Link
+                        key={`${list.listType}-${list.listId || 'system'}`}
+                        href={`/friends/${friendUserId}/${list.listType}`}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition"
+                      >
+                        <div className="flex-shrink-0">
+                          <ListIconWithBackground listType={list.listType} />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-white">
+                            {list.listName}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {list.itemCount} items
+                          </p>
+                        </div>
+
+                        <ChevronRight className="w-5 h-5 text-gray-400" />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-zinc-800/50 text-center">
+                    <p className="text-sm text-gray-500">
+                      {friend?.name} hasn't shared any lists with you yet
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Shared Together Section */}
+              <div className="pt-4 border-t border-zinc-800">
                 <div className="flex items-center gap-2 mb-1">
                   <Users className="w-4 h-4 text-brand-primary" />
                   <h3 className="font-semibold text-white">Shared Together</h3>
@@ -410,46 +456,6 @@ export function FriendSharingSheet({
                   </button>
                 )}
               </div>
-
-              {/* Their Lists Section */}
-              {theyShare.length > 0 && (
-                <div className="pt-4 border-t border-zinc-800">
-                  <div className="flex items-center gap-2 mb-1">
-                    <ArrowDownLeft className="w-4 h-4 text-brand-primary" />
-                    <h3 className="font-semibold text-white">
-                      {friend?.name}'s Lists
-                    </h3>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-3">
-                    Lists shared with you
-                  </p>
-
-                  <div className="space-y-2">
-                    {theyShare.map((list) => (
-                        <Link
-                          key={`${list.listType}-${list.listId || 'system'}`}
-                          href={`/friends/${friendUserId}/${list.listType}`}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition"
-                        >
-                          <div className="flex-shrink-0">
-                            <ListIconWithBackground listType={list.listType} />
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-white">
-                              {list.listName}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {list.itemCount} items
-                            </p>
-                          </div>
-
-                          <ChevronRight className="w-5 h-5 text-gray-400" />
-                        </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>
