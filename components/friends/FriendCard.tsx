@@ -127,10 +127,10 @@ export function FriendCard({ friend, onManageSharing, onRemove }: FriendCardProp
           {showMenu && (
             <>
               <div
-                className="fixed inset-0 z-10"
+                className="fixed inset-0 z-[60]"
                 onClick={() => setShowMenu(false)}
               />
-              <div className="absolute right-0 top-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-20 overflow-hidden min-w-[180px]">
+              <div className="absolute right-0 top-full mt-1 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg z-[70] overflow-hidden min-w-[180px]">
                 <button
                   onClick={() => {
                     setShowMenu(false);

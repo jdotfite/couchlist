@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
   X,
@@ -252,10 +253,11 @@ export function FriendSharingSheet({
   };
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const sharedCount = Object.values(selections).filter((s) => s.isShared).length;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -487,6 +489,7 @@ export function FriendSharingSheet({
           animation: slide-up 0.3s ease-out;
         }
       `}</style>
-    </>
+    </>,
+    document.body
   );
 }
