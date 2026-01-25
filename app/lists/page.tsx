@@ -271,7 +271,7 @@ export default function ListsPage() {
                   className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 rounded-xl transition"
                 >
                   <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-green-500/20">
-                    <Users2 className="w-6 h-6 text-green-400" />
+                    <Users2 className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

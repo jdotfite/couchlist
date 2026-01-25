@@ -419,7 +419,7 @@ export function FriendAcceptanceSheet({
 
                   {/* Icon */}
                   <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                    <Users className="w-5 h-5 text-green-400" />
+                    <Users className="w-5 h-5 text-white" />
                   </div>
 
                   {/* Name */}
