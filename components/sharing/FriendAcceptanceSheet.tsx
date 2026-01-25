@@ -462,14 +462,18 @@ export function FriendAcceptanceSheet({
             ) : (
               <>
                 <Check className="w-5 h-5" />
-                {selectedLists.size > 0
+                {selectedLists.size > 0 && createCollaborativeList
+                  ? `Share ${selectedLists.size} ${selectedLists.size === 1 ? 'List' : 'Lists'} + Collaborative`
+                  : selectedLists.size > 0
                   ? `Share ${selectedLists.size} ${selectedLists.size === 1 ? 'List' : 'Lists'}`
+                  : createCollaborativeList
+                  ? 'Create Collaborative List'
                   : 'Continue Without Sharing'}
               </>
             )}
           </button>
 
-          {selectedLists.size > 0 && (
+          {(selectedLists.size > 0 || createCollaborativeList) && (
             <button
               onClick={handleSkip}
               disabled={accepting}
