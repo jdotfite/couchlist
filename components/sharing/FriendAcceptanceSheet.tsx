@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Loader2,
@@ -12,6 +13,7 @@ import {
   Eye,
   Share2,
   Users,
+  Pencil,
 } from 'lucide-react';
 
 interface FriendInfo {
@@ -268,7 +270,7 @@ export function FriendAcceptanceSheet({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -436,6 +438,12 @@ export function FriendAcceptanceSheet({
                       Both of you can add and manage items
                     </p>
                   </div>
+
+                  {/* Can edit indicator */}
+                  <span className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded flex items-center gap-1 flex-shrink-0">
+                    <Pencil className="w-3 h-3" />
+                    Can edit
+                  </span>
                 </button>
               </div>
             </>
@@ -486,6 +494,7 @@ export function FriendAcceptanceSheet({
           animation: slide-up 0.3s ease-out;
         }
       `}</style>
-    </>
+    </>,
+    document.body
   );
 }
