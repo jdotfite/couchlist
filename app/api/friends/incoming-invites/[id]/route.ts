@@ -49,6 +49,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       WHERE id = ${inviteId}
     `;
 
+    // Clear the friend invite notification for the acceptor
+    await sql`
+      DELETE FROM notifications
+      WHERE user_id = ${userId}
+        AND type = 'collab_invite'
+        AND (data->>'inviter_id')::int = ${invite.owner_id}
+    `;
+
     // Notify the inviter
     const acceptorResult = await sql`
       SELECT name FROM users WHERE id = ${userId}
@@ -102,8 +110,18 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Invite not found' }, { status: 404 });
     }
 
+    const invite = inviteResult.rows[0];
+
     // Delete the invite (decline)
     await sql`DELETE FROM collaborators WHERE id = ${inviteId}`;
+
+    // Clear the friend invite notification
+    await sql`
+      DELETE FROM notifications
+      WHERE user_id = ${userId}
+        AND type = 'collab_invite'
+        AND (data->>'inviter_id')::int = ${invite.owner_id}
+    `;
 
     return NextResponse.json({ success: true });
   } catch (error) {
