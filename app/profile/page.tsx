@@ -15,7 +15,7 @@ import MainHeader from '@/components/ui/MainHeader';
 import { StateDisplay } from '@/components/ui';
 import { useProfileImage } from '@/hooks/useProfileImage';
 import { FriendCard } from '@/components/friends';
-import { FriendSharingSheet } from '@/components/sharing';
+import { FriendSharingSheet, FriendAcceptanceSheet } from '@/components/sharing';
 
 interface LibraryCounts {
   movies: number;
@@ -122,6 +122,17 @@ export default function ProfilePage() {
 
   // Friend sharing sheet state
   const [friendSharingUserId, setFriendSharingUserId] = useState<number | null>(null);
+
+  // Friend acceptance flow state (for showing list sharing options)
+  const [pendingFriendAccept, setPendingFriendAccept] = useState<{
+    inviteId: number;
+    friend: {
+      id: number;
+      name: string;
+      username: string | null;
+      image: string | null;
+    };
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -290,23 +301,35 @@ export default function ProfilePage() {
     }
   };
 
-  const acceptIncomingInvite = async (inviteId: number) => {
-    setAcceptingInvite(inviteId);
-    try {
-      const response = await fetch(`/api/friends/incoming-invites/${inviteId}`, {
-        method: 'POST',
-      });
+  const acceptIncomingInvite = (inviteId: number) => {
+    // Find the invite to get sender info
+    const invite = incomingInvites.find(inv => inv.id === inviteId);
+    if (!invite) return;
 
-      if (response.ok) {
-        // Remove from incoming and refresh friends list
-        setIncomingInvites(prev => prev.filter(inv => inv.id !== inviteId));
-        fetchSharingData();
-      }
-    } catch (err) {
-      console.error('Failed to accept invite:', err);
-    } finally {
-      setAcceptingInvite(null);
+    // Show the FriendAcceptanceSheet for list sharing options
+    setPendingFriendAccept({
+      inviteId: invite.id,
+      friend: {
+        id: invite.sender.id,
+        name: invite.sender.name,
+        username: invite.sender.username,
+        image: invite.sender.image,
+      },
+    });
+  };
+
+  const handleFriendAccepted = () => {
+    if (pendingFriendAccept) {
+      // Remove from incoming invites list
+      setIncomingInvites(prev => prev.filter(inv => inv.id !== pendingFriendAccept.inviteId));
     }
+    setPendingFriendAccept(null);
+
+    // Dispatch event to notify other components (like notification center)
+    window.dispatchEvent(new CustomEvent('connection-accepted'));
+
+    // Refresh friends list
+    fetchSharingData();
   };
 
   const declineIncomingInvite = async (inviteId: number) => {
@@ -920,6 +943,17 @@ export default function ProfilePage() {
           fetchSharingData();
         }}
       />
+
+      {/* Friend Acceptance Sheet (list sharing options when accepting) */}
+      {pendingFriendAccept && (
+        <FriendAcceptanceSheet
+          isOpen={true}
+          onClose={() => setPendingFriendAccept(null)}
+          friend={pendingFriendAccept.friend}
+          inviteId={pendingFriendAccept.inviteId}
+          onAccepted={handleFriendAccepted}
+        />
+      )}
     </div>
   );
 }

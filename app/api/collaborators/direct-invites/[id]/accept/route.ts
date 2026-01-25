@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { sql } from '@vercel/postgres';
 import { acceptDirectInvite } from '@/lib/collaborators';
 
 // POST /api/collaborators/direct-invites/[id]/accept - Accept a direct invite
@@ -33,6 +34,23 @@ export async function POST(
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
+    // Get the invite owner to clear the notification
+    const inviteResult = await sql`
+      SELECT owner_id FROM collaborators WHERE id = ${inviteId}
+    `;
+
+    if (inviteResult.rows.length > 0) {
+      const ownerId = inviteResult.rows[0].owner_id;
+
+      // Clear the friend invite notification for the acceptor
+      await sql`
+        DELETE FROM notifications
+        WHERE user_id = ${userId}
+          AND type = 'collab_invite'
+          AND (data->>'inviter_id')::int = ${ownerId}
+      `;
     }
 
     return NextResponse.json({ success: true });
