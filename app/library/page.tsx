@@ -6,11 +6,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Play,
-  List,
-  CheckCircle2,
   ChevronRight,
   Plus,
+  LucideIcon,
+  Users2,
 } from 'lucide-react';
 import LibraryPageSkeleton from '@/components/skeletons/LibraryPageSkeleton';
 import MainHeader from '@/components/ui/MainHeader';
@@ -21,11 +20,12 @@ import { getIconComponent } from '@/components/custom-lists/IconPicker';
 import { getColorValue } from '@/components/custom-lists/ColorPicker';
 import { ListVisibilityInline } from '@/components/sharing';
 import SectionHeader from '@/components/ui/SectionHeader';
+import { SYSTEM_LISTS } from '@/lib/list-config';
 
 interface ListData {
   slug: string;
   title: string;
-  icon: typeof Play;
+  icon: LucideIcon;
   color: string;
   items: { poster_path: string | null }[];
   count: number;
@@ -41,12 +41,23 @@ interface CustomList {
   items: { poster_path: string | null }[];
 }
 
-// Core system lists (removed On Hold and Dropped - users can create custom lists for those)
-const listConfig = [
-  { slug: 'watching', title: 'Watching', icon: Play, color: 'from-emerald-500 to-emerald-700', api: '/api/watching' },
-  { slug: 'watchlist', title: 'Watchlist', icon: List, color: 'from-blue-500 to-blue-700', api: '/api/watchlist' },
-  { slug: 'finished', title: 'Watched', icon: CheckCircle2, color: 'from-purple-500 to-purple-700', api: '/api/watched' },
-];
+interface CollaborativeList {
+  id: number;
+  name: string;
+  itemCount: number;
+  friendUserId: number;
+  friendName: string;
+  friendImage: string | null;
+}
+
+// Core system lists - uses centralized config from lib/list-config.ts
+const listConfig = SYSTEM_LISTS.map((list) => ({
+  slug: list.slug,
+  title: list.title,
+  icon: list.icon,
+  color: list.bgColorClass,
+  api: list.slug === 'finished' ? '/api/watched' : `/api/${list.slug}`,
+}));
 
 export default function LibraryPage() {
   const { data: session, status } = useSession();
@@ -55,6 +66,7 @@ export default function LibraryPage() {
 
   const [lists, setLists] = useState<ListData[]>([]);
   const [customLists, setCustomLists] = useState<CustomList[]>([]);
+  const [collaborativeLists, setCollaborativeLists] = useState<CollaborativeList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -68,8 +80,8 @@ export default function LibraryPage() {
   const fetchAllLists = async () => {
     setIsLoading(true);
     try {
-      // Fetch system lists and custom lists in parallel
-      const [systemListsResults, customListsRes] = await Promise.all([
+      // Fetch system lists, custom lists, and collaborative lists in parallel
+      const [systemListsResults, customListsRes, collaborativeListsRes] = await Promise.all([
         Promise.all(
           listConfig.map(async (config) => {
             try {
@@ -100,6 +112,7 @@ export default function LibraryPage() {
           })
         ),
         fetch('/api/custom-lists'),
+        fetch('/api/collaborative-lists'),
       ]);
 
       setLists(systemListsResults);
@@ -108,6 +121,12 @@ export default function LibraryPage() {
       if (customListsRes.ok) {
         const customData = await customListsRes.json();
         setCustomLists(customData.lists || []);
+      }
+
+      // Parse collaborative lists
+      if (collaborativeListsRes.ok) {
+        const collabData = await collaborativeListsRes.json();
+        setCollaborativeLists(collabData.lists || []);
       }
     } catch (error) {
       console.error('Failed to fetch lists:', error);
@@ -129,7 +148,7 @@ export default function LibraryPage() {
           title="Your Library"
           ctaText="View All"
           ctaHref="/library/manage"
-          className="mb-6"
+          className="mb-3"
         />
 
         {/* List Cards */}
@@ -294,6 +313,62 @@ export default function LibraryPage() {
             </Link>
           )}
         </div>
+
+        {/* Shared With Friends Section */}
+        {collaborativeLists.length > 0 && (
+          <div className="mt-8">
+            <SectionHeader
+              title="Shared With Friends"
+              className="mb-3"
+            />
+            <div className="space-y-3">
+              {collaborativeLists.map((list) => (
+                <Link
+                  key={list.id}
+                  href={`/friends/${list.friendUserId}`}
+                  className="block bg-zinc-900 hover:bg-zinc-800 rounded-xl overflow-hidden transition group"
+                >
+                  <div className="flex items-center p-4">
+                    {/* Icon */}
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-brand-primary flex-shrink-0">
+                      <Users2 className="w-6 h-6 text-white" />
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 ml-4 min-w-0">
+                      <h3 className="font-semibold text-lg">{list.name}</h3>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <span>{list.itemCount} items</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          {list.friendImage ? (
+                            <Image
+                              src={list.friendImage}
+                              alt={list.friendName}
+                              width={16}
+                              height={16}
+                              className="rounded-full"
+                            />
+                          ) : (
+                            <div className="w-4 h-4 bg-zinc-600 rounded-full flex items-center justify-center">
+                              <span className="text-[8px] font-medium">
+                                {list.friendName?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          with {list.friendName}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Arrow */}
+                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition flex-shrink-0" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Quick Stats Section */}
         <QuickStats />

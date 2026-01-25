@@ -22,6 +22,7 @@
   /* Feedback Colors */
   --color-feedback-success: #22c55e;
   --color-feedback-warning: #f59e0b;
+  --color-feedback-warning-soft: #c9a35c;
   --color-feedback-error: #ef4444;
   --color-feedback-info: #3b82f6;
 
@@ -85,6 +86,7 @@
   /* Feedback Colors */
   --feedback-success: #22c55e;
   --feedback-warning: #f59e0b;
+  --feedback-warning-soft: #c9a35c;  /* Muted amber for subtle alerts */
   --feedback-error: #ef4444;
   --feedback-info: #3b82f6;
 
@@ -220,29 +222,7 @@ h1, h2, h3, h4, h5, h6 {
   animation: slide-up 0.3s ease-out forwards;
 }
 
-@keyframes film-reel-unravel {
-  0% {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-  90% {
-    stroke-dashoffset: -1000;
-    opacity: 1;
-  }
-  90.01% {
-    stroke-dashoffset: 0;
-    opacity: 0;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-}
-
-.film-reel-spiral {
-  stroke-dasharray: 1000;
-  animation: film-reel-unravel 10.8s ease-in infinite;
-}
+/* film-reel spinner removed - skeletons used instead */
 
 .auth-gradient {
   background: linear-gradient(

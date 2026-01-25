@@ -54,13 +54,25 @@ export async function getListVisibility(
   listType: string,
   listId: number | null = null
 ): Promise<VisibilityLevel> {
-  const result = await db`
-    SELECT visibility
-    FROM list_visibility
-    WHERE user_id = ${userId}
-      AND list_type = ${listType}
-      AND (list_id = ${listId} OR (list_id IS NULL AND ${listId} IS NULL))
-  `;
+  // Handle null listId separately to avoid SQL type inference issues
+  let result;
+  if (listId === null) {
+    result = await db`
+      SELECT visibility
+      FROM list_visibility
+      WHERE user_id = ${userId}
+        AND list_type = ${listType}
+        AND list_id IS NULL
+    `;
+  } else {
+    result = await db`
+      SELECT visibility
+      FROM list_visibility
+      WHERE user_id = ${userId}
+        AND list_type = ${listType}
+        AND list_id = ${listId}
+    `;
+  }
 
   return (result.rows[0]?.visibility as VisibilityLevel) || 'private';
 }
@@ -95,13 +107,23 @@ export async function setListVisibility(
 ): Promise<void> {
   console.log(`[setListVisibility] User ${userId} setting ${listType} to ${visibility}`);
 
-  // Check if record exists
-  const existing = await db`
-    SELECT id FROM list_visibility
-    WHERE user_id = ${userId}
-      AND list_type = ${listType}
-      AND (list_id = ${listId} OR (list_id IS NULL AND ${listId} IS NULL))
-  `;
+  // Check if record exists - handle null listId separately
+  let existing;
+  if (listId === null) {
+    existing = await db`
+      SELECT id FROM list_visibility
+      WHERE user_id = ${userId}
+        AND list_type = ${listType}
+        AND list_id IS NULL
+    `;
+  } else {
+    existing = await db`
+      SELECT id FROM list_visibility
+      WHERE user_id = ${userId}
+        AND list_type = ${listType}
+        AND list_id = ${listId}
+    `;
+  }
 
   if (existing.rows.length > 0) {
     // Update existing
@@ -150,7 +172,7 @@ export async function grantFriendAccess(
   listId: number | null = null,
   canEdit: boolean = false
 ): Promise<void> {
-  console.log(`[grantFriendAccess] Owner ${ownerId} granting ${friendId} access to ${listType}`);
+  console.log(`[grantFriendAccess] Owner ${ownerId} granting ${friendId} access to ${listType}, listId=${listId}, canEdit=${canEdit}`);
 
   // Verify they are actually friends
   const friends = await areFriends(ownerId, friendId);
@@ -160,14 +182,25 @@ export async function grantFriendAccess(
     throw new Error('Users are not friends');
   }
 
-  // Check if record exists
-  const existing = await db`
-    SELECT id FROM friend_list_access
-    WHERE owner_id = ${ownerId}
-      AND friend_id = ${friendId}
-      AND list_type = ${listType}
-      AND (list_id = ${listId} OR (list_id IS NULL AND ${listId} IS NULL))
-  `;
+  // Check if record exists - handle null listId separately to avoid SQL type inference issues
+  let existing;
+  if (listId === null) {
+    existing = await db`
+      SELECT id FROM friend_list_access
+      WHERE owner_id = ${ownerId}
+        AND friend_id = ${friendId}
+        AND list_type = ${listType}
+        AND list_id IS NULL
+    `;
+  } else {
+    existing = await db`
+      SELECT id FROM friend_list_access
+      WHERE owner_id = ${ownerId}
+        AND friend_id = ${friendId}
+        AND list_type = ${listType}
+        AND list_id = ${listId}
+    `;
+  }
 
   if (existing.rows.length > 0) {
     // Update existing
@@ -196,13 +229,23 @@ export async function revokeFriendAccess(
   listType: string,
   listId: number | null = null
 ): Promise<void> {
-  await db`
-    DELETE FROM friend_list_access
-    WHERE owner_id = ${ownerId}
-      AND friend_id = ${friendId}
-      AND list_type = ${listType}
-      AND (list_id = ${listId} OR (list_id IS NULL AND ${listId} IS NULL))
-  `;
+  if (listId === null) {
+    await db`
+      DELETE FROM friend_list_access
+      WHERE owner_id = ${ownerId}
+        AND friend_id = ${friendId}
+        AND list_type = ${listType}
+        AND list_id IS NULL
+    `;
+  } else {
+    await db`
+      DELETE FROM friend_list_access
+      WHERE owner_id = ${ownerId}
+        AND friend_id = ${friendId}
+        AND list_type = ${listType}
+        AND list_id = ${listId}
+    `;
+  }
 }
 
 /**
@@ -223,14 +266,25 @@ export async function grantFriendAccessMultiple(
     const listId = list.listId ?? null;
     const canEdit = list.canEdit ?? false;
 
-    // Check if record exists
-    const existing = await db`
-      SELECT id FROM friend_list_access
-      WHERE owner_id = ${ownerId}
-        AND friend_id = ${friendId}
-        AND list_type = ${list.listType}
-        AND (list_id = ${listId} OR (list_id IS NULL AND ${listId} IS NULL))
-    `;
+    // Check if record exists - handle null listId separately
+    let existing;
+    if (listId === null) {
+      existing = await db`
+        SELECT id FROM friend_list_access
+        WHERE owner_id = ${ownerId}
+          AND friend_id = ${friendId}
+          AND list_type = ${list.listType}
+          AND list_id IS NULL
+      `;
+    } else {
+      existing = await db`
+        SELECT id FROM friend_list_access
+        WHERE owner_id = ${ownerId}
+          AND friend_id = ${friendId}
+          AND list_type = ${list.listType}
+          AND list_id = ${listId}
+      `;
+    }
 
     if (existing.rows.length > 0) {
       await db`
@@ -265,24 +319,46 @@ export async function getListFriends(
   listType: string,
   listId: number | null = null
 ): Promise<FriendListAccess[]> {
-  const result = await db`
-    SELECT
-      fla.id,
-      fla.friend_id,
-      u.name as friend_name,
-      u.username as friend_username,
-      u.profile_image as friend_image,
-      fla.list_type,
-      fla.list_id,
-      fla.can_edit,
-      fla.granted_at
-    FROM friend_list_access fla
-    JOIN users u ON u.id = fla.friend_id
-    WHERE fla.owner_id = ${ownerId}
-      AND fla.list_type = ${listType}
-      AND (fla.list_id = ${listId} OR (fla.list_id IS NULL AND ${listId} IS NULL))
-    ORDER BY fla.granted_at DESC
-  `;
+  let result;
+  if (listId === null) {
+    result = await db`
+      SELECT
+        fla.id,
+        fla.friend_id,
+        u.name as friend_name,
+        u.username as friend_username,
+        u.profile_image as friend_image,
+        fla.list_type,
+        fla.list_id,
+        fla.can_edit,
+        fla.granted_at
+      FROM friend_list_access fla
+      JOIN users u ON u.id = fla.friend_id
+      WHERE fla.owner_id = ${ownerId}
+        AND fla.list_type = ${listType}
+        AND fla.list_id IS NULL
+      ORDER BY fla.granted_at DESC
+    `;
+  } else {
+    result = await db`
+      SELECT
+        fla.id,
+        fla.friend_id,
+        u.name as friend_name,
+        u.username as friend_username,
+        u.profile_image as friend_image,
+        fla.list_type,
+        fla.list_id,
+        fla.can_edit,
+        fla.granted_at
+      FROM friend_list_access fla
+      JOIN users u ON u.id = fla.friend_id
+      WHERE fla.owner_id = ${ownerId}
+        AND fla.list_type = ${listType}
+        AND fla.list_id = ${listId}
+      ORDER BY fla.granted_at DESC
+    `;
+  }
 
   return result.rows.map(row => ({
     id: row.id,
@@ -445,14 +521,25 @@ export async function canViewList(
       return await areFriends(viewerId, ownerId);
 
     case 'select_friends':
-      // Check if viewer has explicit access
-      const accessResult = await db`
-        SELECT id FROM friend_list_access
-        WHERE owner_id = ${ownerId}
-          AND friend_id = ${viewerId}
-          AND list_type = ${listType}
-          AND (list_id = ${listId} OR (list_id IS NULL AND ${listId} IS NULL))
-      `;
+      // Check if viewer has explicit access - handle null listId separately
+      let accessResult;
+      if (listId === null) {
+        accessResult = await db`
+          SELECT id FROM friend_list_access
+          WHERE owner_id = ${ownerId}
+            AND friend_id = ${viewerId}
+            AND list_type = ${listType}
+            AND list_id IS NULL
+        `;
+      } else {
+        accessResult = await db`
+          SELECT id FROM friend_list_access
+          WHERE owner_id = ${ownerId}
+            AND friend_id = ${viewerId}
+            AND list_type = ${listType}
+            AND list_id = ${listId}
+        `;
+      }
       return accessResult.rows.length > 0;
 
     default:
@@ -474,15 +561,27 @@ export async function canEditList(
     return true;
   }
 
-  // Check for explicit edit access
-  const result = await db`
-    SELECT can_edit FROM friend_list_access
-    WHERE owner_id = ${ownerId}
-      AND friend_id = ${editorId}
-      AND list_type = ${listType}
-      AND (list_id = ${listId} OR (list_id IS NULL AND ${listId} IS NULL))
-      AND can_edit = true
-  `;
+  // Check for explicit edit access - handle null listId separately
+  let result;
+  if (listId === null) {
+    result = await db`
+      SELECT can_edit FROM friend_list_access
+      WHERE owner_id = ${ownerId}
+        AND friend_id = ${editorId}
+        AND list_type = ${listType}
+        AND list_id IS NULL
+        AND can_edit = true
+    `;
+  } else {
+    result = await db`
+      SELECT can_edit FROM friend_list_access
+      WHERE owner_id = ${ownerId}
+        AND friend_id = ${editorId}
+        AND list_type = ${listType}
+        AND list_id = ${listId}
+        AND can_edit = true
+    `;
+  }
 
   return result.rows.length > 0;
 }
@@ -624,13 +723,23 @@ export async function setDefaultSharingPreference(
   listId: number | null = null
 ): Promise<void> {
   if (shareByDefault) {
-    // Check if record exists
-    const existing = await db`
-      SELECT id FROM friend_default_sharing
-      WHERE user_id = ${userId}
-        AND list_type = ${listType}
-        AND (list_id = ${listId} OR (list_id IS NULL AND ${listId} IS NULL))
-    `;
+    // Check if record exists - handle null listId separately
+    let existing;
+    if (listId === null) {
+      existing = await db`
+        SELECT id FROM friend_default_sharing
+        WHERE user_id = ${userId}
+          AND list_type = ${listType}
+          AND list_id IS NULL
+      `;
+    } else {
+      existing = await db`
+        SELECT id FROM friend_default_sharing
+        WHERE user_id = ${userId}
+          AND list_type = ${listType}
+          AND list_id = ${listId}
+      `;
+    }
 
     if (existing.rows.length > 0) {
       await db`
@@ -645,12 +754,21 @@ export async function setDefaultSharingPreference(
       `;
     }
   } else {
-    await db`
-      DELETE FROM friend_default_sharing
-      WHERE user_id = ${userId}
-        AND list_type = ${listType}
-        AND (list_id = ${listId} OR (list_id IS NULL AND ${listId} IS NULL))
-    `;
+    if (listId === null) {
+      await db`
+        DELETE FROM friend_default_sharing
+        WHERE user_id = ${userId}
+          AND list_type = ${listType}
+          AND list_id IS NULL
+      `;
+    } else {
+      await db`
+        DELETE FROM friend_default_sharing
+        WHERE user_id = ${userId}
+          AND list_type = ${listType}
+          AND list_id = ${listId}
+      `;
+    }
   }
 }
 

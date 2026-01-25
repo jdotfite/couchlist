@@ -146,7 +146,7 @@ export default function StatsPage() {
         </div>
       </header>
 
-      <main className="px-4 py-6 space-y-4 max-w-4xl mx-auto">
+      <main className="px-4 space-y-4 max-w-4xl mx-auto">
         {/* Top Row - Watch Time & Library */}
         <div className="grid grid-cols-2 gap-4">
           {/* Watch Time Card */}

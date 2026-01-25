@@ -62,6 +62,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const friendUserId = parseInt(id);
 
+    console.log('[collaborative-list/POST] Creating list for userId:', userId, 'friendUserId:', friendUserId);
+
     if (isNaN(friendUserId)) {
       return NextResponse.json({ error: 'Invalid friend ID' }, { status: 400 });
     }
@@ -72,9 +74,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const result = await createCollaborativeList(userId, friendUserId, name);
 
     if (!result.success) {
+      console.log('[collaborative-list/POST] Failed:', result.error);
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
+    console.log('[collaborative-list/POST] Success, list:', result.list?.name);
     return NextResponse.json({ success: true, list: result.list });
   } catch (error) {
     console.error('Error creating collaborative list:', error);

@@ -10,7 +10,6 @@ import { Calendar, Clock, Tv, ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import StarRatingPopup from '@/components/StarRatingPopup';
-import FilmReelSpinner from '@/components/FilmReelSpinner';
 import NotesSection from '@/components/NotesSection';
 import WatchProviders from '@/components/WatchProviders';
 import TVProgressSection from '@/components/episodes/TVProgressSection';
@@ -94,7 +93,18 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
   };
 
   if (loading) {
-    return <FilmReelSpinner fullScreen />;
+    return (
+      <div className="min-h-screen bg-black text-white pb-24">
+        <div className="w-full aspect-[2/3] max-h-[70vh] bg-zinc-900 animate-pulse" />
+        <div className="px-4 pt-4 space-y-3">
+          <div className="h-6 w-48 bg-zinc-800 rounded animate-pulse" />
+          <div className="h-4 w-32 bg-zinc-800 rounded animate-pulse" />
+          <div className="h-3 w-full bg-zinc-800 rounded animate-pulse" />
+          <div className="h-3 w-full bg-zinc-800 rounded animate-pulse" />
+          <div className="h-3 w-2/3 bg-zinc-800 rounded animate-pulse" />
+        </div>
+      </div>
+    );
   }
 
   if (!media) {

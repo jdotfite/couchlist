@@ -5,20 +5,15 @@ import Link from 'next/link';
 import {
   X,
   Loader2,
-  Check,
   ChevronRight,
-  ArrowUpRight,
   ArrowDownLeft,
   Eye,
-  Edit3,
-  Clock,
-  Play,
-  CheckCircle2,
-  Save,
   Users,
   Plus,
-  Pencil,
+  List,
+  Save,
 } from 'lucide-react';
+import { SYSTEM_LISTS, SYSTEM_LIST_MAP } from '@/lib/list-config';
 
 interface Friend {
   id: number;
@@ -54,19 +49,45 @@ interface FriendSharingSheetProps {
   onSharingUpdated?: () => void;
 }
 
-const listIcons: Record<string, React.ReactNode> = {
-  watchlist: <Clock className="w-5 h-5 text-blue-500" />,
-  watching: <Play className="w-5 h-5 text-green-500" />,
-  finished: <CheckCircle2 className="w-5 h-5 text-brand-primary" />,
-};
+// Helper to render list icon with colored background (matches library page)
+function ListIconWithBackground({ listType }: { listType: string }) {
+  const config = SYSTEM_LIST_MAP[listType];
+  if (!config) {
+    return (
+      <div className="w-10 h-10 rounded-lg bg-zinc-700 flex items-center justify-center">
+        <Eye className="w-5 h-5 text-white" />
+      </div>
+    );
+  }
+  const IconComponent = config.icon;
+  return (
+    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${config.bgColorClass} flex items-center justify-center`}>
+      <IconComponent className="w-5 h-5 text-white" />
+    </div>
+  );
+}
 
-// Core system lists only - onhold, dropped, rewatch, classics were removed
-// Users can create custom lists for those use cases
-const SYSTEM_LISTS = [
-  { type: 'watchlist', name: 'Watchlist' },
-  { type: 'watching', name: 'Watching' },
-  { type: 'finished', name: 'Watched' },
-];
+// Toggle component
+function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange();
+      }}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        enabled ? 'bg-brand-primary' : 'bg-zinc-600'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          enabled ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  );
+}
 
 interface ListSelection {
   listType: string;
@@ -111,10 +132,10 @@ export function FriendSharingSheet({
         const initial: Record<string, ListSelection> = {};
         for (const list of SYSTEM_LISTS) {
           const shared = (data.youShare || []).find(
-            (l: SharedList) => l.listType === list.type
+            (l: SharedList) => l.listType === list.slug
           );
-          initial[list.type] = {
-            listType: list.type,
+          initial[list.slug] = {
+            listType: list.slug,
             isShared: !!shared,
             canEdit: shared?.canEdit || false,
           };
@@ -152,8 +173,8 @@ export function FriendSharingSheet({
 
   const hasChanges = useCallback(() => {
     for (const list of SYSTEM_LISTS) {
-      const initial = initialSelections[list.type];
-      const current = selections[list.type];
+      const initial = initialSelections[list.slug];
+      const current = selections[list.slug];
       if (
         initial?.isShared !== current?.isShared ||
         initial?.canEdit !== current?.canEdit
@@ -171,26 +192,26 @@ export function FriendSharingSheet({
       const listsToRemove: string[] = [];
 
       for (const list of SYSTEM_LISTS) {
-        const initial = initialSelections[list.type];
-        const current = selections[list.type];
+        const initial = initialSelections[list.slug];
+        const current = selections[list.slug];
 
         if (current?.isShared && !initial?.isShared) {
           // Newly shared
           listsToShare.push({
-            listType: list.type,
+            listType: list.slug,
             canEdit: current.canEdit,
           });
         } else if (current?.isShared && initial?.isShared) {
           // Check if canEdit changed
           if (current.canEdit !== initial.canEdit) {
             listsToShare.push({
-              listType: list.type,
+              listType: list.slug,
               canEdit: current.canEdit,
             });
           }
         } else if (!current?.isShared && initial?.isShared) {
           // Removed sharing
-          listsToRemove.push(list.type);
+          listsToRemove.push(list.slug);
         }
       }
 
@@ -238,50 +259,50 @@ export function FriendSharingSheet({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[120]"
         onClick={onClose}
       />
 
       {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-[70] bg-zinc-900 rounded-t-2xl max-h-[90vh] overflow-hidden animate-slide-up">
+      <div className="fixed inset-x-0 bottom-0 z-[130] bg-zinc-900 rounded-t-2xl max-h-[85vh] flex flex-col animate-slide-up">
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-2">
           <div className="w-12 h-1 bg-zinc-600 rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pb-4 border-b border-zinc-800">
+        <div className="px-4 pb-4 border-b border-zinc-800 flex-shrink-0">
           <div className="flex items-center gap-3">
-            {friend && (
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center overflow-hidden">
-                {friend.image ? (
-                  <img
-                    src={friend.image}
-                    alt={friend.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white font-semibold">
-                    {friend.name?.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
-            )}
-            <div>
-              <h2 className="text-lg font-bold text-white">
-                Sharing with {friend?.name || 'Friend'}
-              </h2>
-              <p className="text-sm text-gray-400">
-                {sharedCount} {sharedCount === 1 ? 'list' : 'lists'} shared
-              </p>
+            <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {friend?.image ? (
+                <img
+                  src={friend.image}
+                  alt={friend.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white font-semibold text-lg">
+                  {friend?.name?.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
+            <div className="flex-1">
+              <p className="font-semibold text-white">{friend?.name}</p>
+              {friend?.username && (
+                <p className="text-sm text-gray-500">@{friend.username}</p>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-white transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          <p className="text-sm text-gray-400 mt-3">
+            Choose which lists {friend?.name} can see. You can also create a shared list that you both can add to.
+          </p>
         </div>
 
         {/* Content */}
@@ -294,96 +315,71 @@ export function FriendSharingSheet({
             <>
               {/* Your Lists Section */}
               <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <ArrowUpRight className="w-4 h-4 text-brand-primary" />
-                  <h3 className="font-semibold text-white">Lists You Share</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <List className="w-4 h-4 text-brand-primary" />
+                  <h3 className="font-semibold text-white">Your Lists</h3>
                 </div>
+                <p className="text-sm text-gray-500 mb-3">
+                  Select the lists you want {friend?.name} to see
+                </p>
 
                 <div className="space-y-2">
                   {SYSTEM_LISTS.map((list) => {
-                    const selection = selections[list.type];
+                    const selection = selections[list.slug];
                     const sharedList = youShare.find(
-                      (l) => l.listType === list.type
-                    );
-                    const icon = listIcons[list.type] || (
-                      <Eye className="w-5 h-5 text-gray-400" />
+                      (l) => l.listType === list.slug
                     );
 
                     return (
                       <div
-                        key={list.type}
-                        className={`flex items-center gap-3 p-3 rounded-lg border transition ${
-                          selection?.isShared
-                            ? 'bg-brand-primary/10 border-brand-primary'
-                            : 'bg-zinc-800 border-zinc-700'
-                        }`}
+                        key={list.slug}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800"
                       >
-                        {/* Checkbox */}
-                        <button
-                          onClick={() => toggleShare(list.type)}
-                          className={`w-6 h-6 rounded flex items-center justify-center flex-shrink-0 transition ${
-                            selection?.isShared
-                              ? 'bg-brand-primary'
-                              : 'border-2 border-zinc-600 hover:border-zinc-500'
-                          }`}
-                        >
-                          {selection?.isShared && (
-                            <Check className="w-4 h-4 text-white" />
-                          )}
-                        </button>
-
-                        {/* Icon */}
-                        <div className="flex-shrink-0">{icon}</div>
-
-                        {/* Name and count */}
+                        <div className="flex-shrink-0">
+                          <ListIconWithBackground listType={list.slug} />
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-white">
-                            {sharedList?.listName || list.name}
-                          </div>
-                          <p className="text-xs text-gray-500">
+                          <p className="font-medium text-white">
+                            {sharedList?.listName || list.title}
+                          </p>
+                          <p className="text-sm text-gray-500">
                             {sharedList?.itemCount || 0} items
                           </p>
                         </div>
-
-                        {/* View only badge - system lists don't support edit permissions */}
-                        {selection?.isShared && (
-                          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-700 text-gray-400">
-                            <Eye className="w-3 h-3" />
-                            View only
-                          </div>
-                        )}
+                        <Toggle
+                          enabled={selection?.isShared || false}
+                          onChange={() => toggleShare(list.slug)}
+                        />
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              {/* Collaborative List Section */}
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Users className="w-4 h-4 text-green-400" />
-                  <h3 className="font-semibold text-white">Collaborative List</h3>
+              {/* Shared Together Section */}
+              <div className="pt-4 border-t border-zinc-800 mb-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-brand-primary" />
+                  <h3 className="font-semibold text-white">Shared Together</h3>
                 </div>
-
-                <p className="text-xs text-gray-500 mb-3">
-                  A shared list you both can add to and manage together
+                <p className="text-sm text-gray-500 mb-3">
+                  A list you both can add to
                 </p>
 
                 {collaborativeList ? (
                   <Link
                     href={`/friends/${friendUserId}/list`}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 transition"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-brand-primary flex items-center justify-center flex-shrink-0">
                       <Users className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-white flex items-center gap-2">
+                      <p className="font-medium text-white">
                         {collaborativeList.name}
-                        <Pencil className="w-3 h-3 text-gray-500" />
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {collaborativeList.itemCount} {collaborativeList.itemCount === 1 ? 'item' : 'items'} · Both can add
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {collaborativeList.itemCount} {collaborativeList.itemCount === 1 ? 'item' : 'items'}
                       </p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400" />
@@ -392,9 +388,9 @@ export function FriendSharingSheet({
                   <button
                     onClick={handleCreateCollaborativeList}
                     disabled={creatingCollab}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-zinc-700 hover:border-green-500/50 hover:bg-green-500/5 transition text-left"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border-2 border-dashed border-zinc-700 hover:border-brand-primary/50 hover:bg-brand-primary/5 transition text-left"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-zinc-700 flex items-center justify-center flex-shrink-0">
                       {creatingCollab ? (
                         <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
                       ) : (
@@ -402,11 +398,11 @@ export function FriendSharingSheet({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-white">
-                        Create Collaborative List
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        Start a shared watchlist with {friend?.name}
+                      <p className="font-medium text-white">
+                        Create Shared List
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Start a list with {friend?.name}
                       </p>
                     </div>
                   </button>
@@ -415,55 +411,41 @@ export function FriendSharingSheet({
 
               {/* Their Lists Section */}
               {theyShare.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <ArrowDownLeft className="w-4 h-4 text-blue-400" />
+                <div className="pt-4 border-t border-zinc-800">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ArrowDownLeft className="w-4 h-4 text-brand-primary" />
                     <h3 className="font-semibold text-white">
-                      Lists {friend?.name || 'They'} Share With You
+                      {friend?.name}'s Lists
                     </h3>
                   </div>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Lists shared with you
+                  </p>
 
                   <div className="space-y-2">
-                    {theyShare.map((list) => {
-                      const icon = listIcons[list.listType] || (
-                        <Eye className="w-5 h-5 text-gray-400" />
-                      );
-
-                      return (
+                    {theyShare.map((list) => (
                         <Link
                           key={`${list.listType}-${list.listId || 'system'}`}
-                          href={`/friends/${friendUserId}?list=${list.listType}`}
-                          className="flex items-center gap-3 p-3 rounded-lg bg-zinc-800 border border-zinc-700 hover:border-zinc-600 transition"
+                          href={`/friends/${friendUserId}/${list.listType}`}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition"
                         >
-                          <div className="flex-shrink-0">{icon}</div>
+                          <div className="flex-shrink-0">
+                            <ListIconWithBackground listType={list.listType} />
+                          </div>
 
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-white">
+                            <p className="font-medium text-white">
                               {list.listName}
-                            </div>
-                            <p className="text-xs text-gray-500">
+                            </p>
+                            <p className="text-sm text-gray-500">
                               {list.itemCount} items
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-2 text-gray-400">
-                            <span className="text-xs">View</span>
-                            <ChevronRight className="w-4 h-4" />
-                          </div>
+                          <ChevronRight className="w-5 h-5 text-gray-400" />
                         </Link>
-                      );
-                    })}
+                    ))}
                   </div>
-                </div>
-              )}
-
-              {theyShare.length === 0 && (
-                <div className="text-center py-6 text-gray-500">
-                  <ArrowDownLeft className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">
-                    {friend?.name || 'They'} hasn't shared any lists with you
-                    yet
-                  </p>
                 </div>
               )}
             </>

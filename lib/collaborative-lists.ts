@@ -105,8 +105,13 @@ export async function createCollaborativeList(
   friendUserId: number,
   name?: string
 ): Promise<{ success: boolean; list?: CollaborativeList; error?: string }> {
+  console.log('[createCollaborativeList] Checking friendship:', userId, friendUserId);
+
   // Verify friendship
-  if (!(await areFriends(userId, friendUserId))) {
+  const friendshipCheck = await areFriends(userId, friendUserId);
+  console.log('[createCollaborativeList] areFriends result:', friendshipCheck);
+
+  if (!friendshipCheck) {
     return { success: false, error: 'You must be friends to create a collaborative list' };
   }
 

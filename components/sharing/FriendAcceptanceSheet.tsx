@@ -3,18 +3,12 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  X,
   Loader2,
-  Check,
-  UserPlus,
-  Clock,
-  Play,
-  CheckCircle2,
   Eye,
-  Share2,
   Users,
-  Pencil,
+  List,
 } from 'lucide-react';
+import { SYSTEM_LISTS, SYSTEM_LIST_MAP } from '@/lib/list-config';
 
 interface FriendInfo {
   id: number;
@@ -38,17 +32,45 @@ interface FriendAcceptanceSheetProps {
   onAccepted: () => void;
 }
 
-const listIcons: Record<string, React.ReactNode> = {
-  watchlist: <Clock className="w-5 h-5 text-blue-500" />,
-  watching: <Play className="w-5 h-5 text-green-500" />,
-  finished: <CheckCircle2 className="w-5 h-5 text-brand-primary" />,
-};
+// Helper to render list icon with colored background (matches library page)
+function ListIconWithBackground({ listType }: { listType: string }) {
+  const config = SYSTEM_LIST_MAP[listType];
+  if (!config) {
+    return (
+      <div className="w-10 h-10 rounded-lg bg-zinc-700 flex items-center justify-center">
+        <Eye className="w-5 h-5 text-white" />
+      </div>
+    );
+  }
+  const IconComponent = config.icon;
+  return (
+    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${config.bgColorClass} flex items-center justify-center`}>
+      <IconComponent className="w-5 h-5 text-white" />
+    </div>
+  );
+}
 
-const LIST_NAMES: Record<string, string> = {
-  watchlist: 'Watchlist',
-  watching: 'Watching',
-  finished: 'Watched',
-};
+// Toggle component
+function Toggle({ enabled, onChange }: { enabled: boolean; onChange: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange();
+      }}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        enabled ? 'bg-brand-primary' : 'bg-zinc-600'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          enabled ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  );
+}
 
 export function FriendAcceptanceSheet({
   isOpen,
@@ -63,6 +85,7 @@ export function FriendAcceptanceSheet({
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [userName, setUserName] = useState('');
+  const [validationMessage, setValidationMessage] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -88,8 +111,6 @@ export function FriendAcceptanceSheet({
 
       // Get list item counts
       const listCounts: Record<string, number> = {};
-      // Core system lists only - onhold, dropped, rewatch, classics were removed
-      const systemLists = ['watchlist', 'watching', 'finished'];
 
       // Fetch counts for each list type
       const countsRes = await fetch('/api/library/counts');
@@ -98,11 +119,11 @@ export function FriendAcceptanceSheet({
         Object.assign(listCounts, countsData.counts || {});
       }
 
-      // Build list options
-      const options: ListOption[] = systemLists.map(listType => ({
-        listType,
-        listName: LIST_NAMES[listType] || listType,
-        itemCount: listCounts[listType] || 0,
+      // Build list options from centralized config
+      const options: ListOption[] = SYSTEM_LISTS.map(config => ({
+        listType: config.slug,
+        listName: config.title,
+        itemCount: listCounts[config.slug] || 0,
         isDefault: false,
       }));
 
@@ -111,8 +132,8 @@ export function FriendAcceptanceSheet({
       if (defaultsRes.ok) {
         const defaultsData = await defaultsRes.json();
         // API returns { systemLists: [...], customLists: [...] }
-        const systemLists = defaultsData.systemLists || [];
-        systemLists.forEach((d: { listType: string; shareByDefault: boolean }) => {
+        const defaultSystemLists = defaultsData.systemLists || [];
+        defaultSystemLists.forEach((d: { listType: string; shareByDefault: boolean }) => {
           if (d.shareByDefault) {
             defaultListTypes.add(d.listType);
           }
@@ -145,22 +166,18 @@ export function FriendAcceptanceSheet({
     });
   };
 
-  const handleAccept = async () => {
-    setAccepting(true);
+  const handleContinue = async () => {
+    // Validate that at least one list is selected or collaborative list is enabled
+    if (selectedLists.size === 0 && !createCollaborativeList) {
+      setValidationMessage('Choose a list to share or create a shared list');
+      setTimeout(() => setValidationMessage(''), 3000);
+      return;
+    }
 
-    // Debug: Log what we're about to do
-    console.log('[FriendAcceptanceSheet] Starting acceptance');
-    console.log('[FriendAcceptanceSheet] friend.id (URL param):', friend.id);
-    console.log('[FriendAcceptanceSheet] inviteId:', inviteId);
-    console.log('[FriendAcceptanceSheet] selectedLists:', Array.from(selectedLists));
-    console.log('[FriendAcceptanceSheet] createCollaborativeList:', createCollaborativeList);
+    setAccepting(true);
+    setValidationMessage('');
 
     try {
-      // Accept the invite and set up sharing in one call
-      console.log('[FriendAcceptanceSheet] Calling accept endpoint...');
-      console.log('[FriendAcceptanceSheet] Lists to share:', Array.from(selectedLists));
-      console.log('[FriendAcceptanceSheet] Create collaborative list:', createCollaborativeList);
-
       const acceptRes = await fetch(`/api/collaborators/direct-invites/${inviteId}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -177,7 +194,6 @@ export function FriendAcceptanceSheet({
       }
 
       const acceptData = await acceptRes.json().catch(() => ({}));
-      console.log('[FriendAcceptanceSheet] Accept succeeded:', acceptData);
 
       // Use friendUserId from accept response, fallback to friend.id
       const friendUserId = acceptData.friendUserId || friend.id;
@@ -185,6 +201,7 @@ export function FriendAcceptanceSheet({
       // Create collaborative list if opted in
       let collaborativeListName: string | undefined;
       if (createCollaborativeList) {
+        console.log('[FriendAcceptanceSheet] Creating collaborative list with friendUserId:', friendUserId);
         const collabRes = await fetch(`/api/friends/${friendUserId}/collaborative-list`, {
           method: 'POST',
         });
@@ -192,10 +209,10 @@ export function FriendAcceptanceSheet({
         if (collabRes.ok) {
           const collabData = await collabRes.json();
           collaborativeListName = collabData.list?.name;
+          console.log('[FriendAcceptanceSheet] Created collaborative list:', collaborativeListName);
         } else {
           const errorData = await collabRes.json().catch(() => ({}));
-          console.error('Failed to create collaborative list:', errorData);
-          // Continue anyway - friendship was established
+          console.error('[FriendAcceptanceSheet] Failed to create collaborative list:', collabRes.status, errorData);
         }
       }
 
@@ -212,7 +229,6 @@ export function FriendAcceptanceSheet({
         });
       } catch (notifyError) {
         console.error('Failed to send acceptance notification:', notifyError);
-        // Non-critical, continue
       }
 
       onAccepted();
@@ -227,7 +243,6 @@ export function FriendAcceptanceSheet({
   const handleSkip = async () => {
     setAccepting(true);
     try {
-      // Just accept without sharing any lists
       const acceptRes = await fetch(`/api/collaborators/direct-invites/${inviteId}/accept`, {
         method: 'POST',
       });
@@ -254,30 +269,16 @@ export function FriendAcceptanceSheet({
       />
 
       {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-[130] bg-zinc-900 rounded-t-2xl max-h-[90vh] overflow-hidden animate-slide-up">
+      <div className="fixed inset-x-0 bottom-0 z-[130] bg-zinc-900 rounded-t-2xl max-h-[85vh] flex flex-col animate-slide-up">
         {/* Handle */}
-        <div className="flex justify-center pt-3 pb-2">
+        <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
           <div className="w-12 h-1 bg-zinc-600 rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="px-4 pb-4 border-b border-zinc-800">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-              <UserPlus className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">
-                New Friend!
-              </h2>
-              <p className="text-sm text-gray-400">
-                You're now connected with {friend.name}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl">
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center overflow-hidden">
+        <div className="px-4 pb-4 border-b border-zinc-800 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden flex-shrink-0">
               {friend.image ? (
                 <img
                   src={friend.image}
@@ -285,178 +286,128 @@ export function FriendAcceptanceSheet({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-white font-semibold">
+                <span className="text-white font-semibold text-lg">
                   {friend.name?.charAt(0).toUpperCase()}
                 </span>
               )}
             </div>
-            <div>
-              <p className="font-medium text-white">{friend.name}</p>
+            <div className="flex-1">
+              <p className="font-semibold text-white">{friend.name}</p>
               {friend.username && (
-                <p className="text-xs text-gray-500">@{friend.username}</p>
+                <p className="text-sm text-gray-500">@{friend.username}</p>
               )}
             </div>
           </div>
+
+          <p className="text-sm text-gray-400 mt-3">
+            Choose which lists {friend.name} can see. You can also create a shared list that you both can add to.
+          </p>
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(90vh-280px)] p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Share2 className="w-4 h-4 text-brand-primary" />
-            <h3 className="font-semibold text-white">Share Lists with {friend.name}?</h3>
-          </div>
-          <p className="text-sm text-gray-400 mb-4">
-            Choose which of your lists {friend.name} can see. You can change this anytime.
-          </p>
-
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
             </div>
           ) : (
             <>
-              <div className="space-y-2">
-                {lists.map((list) => {
-                  const isSelected = selectedLists.has(list.listType);
-                  const icon = listIcons[list.listType] || (
-                    <Eye className="w-5 h-5 text-gray-400" />
-                  );
-
-                  return (
-                    <button
-                      key={list.listType}
-                      onClick={() => toggleList(list.listType)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-lg border transition ${
-                        isSelected
-                          ? 'bg-brand-primary/10 border-brand-primary'
-                          : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
-                      }`}
-                    >
-                      {/* Checkbox */}
-                      <div
-                        className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
-                          isSelected
-                            ? 'bg-brand-primary'
-                            : 'border-2 border-zinc-600'
-                        }`}
-                      >
-                        {isSelected && <Check className="w-3 h-3 text-white" />}
-                      </div>
-
-                      {/* Icon */}
-                      <div className="flex-shrink-0">{icon}</div>
-
-                      {/* Name */}
-                      <div className="flex-1 text-left">
-                        <div className="font-medium text-white flex items-center gap-2">
-                          {list.listName}
-                          {list.isDefault && (
-                            <span className="text-xs bg-zinc-700 px-1.5 py-0.5 rounded text-gray-400">
-                              default
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {list.itemCount} {list.itemCount === 1 ? 'item' : 'items'}
-                        </p>
-                      </div>
-
-                      {/* View only indicator */}
-                      <span className="text-xs text-gray-500 bg-zinc-700/50 px-2 py-1 rounded flex-shrink-0">
-                        View only
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Collaborative List Option */}
-              <div className="mt-6 pt-4 border-t border-zinc-800">
-                <div className="flex items-center gap-2 mb-3">
-                  <Users className="w-4 h-4 text-green-400" />
-                  <h3 className="font-semibold text-white">Collaborative List</h3>
+              {/* Your Lists Section */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <List className="w-4 h-4 text-brand-primary" />
+                  <h3 className="font-semibold text-white">Your Lists</h3>
                 </div>
-                <p className="text-sm text-gray-400 mb-3">
-                  Create a shared list you both can add to
+                <p className="text-sm text-gray-500 mb-3">
+                  Select the lists you want {friend.name} to see
                 </p>
 
-                <button
-                  onClick={() => setCreateCollaborativeList(!createCollaborativeList)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-lg border transition ${
-                    createCollaborativeList
-                      ? 'bg-green-500/10 border-green-500'
-                      : 'bg-zinc-800 border-zinc-700 hover:border-zinc-600'
-                  }`}
-                >
-                  {/* Checkbox */}
-                  <div
-                    className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
-                      createCollaborativeList
-                        ? 'bg-green-500'
-                        : 'border-2 border-zinc-600'
-                    }`}
-                  >
-                    {createCollaborativeList && <Check className="w-3 h-3 text-white" />}
-                  </div>
+                <div className="space-y-2">
+                  {lists.map((list) => {
+                    const isSelected = selectedLists.has(list.listType);
 
-                  {/* Icon */}
-                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                    return (
+                      <div
+                        key={list.listType}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800"
+                      >
+                        <div className="flex-shrink-0">
+                          <ListIconWithBackground listType={list.listType} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-white">{list.listName}</p>
+                          <p className="text-sm text-gray-500">
+                            {list.itemCount} {list.itemCount === 1 ? 'item' : 'items'}
+                          </p>
+                        </div>
+                        <Toggle
+                          enabled={isSelected}
+                          onChange={() => toggleList(list.listType)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Shared Together Section */}
+              <div className="pt-4 border-t border-zinc-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-brand-primary" />
+                  <h3 className="font-semibold text-white">Shared Together</h3>
+                </div>
+                <p className="text-sm text-gray-500 mb-3">
+                  Create a list you both can add to
+                </p>
+
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800">
+                  <div className="w-10 h-10 rounded-lg bg-brand-primary flex items-center justify-center flex-shrink-0">
                     <Users className="w-5 h-5 text-white" />
                   </div>
-
-                  {/* Name */}
-                  <div className="flex-1 text-left">
-                    <div className="font-medium text-white">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white">
                       {userName && friend.name ? `${userName} & ${friend.name}` : 'Shared Watchlist'}
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Both of you can add and manage items
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      A collaborative list you both can edit
                     </p>
                   </div>
-
-                  {/* Can edit indicator */}
-                  <span className="text-xs text-gray-500 bg-zinc-700/50 px-2 py-1 rounded flex items-center gap-1 flex-shrink-0">
-                    <Pencil className="w-3 h-3" />
-                    Can edit
-                  </span>
-                </button>
+                  <Toggle
+                    enabled={createCollaborativeList}
+                    onChange={() => setCreateCollaborativeList(!createCollaborativeList)}
+                  />
+                </div>
               </div>
             </>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-zinc-800 bg-zinc-900 space-y-2">
+        <div className="p-4 pb-6 border-t border-zinc-800 bg-zinc-900 space-y-2 flex-shrink-0">
+          {/* Validation message */}
+          {validationMessage && (
+            <div className="text-center text-sm text-feedback-warning-soft py-2">
+              {validationMessage}
+            </div>
+          )}
           <button
-            onClick={handleAccept}
+            onClick={handleContinue}
             disabled={accepting}
-            className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 rounded-xl font-semibold transition flex items-center justify-center gap-2"
+            className="w-full py-3 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 rounded-xl font-semibold transition flex items-center justify-center"
           >
             {accepting ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              <>
-                <Check className="w-5 h-5" />
-                {selectedLists.size > 0 && createCollaborativeList
-                  ? `Share ${selectedLists.size} ${selectedLists.size === 1 ? 'List' : 'Lists'} + Collaborative`
-                  : selectedLists.size > 0
-                  ? `Share ${selectedLists.size} ${selectedLists.size === 1 ? 'List' : 'Lists'}`
-                  : createCollaborativeList
-                  ? 'Create Collaborative List'
-                  : 'Continue Without Sharing'}
-              </>
+              'Continue'
             )}
           </button>
-
-          {(selectedLists.size > 0 || createCollaborativeList) && (
-            <button
-              onClick={handleSkip}
-              disabled={accepting}
-              className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 rounded-xl font-medium transition text-gray-300"
-            >
-              Skip for now
-            </button>
-          )}
+          <button
+            onClick={handleSkip}
+            disabled={accepting}
+            className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 rounded-xl font-medium transition text-gray-400"
+          >
+            Don't share yet
+          </button>
         </div>
       </div>
 

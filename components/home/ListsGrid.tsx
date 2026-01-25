@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
-import { Play, List, CheckCircle2, LayoutGrid, LucideIcon } from 'lucide-react';
+import { LayoutGrid, LucideIcon } from 'lucide-react';
+import { SYSTEM_LISTS } from '@/lib/list-config';
 
 interface ListItem {
   slug: string;
@@ -60,10 +61,13 @@ export default function ListsGrid({ lists }: ListsGridProps) {
   );
 }
 
-// Export list config for reuse
+// Export list config for reuse - pulls from centralized config
 export const DEFAULT_LISTS = [
-  { slug: 'watching', title: 'Watching', icon: Play, color: 'from-emerald-500 to-emerald-900' },
-  { slug: 'watchlist', title: 'Watchlist', icon: List, color: 'from-blue-600 to-blue-900' },
-  { slug: 'finished', title: 'Watched', icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker' },
+  ...SYSTEM_LISTS.map(list => ({
+    slug: list.slug,
+    title: list.title,
+    icon: list.icon,
+    color: list.bgColorClass,
+  })),
   { slug: 'all', title: 'All Lists', icon: LayoutGrid, color: 'from-zinc-600 to-zinc-800' },
 ];

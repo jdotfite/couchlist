@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronRight, Users, Mail, Check, XCircle, Plus, Loader2, Users2 } from 'lucide-react';
+import { ChevronRight, Users, Mail, Check, XCircle, Plus, Loader2, Users2, ArrowLeft } from 'lucide-react';
 import ListsPageSkeleton from '@/components/skeletons/ListsPageSkeleton';
 import NotificationBell from '@/components/notifications/NotificationBell';
 import Image from 'next/image';
@@ -172,7 +172,15 @@ export default function ListsPage() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">My Lists</h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.back()}
+              className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-xl font-bold">My Lists</h1>
+          </div>
           <NotificationBell />
         </div>
       </header>
@@ -260,7 +268,7 @@ export default function ListsPage() {
         {collaborativeLists.length > 0 && (
           <div className="mb-6">
             <h2 className="text-sm font-medium text-gray-300 flex items-center gap-2 mb-3">
-              <Users2 className="w-4 h-4 text-green-400" />
+              <Users2 className="w-4 h-4 text-brand-primary" />
               Shared With Friends ({collaborativeLists.length})
             </h2>
             <div className="space-y-2">
@@ -268,9 +276,9 @@ export default function ListsPage() {
                 <Link
                   key={list.id}
                   href={`/friends/${list.friendUserId}`}
-                  className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 rounded-xl transition"
+                  className="flex items-center gap-3 p-3 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
                 >
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-green-500/20">
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-brand-primary">
                     <Users2 className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">

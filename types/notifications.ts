@@ -45,6 +45,8 @@ export interface NotificationData {
   accepter_name?: string;
   accepter_id?: number;
   list_name?: string;
+  created_collaborative_list?: boolean;
+  collaborative_list_name?: string;
   custom_list_id?: number;
   shared_lists?: string[];
   // For connection ended

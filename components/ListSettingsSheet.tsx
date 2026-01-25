@@ -208,7 +208,7 @@ export default function ListSettingsSheet({
                       <button
                         onClick={saveNewName}
                         disabled={savingName}
-                        className="p-1 hover:bg-zinc-700 rounded text-green-500 flex-shrink-0"
+                        className="p-1 hover:bg-zinc-700 rounded text-brand-primary flex-shrink-0"
                       >
                         {savingName ? (
                           <Loader2 className="w-4 h-4 animate-spin-fast text-gray-400" />

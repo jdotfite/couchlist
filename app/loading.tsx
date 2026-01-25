@@ -1,5 +1,5 @@
-import FilmReelSpinner from '@/components/FilmReelSpinner';
+import HomeSkeleton from '@/components/HomeSkeleton';
 
 export default function Loading() {
-  return <FilmReelSpinner fullScreen />;
+  return <HomeSkeleton />;
 }

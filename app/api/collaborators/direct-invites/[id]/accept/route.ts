@@ -57,21 +57,28 @@ export async function POST(
     // For friend invites, set up sharing using the new friend_list_access system
     if (inviteType === 'friend' && selectedLists.length > 0) {
       console.log(`[direct-invites/accept] Setting up friend sharing for lists:`, selectedLists);
+      console.log(`[direct-invites/accept] userId (acceptor):`, userId, `ownerId (sender):`, ownerId);
+
       for (const listType of selectedLists) {
         try {
+          console.log(`[direct-invites/accept] Granting access: userId=${userId} shares ${listType} with ownerId=${ownerId}`);
           // Grant friend access (acceptor shares their list with the inviter)
           await grantFriendAccess(userId, ownerId, listType, null, false);
+          console.log(`[direct-invites/accept] Successfully granted access for ${listType}`);
 
           // Set visibility to select_friends if currently private
           const currentVisibility = await getListVisibility(userId, listType, null);
+          console.log(`[direct-invites/accept] Current visibility for ${listType}: ${currentVisibility}`);
           if (currentVisibility === 'private') {
             await setListVisibility(userId, listType, 'select_friends', null);
+            console.log(`[direct-invites/accept] Set visibility to select_friends for ${listType}`);
           }
         } catch (shareError) {
           console.error(`[direct-invites/accept] Failed to share ${listType}:`, shareError);
           // Continue with other lists
         }
       }
+      console.log(`[direct-invites/accept] Finished setting up sharing`);
     }
 
     // Clear the friend invite notification for the acceptor

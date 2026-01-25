@@ -630,7 +630,7 @@ export default function CommunityPage() {
 
             <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 flex items-start gap-4">
               <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                <MessageCircle className="w-5 h-5 text-green-400" />
+                <MessageCircle className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="font-semibold mb-1">Leaderboards</h3>

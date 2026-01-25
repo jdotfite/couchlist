@@ -379,7 +379,7 @@ export default function EditListModal({
   const colorValue = getColorValue(color);
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -657,7 +657,7 @@ export default function EditListModal({
                           className="p-2 bg-zinc-700 hover:bg-zinc-600 rounded transition"
                         >
                           {copiedInvite ? (
-                            <Check className="w-5 h-5 text-green-500" />
+                            <Check className="w-5 h-5 text-brand-primary" />
                           ) : (
                             <Copy className="w-5 h-5" />
                           )}

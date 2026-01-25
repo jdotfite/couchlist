@@ -361,15 +361,20 @@ export default function ProfilePage() {
   const confirmRemove = async () => {
     if (!confirmModal) return;
 
+    const idToRemove = confirmModal.id;
     setRemoveLoading(true);
     try {
       if (confirmModal.type === 'pending-friend') {
         // Cancel pending friend invite
-        await cancelInvite(confirmModal.id);
+        await cancelInvite(idToRemove);
       } else {
-        const response = await fetch(`/api/friends/${confirmModal.id}`, { method: 'DELETE' });
+        const response = await fetch(`/api/friends/${idToRemove}`, { method: 'DELETE' });
         if (response.ok) {
-          setFriends(prev => prev.filter(f => (f.id || f.collaboratorId) !== confirmModal.id));
+          // Remove from friends list immediately
+          setFriends(prev => prev.filter(f => f.id !== idToRemove));
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Failed to remove friend:', errorData);
         }
       }
     } catch (err) {
