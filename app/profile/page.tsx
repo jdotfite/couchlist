@@ -421,7 +421,7 @@ export default function ProfilePage() {
                   </div>
                 )}
               </div>
-              <div className="absolute bottom-0 right-0 w-7 h-7 bg-brand-primary rounded-full flex items-center justify-center border-2 border-black">
+              <div className="absolute bottom-0 right-0 w-7 h-7 bg-brand-primary rounded-full flex items-center justify-center border-2" style={{ borderColor: 'var(--card-bg)' }}>
                 <Camera className="w-3.5 h-3.5 text-white" />
               </div>
             </Link>
