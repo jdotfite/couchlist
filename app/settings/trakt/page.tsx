@@ -13,7 +13,6 @@ import {
   Unlink,
   Tv,
   Film,
-  Wrench,
 } from 'lucide-react';
 
 interface TraktConnection {
@@ -38,20 +37,6 @@ interface SyncResult {
   error?: string;
 }
 
-interface RepairResult {
-  success: boolean;
-  result?: {
-    movies: { updated: number; notFound: number; failed: number };
-    shows: { updated: number; notFound: number; failed: number; statusChanges: { toWatching: number; toFinished: number }; episodesSynced?: number };
-  };
-  total?: {
-    updated: number;
-    notFound: number;
-    failed: number;
-  };
-  error?: string;
-}
-
 interface DeviceCode {
   device_code: string;
   user_code: string;
@@ -69,8 +54,6 @@ export default function TraktSettingsPage() {
   const [polling, setPolling] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
-  const [repairing, setRepairing] = useState(false);
-  const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const pollInterval = useRef<NodeJS.Timeout | null>(null);
   const pollCount = useRef(0);
@@ -182,7 +165,6 @@ export default function TraktSettingsPage() {
   const handleSync = async () => {
     setSyncing(true);
     setSyncResult(null);
-    setRepairResult(null);
     setError(null);
 
     try {
@@ -205,29 +187,6 @@ export default function TraktSettingsPage() {
       setError(err instanceof Error ? err.message : 'Sync failed');
     } finally {
       setSyncing(false);
-    }
-  };
-
-  // Repair existing synced data (fix timestamps and TV show statuses)
-  const handleRepair = async () => {
-    setRepairing(true);
-    setRepairResult(null);
-    setSyncResult(null);
-    setError(null);
-
-    try {
-      const res = await fetch('/api/trakt/repair', { method: 'POST' });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Repair failed');
-      }
-
-      setRepairResult(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Repair failed');
-    } finally {
-      setRepairing(false);
     }
   };
 
@@ -381,54 +340,10 @@ export default function TraktSettingsPage() {
               </div>
             )}
 
-            {/* Repair result */}
-            {repairResult?.success && repairResult.result && (
-              <div className="card space-y-3">
-                <h3 className="font-medium text-green-400">Repair Complete</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Film className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-400">Movies:</span>
-                    <span className="text-white">
-                      {repairResult.result.movies.updated} timestamps fixed
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Tv className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-400">Shows:</span>
-                    <span className="text-white">
-                      {repairResult.result.shows.updated} updated
-                    </span>
-                  </div>
-                  {repairResult.result.shows.episodesSynced !== undefined && repairResult.result.shows.episodesSynced > 0 && (
-                    <p className="text-green-400">
-                      {repairResult.result.shows.episodesSynced} episodes marked as watched
-                    </p>
-                  )}
-                  {(repairResult.result.shows.statusChanges.toWatching > 0 ||
-                    repairResult.result.shows.statusChanges.toFinished > 0) && (
-                    <div className="pt-2 border-t border-zinc-700">
-                      <p className="text-gray-400 mb-1">Status changes:</p>
-                      {repairResult.result.shows.statusChanges.toWatching > 0 && (
-                        <p className="text-yellow-400">
-                          {repairResult.result.shows.statusChanges.toWatching} shows moved to &quot;Watching&quot;
-                        </p>
-                      )}
-                      {repairResult.result.shows.statusChanges.toFinished > 0 && (
-                        <p className="text-green-400">
-                          {repairResult.result.shows.statusChanges.toFinished} shows kept as &quot;Finished&quot;
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Sync button */}
             <button
               onClick={handleSync}
-              disabled={syncing || repairing}
+              disabled={syncing}
               className="w-full py-3 px-4 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800 disabled:opacity-50 text-white font-medium rounded-xl transition flex items-center justify-center gap-2"
             >
               {syncing ? (
@@ -449,31 +364,6 @@ export default function TraktSettingsPage() {
               Syncing will import any movies and TV shows you&apos;ve watched in
               Trakt that aren&apos;t already in your library.
             </p>
-
-            {/* Repair button - temporary for fixing previously synced data */}
-            <div className="pt-4 border-t border-zinc-800">
-              <button
-                onClick={handleRepair}
-                disabled={syncing || repairing}
-                className="w-full py-3 px-4 bg-amber-600 hover:bg-amber-500 disabled:bg-amber-600 disabled:opacity-50 text-white font-medium rounded-xl transition flex items-center justify-center gap-2"
-              >
-                {repairing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Repairing...
-                  </>
-                ) : (
-                  <>
-                    <Wrench className="w-5 h-5" />
-                    Repair Synced Data
-                  </>
-                )}
-              </button>
-              <p className="text-sm text-gray-500 text-center mt-2">
-                Fixes timestamps (for correct sorting) and updates TV show statuses
-                (moves in-progress shows from &quot;Finished&quot; to &quot;Watching&quot;).
-              </p>
-            </div>
 
             {/* Disconnect button */}
             <button
