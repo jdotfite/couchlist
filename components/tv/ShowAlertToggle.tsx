@@ -151,7 +151,7 @@ export default function ShowAlertToggle({ mediaId, showTitle, isLoggedIn }: Show
           className={`
             flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition
             ${alertsEnabled
-              ? 'bg-[#8b5ef4]/20 text-[#8b5ef4] border border-[#8b5ef4]/40 hover:bg-[#8b5ef4]/30'
+              ? 'bg-[#8b5ef4]/20 text-white border border-[#8b5ef4]/40 hover:bg-[#8b5ef4]/30'
               : 'bg-zinc-800 text-gray-400 border border-zinc-700 hover:bg-zinc-700'
             }
             disabled:opacity-50

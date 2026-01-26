@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { MovieDetails, TVShowDetails } from '@/types';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
-import { Calendar, Clock, Tv, ArrowLeft, Plus } from 'lucide-react';
+import { Calendar, Clock, Tv, ArrowLeft, Plus, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import StarRatingPopup from '@/components/StarRatingPopup';
@@ -33,6 +33,7 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [libraryStatus, setLibraryStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMedia = async () => {
@@ -52,13 +53,20 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
     fetchMedia();
   }, [mediaType, id]);
 
-  // Fetch user's rating when logged in and media is loaded
+  // Fetch user's rating and library status when logged in and media is loaded
   useEffect(() => {
     if (session?.user && media?.id) {
+      // Fetch rating
       fetch(`/api/rating?tmdb_id=${media.id}&media_type=${mediaType}`)
         .then(res => res.json())
         .then(data => setUserRating(data.rating))
         .catch(err => console.error('Failed to fetch rating:', err));
+
+      // Fetch library status
+      fetch(`/api/media-status?tmdb_id=${media.id}&media_type=${mediaType}`)
+        .then(res => res.json())
+        .then(data => setLibraryStatus(data.status || null))
+        .catch(err => console.error('Failed to fetch library status:', err));
     }
   }, [session, media?.id, mediaType]);
 
@@ -162,7 +170,11 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
             onClick={() => setIsSheetOpen(true)}
             className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-full flex items-center justify-center transition"
           >
-            <Plus className="w-5 h-5" />
+            {libraryStatus ? (
+              <MoreVertical className="w-5 h-5" />
+            ) : (
+              <Plus className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>
@@ -320,6 +332,9 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
         mediaId={media.id}
         genreIds={media.genres.map(g => g.id)}
         releaseYear={releaseDate ? new Date(releaseDate).getFullYear() : null}
+        currentStatus={libraryStatus}
+        onStatusChange={(newStatus) => setLibraryStatus(newStatus)}
+        onRemove={() => setLibraryStatus(null)}
       />
     </div>
   );
