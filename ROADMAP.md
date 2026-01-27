@@ -503,7 +503,7 @@ CREATE TABLE notifications (
 ### Integrations
 - [x] Import from Letterboxd (ZIP export with diary, ratings, watchlist) ✅
 - [ ] Import from Trakt (JSON export)
-- [ ] Import from IMDb (CSV export)
+- [x] Import from IMDb (CSV export with ratings, watchlist, movies + TV) ✅
 - [ ] Calendar integration (release dates)
 - [ ] Streaming availability (JustWatch API)
 - [ ] Share to social media with custom cards
@@ -593,10 +593,35 @@ These are ideas to consider but not yet prioritized:
 - [x] Friend suggestions ("Send to Friend" from media options)
 - [x] Notification center redesign with grouped suggestions and swipe-to-dismiss
 - [x] Dev tools: Account reset endpoint for testing
+- [x] Customizable discovery rows on Search page (add/remove/reorder content rows)
+- [x] IMDb import (CSV export with ratings/watchlist, movies + TV, IMDb ID matching)
+- [x] Data & Sync settings hub (consolidated Import, Export, Trakt Sync)
+- [x] Fixed detail page ratings label (TMDb instead of mislabeled IMDb)
 
 ---
 
 ## Recent Changes (January 2025)
+
+### IMDb Import & Settings Reorganization
+
+#### IMDb Import Feature
+- **Parser**: `lib/import/parsers/imdb.ts` handles ratings.csv and watchlist.csv
+- **IMDb ID Matching**: Uses TMDb `/find/{imdb_id}` endpoint for exact matching (more reliable than title search)
+- **TV Show Support**: Unlike Letterboxd (movies only), IMDb imports both movies and TV shows
+- **Rating Conversion**: 1-10 IMDb scale → 1-5 FlickLog scale (`Math.ceil(rating / 2)`)
+- **Encoding**: Handles Windows-1252 encoding (IMDb's export format)
+- **Skipped Types**: Episodes, shorts, TV specials automatically filtered out
+
+#### Data & Sync Settings Hub
+- **New Hub Page**: `/settings/data` consolidates data-related settings
+- **Moved Items**: Import, Export, and Trakt Sync now under single "Data & Sync" menu item
+- **Cleaner Root Settings**: Reduced from 6 items to 4 on main settings page
+- **Updated Navigation**: Back links in import/export/trakt pages point to new hub
+
+#### Detail Page Ratings Fix
+- **Before**: Yellow badge showed "IMDb 7.2" but was actually TMDb's rating
+- **After**: Shows "★ 7.2 TMDb" in zinc badge + "Yours" label for user rating
+- **Clearer Distinction**: Community rating vs personal rating now visually separated
 
 ### UI Polish & Consistency Fixes
 - Settings page icons now white on purple backgrounds (matching profile page)
@@ -651,6 +676,49 @@ These are ideas to consider but not yet prioritized:
   - Clears all user data: library, tags, custom lists, connections, suggestions, notifications
   - Requires `confirm=yes` parameter
   - Useful for testing clean states
+
+### Customizable Discovery Rows
+
+Users can now personalize which content rows appear on the Search page browse view.
+
+#### Features
+- **23 preset row options** across 5 categories:
+  - **Trending**: Trending Now, Trending Movies, Trending TV
+  - **Where to Watch**: Best on Netflix/Max/Disney+/Hulu/Prime/Apple TV+/Peacock/Paramount+, Free with Ads
+  - **New Releases**: In Theaters, Coming Soon, New on Streaming, Airing This Week
+  - **Rated**: Top Rated, Underrated Gems
+  - **Moods**: Comfort Watches, Dark & Intense, Turn Your Brain Off, Cry It Out, Late Night Weird
+- **Default for new users**: Only "Trending Now" row (minimal starting point)
+- **Inline management**: Kebab menu on each row with Move Up/Down/Hide options
+- **Add Row bottom sheet**: Browse available rows grouped by category
+- **Full settings page**: `/settings/discovery` for complete row management
+
+#### Database
+- New `user_discovery_rows` table stores user's selected rows with position ordering
+- Each row type maps to specific TMDB API queries (discover, trending, now_playing, etc.)
+
+#### Files Created
+```
+types/discovery-rows.ts          # Type definitions and 23 row configs
+lib/discovery-rows.ts            # Database CRUD functions
+app/api/discovery-rows/
+├── route.ts                     # Preferences API (GET/PUT/PATCH)
+└── content/route.ts             # Content fetching API (TMDB queries)
+hooks/
+├── useDiscoveryRows.ts          # Preferences hook
+└── useDiscoveryRowContent.ts    # Content fetching hook
+components/search/
+├── DiscoveryRow.tsx             # Row wrapper with kebab menu
+├── RowKebabMenu.tsx             # Inline options dropdown
+├── AddRowCard.tsx               # Placeholder card for adding
+└── AddRowBottomSheet.tsx        # Row picker bottom sheet
+app/settings/discovery/page.tsx  # Full settings management page
+```
+
+#### Modified Files
+- `lib/db.ts` - Added `user_discovery_rows` table
+- `app/search/page.tsx` - Dynamic row rendering with add/remove/reorder
+- `app/settings/page.tsx` - Added Discovery Rows link
 
 ---
 
@@ -933,7 +1001,7 @@ ALTER TABLE custom_list_collaborators
 
 ## External Data Import System
 
-### Implementation Status: Letterboxd ✅ Complete
+### Implementation Status: Letterboxd ✅ | IMDb ✅
 
 **Goal:** Allow users to import their movie history from other tracking services
 
@@ -942,8 +1010,8 @@ ALTER TABLE custom_list_collaborators
 | Source | Status | Format | Notes |
 |--------|--------|--------|-------|
 | Letterboxd | ✅ Complete | ZIP export | diary.csv, ratings.csv, watched.csv, watchlist.csv |
+| IMDb | ✅ Complete | CSV export | ratings.csv or watchlist.csv, uses IMDb ID for exact matching |
 | Trakt | 🔲 Planned | JSON | 1-10 rating scale, includes TV shows |
-| IMDb | 🔲 Planned | CSV | Can match via IMDb IDs |
 | Generic CSV | 🔲 Planned | CSV | User-defined column mapping |
 
 ### Features Implemented
@@ -1045,10 +1113,11 @@ CREATE TABLE import_job_items (
 ```
 lib/import/
 ├── parsers/
-│   └── letterboxd.ts    # ZIP/CSV parser
-├── tmdb-matcher.ts      # TMDb search with scoring
+│   ├── letterboxd.ts    # ZIP/CSV parser for Letterboxd
+│   └── imdb.ts          # CSV parser for IMDb (ratings + watchlist)
+├── tmdb-matcher.ts      # TMDb search with scoring + IMDb ID lookup
 ├── rate-limiter.ts      # API rate limiting
-└── processor.ts         # Batch processing logic
+└── processor.ts         # Batch processing logic (movies + TV)
 
 app/api/import/
 ├── upload/route.ts      # File upload endpoint
@@ -1065,6 +1134,24 @@ components/import/
 app/settings/import/
 └── page.tsx             # Multi-step wizard
 ```
+
+### IMDb Import Details
+
+**File Format:** Single CSV file (not ZIP like Letterboxd)
+
+**CSV Columns (post-2017 format):**
+- `Const` - IMDb ID (e.g., `tt3416532`)
+- `Your Rating` - User's rating (1-10), only in ratings.csv
+- `Date Rated` - When rated, only in ratings.csv
+- `Title` - Display title
+- `Title Type` - `movie`, `tvSeries`, `tvMiniSeries`, etc.
+- `Year` - Release year
+
+**Key Differences from Letterboxd:**
+- Single CSV vs ZIP with multiple files
+- Has IMDb ID for exact TMDb matching
+- Includes TV shows (Letterboxd is movies-only)
+- Windows-1252 encoding (not UTF-8)
 
 ### Adding New Import Sources
 
