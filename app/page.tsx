@@ -26,8 +26,6 @@ export default function Home() {
     isLoading,
     lastFetched,
     fetchLibrary,
-    moveToFinished,
-    invalidate,
   } = useLibraryStore();
 
   useEffect(() => {
@@ -37,35 +35,6 @@ export default function Home() {
       router.push('/login');
     }
   }, [status, router, fetchLibrary]);
-
-  const handleMarkWatched = async (item: typeof watchingItems[0]) => {
-    // Optimistically update UI via store
-    moveToFinished(item);
-
-    // Call API to update status
-    try {
-      const response = await fetch('/api/watched', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          media_id: item.media_id,
-          media_type: item.media_type,
-          title: item.title,
-          poster_path: item.poster_path,
-        }),
-      });
-
-      if (!response.ok) {
-        // Revert on error by refetching
-        invalidate();
-        fetchLibrary();
-      }
-    } catch (error) {
-      console.error('Failed to mark as watched:', error);
-      invalidate();
-      fetchLibrary();
-    }
-  };
 
   // Show skeleton while loading (only on first load)
   if (status === 'loading' || status === 'unauthenticated' || (isLoading && !lastFetched)) {
@@ -126,7 +95,6 @@ export default function Home() {
           items={watchingItems}
           seeAllHref="/library?status=watching"
           addHref="/search"
-          onQuickAction={handleMarkWatched}
         />
 
         {/* Watchlist */}

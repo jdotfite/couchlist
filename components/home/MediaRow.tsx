@@ -6,7 +6,6 @@
  * Use this for displaying user's library items like Continue Watching, Watchlist, etc.
  * Shows 2.5 items visible at once (40% width each), swipeable to see more.
  * Displays the 5 most recent items with dotted placeholders if below 5.
- * Optional quick action button (e.g., mark as watched) on items.
  *
  * For discovery/browse content, use TrendingRow instead (includes add buttons).
  */
@@ -14,7 +13,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
-import { Film, Tv, Plus, Check } from 'lucide-react';
+import { Film, Tv, Plus } from 'lucide-react';
 
 export interface MediaRowItem {
   id: number;
@@ -31,7 +30,6 @@ interface MediaRowProps {
   maxItems?: number;
   minItems?: number;
   addHref?: string;
-  onQuickAction?: (item: MediaRowItem) => void;
 }
 
 export default function MediaRow({
@@ -41,7 +39,6 @@ export default function MediaRow({
   maxItems = 5,
   minItems = 5,
   addHref = "/search",
-  onQuickAction,
 }: MediaRowProps) {
   const displayItems = items.slice(0, maxItems);
   const placeholderCount = Math.max(0, minItems - displayItems.length);
@@ -91,19 +88,6 @@ export default function MediaRow({
                       <Tv className="w-3.5 h-3.5 text-white" />
                     )}
                   </div>
-                  {onQuickAction && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onQuickAction(item);
-                      }}
-                      className="absolute top-2 right-2 w-6 h-6 bg-black/75 hover:bg-green-600 backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
-                      title="Mark as watched"
-                    >
-                      <Check className="w-3.5 h-3.5 text-white" />
-                    </button>
-                  )}
                 </div>
                 <h3 className="font-semibold text-sm line-clamp-2">{item.title}</h3>
               </Link>
