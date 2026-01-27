@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Shield, Download, Upload, Bell, RefreshCw, Tv2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Shield, Download, Upload, Bell, RefreshCw, Rows3 } from 'lucide-react';
 
 export default function SettingsPage() {
   const { status } = useSession();
@@ -39,20 +39,6 @@ export default function SettingsPage() {
       <main className="px-4">
         <div className="space-y-2">
           <Link
-            href="/settings/services"
-            className="card card-interactive flex items-center gap-4"
-          >
-            <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Tv2 className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">My Services</h3>
-              <p className="text-sm text-gray-400">Set your streaming subscriptions for filtering</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </Link>
-
-          <Link
             href="/settings/notifications"
             className="card card-interactive flex items-center gap-4"
           >
@@ -62,6 +48,20 @@ export default function SettingsPage() {
             <div className="flex-1">
               <h3 className="font-semibold">Notifications</h3>
               <p className="text-sm text-gray-400">Manage show alerts and notification preferences</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </Link>
+
+          <Link
+            href="/settings/discovery"
+            className="card card-interactive flex items-center gap-4"
+          >
+            <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
+              <Rows3 className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold">Discovery Rows</h3>
+              <p className="text-sm text-gray-400">Customize which content rows appear on Search</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400" />
           </Link>

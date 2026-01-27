@@ -881,28 +881,6 @@ export async function initDb() {
     `;
 
     // ========================================================================
-    // User Streaming Services (for filtering)
-    // ========================================================================
-
-    // User streaming service preferences - stores which services user has subscriptions to
-    await sql`
-      CREATE TABLE IF NOT EXISTS user_streaming_services (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        provider_id INTEGER NOT NULL,
-        provider_name VARCHAR(100) NOT NULL,
-        logo_path VARCHAR(200),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, provider_id)
-      );
-    `;
-
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_user_streaming_services_user
-      ON user_streaming_services(user_id);
-    `;
-
-    // ========================================================================
     // Friend List Visibility System (Phase 1)
     // Allows friends to see each other's lists with granular control
     // ========================================================================
@@ -1018,6 +996,33 @@ export async function initDb() {
       CREATE UNIQUE INDEX IF NOT EXISTS idx_friend_default_sharing_custom_unique
       ON friend_default_sharing(user_id, list_type, list_id)
       WHERE list_id IS NOT NULL;
+    `;
+
+    // ========================================================================
+    // User Discovery Rows - customizable content rows on search page
+    // ========================================================================
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS user_discovery_rows (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        row_type VARCHAR(50) NOT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        is_visible BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, row_type)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_discovery_rows_user
+      ON user_discovery_rows(user_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_user_discovery_rows_position
+      ON user_discovery_rows(user_id, position);
     `;
 
     // Insert system tags individually to handle partial index conflicts

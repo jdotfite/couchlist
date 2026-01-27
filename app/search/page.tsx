@@ -3,12 +3,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Loader2, X, SlidersHorizontal } from 'lucide-react';
 import SearchResults from '@/components/SearchResults';
-import TrendingRow from '@/components/home/TrendingRow';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import MainHeader from '@/components/ui/MainHeader';
 import FilterBottomSheet from '@/components/search/FilterBottomSheet';
 import ActiveFilters from '@/components/search/ActiveFilters';
 import BrowseCards from '@/components/search/BrowseCards';
+import DiscoveryRow from '@/components/search/DiscoveryRow';
+import AddRowCard from '@/components/search/AddRowCard';
+import AddRowBottomSheet from '@/components/search/AddRowBottomSheet';
+import { useDiscoveryRows } from '@/hooks/useDiscoveryRows';
 import { Movie, TVShow, SearchResponse } from '@/types';
 import { DiscoverFilters, DEFAULT_FILTERS } from '@/types/streaming';
 
@@ -53,65 +56,20 @@ export default function SearchPage() {
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [hasFiltered, setHasFiltered] = useState(false);
 
-  // User's streaming services
-  const [userProviderIds, setUserProviderIds] = useState<number[]>([]);
-
-  // Trending data
-  const [trendingAll, setTrendingAll] = useState<TrendingItem[]>([]);
-  const [topRatedAll, setTopRatedAll] = useState<TrendingItem[]>([]);
+  // Discovery rows
+  const {
+    rows: discoveryRows,
+    loading: rowsLoading,
+    availableByCategory,
+    addRow,
+    removeRow,
+    moveRow,
+  } = useDiscoveryRows();
+  const [isAddRowOpen, setIsAddRowOpen] = useState(false);
 
   // Media options sheet
   const [selectedItem, setSelectedItem] = useState<TrendingItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  // Fetch user's streaming services on mount
-  useEffect(() => {
-    const fetchUserServices = async () => {
-      try {
-        const response = await fetch('/api/streaming-services');
-        if (response.ok) {
-          const data = await response.json();
-          setUserProviderIds(data.providerIds || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user services:', error);
-      }
-    };
-    fetchUserServices();
-  }, []);
-
-
-  // Fetch trending data
-  useEffect(() => {
-    const fetchTrendingData = async () => {
-      try {
-        const response = await fetch('/api/trending');
-        const data = await response.json();
-
-        const shuffleMix = (arr: TrendingItem[]) => {
-          const result: TrendingItem[] = [];
-          const movies = arr.filter(i => i.media_type === 'movie');
-          const tv = arr.filter(i => i.media_type === 'tv');
-          const maxLen = Math.max(movies.length, tv.length);
-          for (let i = 0; i < maxLen; i++) {
-            if (movies[i]) result.push(movies[i]);
-            if (tv[i]) result.push(tv[i]);
-          }
-          return result;
-        };
-
-        const trending = [...(data.trendingMovies || []), ...(data.trendingTV || [])];
-        const topRated = [...(data.topRatedMovies || []), ...(data.topRatedTV || [])];
-
-        setTrendingAll(shuffleMix(trending).slice(0, 15));
-        setTopRatedAll(shuffleMix(topRated).slice(0, 15));
-      } catch (error) {
-        console.error('Failed to fetch trending data:', error);
-      }
-    };
-
-    fetchTrendingData();
-  }, []);
 
   // Debounced search
   useEffect(() => {
@@ -413,18 +371,28 @@ export default function SearchPage() {
         {/* Browse View */}
         {showBrowseView && (
           <>
-            <BrowseCards
-              userProviderIds={userProviderIds}
-              onProviderClick={handleProviderClick}
-            />
+            <BrowseCards onProviderClick={handleProviderClick} />
 
-            {/* Trending Now */}
-            <div className="mt-6">
-              <TrendingRow title="Trending Now" items={trendingAll} onAddClick={handleAddClick} />
+            {/* Dynamic Discovery Rows */}
+            <div className="mt-6 space-y-2">
+              {discoveryRows.map((row, index) => (
+                <DiscoveryRow
+                  key={row.rowType}
+                  row={row}
+                  isFirst={index === 0}
+                  isLast={index === discoveryRows.length - 1}
+                  onMoveUp={() => moveRow(row.rowType, 'up')}
+                  onMoveDown={() => moveRow(row.rowType, 'down')}
+                  onHide={() => removeRow(row.rowType)}
+                  onAddClick={handleAddClick}
+                />
+              ))}
+
+              {/* Add Row Card */}
+              {!rowsLoading && (
+                <AddRowCard onClick={() => setIsAddRowOpen(true)} />
+              )}
             </div>
-
-            {/* Top Rated */}
-            <TrendingRow title="Top Rated" items={topRatedAll} onAddClick={handleAddClick} />
           </>
         )}
 
@@ -447,7 +415,6 @@ export default function SearchPage() {
         onFiltersChange={setFilters}
         onApply={performDiscover}
         resultCount={hasFiltered ? discoverResults.length : undefined}
-        userProviderIds={userProviderIds}
       />
 
       {/* Media Options Sheet */}
@@ -461,6 +428,15 @@ export default function SearchPage() {
           posterPath={selectedItem.poster_path || ''}
         />
       )}
+
+      {/* Add Row Bottom Sheet */}
+      <AddRowBottomSheet
+        isOpen={isAddRowOpen}
+        onClose={() => setIsAddRowOpen(false)}
+        availableByCategory={availableByCategory}
+        addedRows={discoveryRows.map(r => r.rowType)}
+        onAddRow={addRow}
+      />
     </div>
   );
 }
