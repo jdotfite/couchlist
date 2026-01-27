@@ -41,6 +41,7 @@
 - [ ] Unified library view option (movies + TV together)
 - [ ] Batch operations (mark multiple as watched)
 - [ ] Recently added section on home
+- [ ] Streaming provider icons on library/custom list cards (with DB caching)
 
 ### List Reordering
 - [ ] Add drag-to-reorder for system lists (ListSettingsSheet)
@@ -622,6 +623,88 @@ These are ideas to consider but not yet prioritized:
 - **Before**: Yellow badge showed "IMDb 7.2" but was actually TMDb's rating
 - **After**: Shows "★ 7.2 TMDb" in zinc badge + "Yours" label for user rating
 - **Clearer Distinction**: Community rating vs personal rating now visually separated
+
+### Streaming Provider Icons on Discovery Rows ✅
+
+Added streaming service icons (Netflix, Max, Disney+, etc.) to search results and discovery rows.
+
+#### Implementation
+- **Hook**: `useWatchProviders.ts` - Batches up to 12 items, client-side caching via ref
+- **API**: `/api/watch-providers` - Fetches from TMDb `/watch/providers` endpoint
+- **Display**: Icons shown bottom-left of poster cards (max 3 providers)
+- **Platform rows**: "Best on Netflix" etc. show platform icon only (no extra fetch)
+
+---
+
+## Planned Features
+
+### Streaming Provider Icons on Custom Lists & Library
+
+**Goal:** Show streaming provider icons on custom list items (grid + list views)
+
+#### Current State
+- Discovery rows on Search page already show provider icons
+- Uses `useWatchProviders` hook with client-side caching
+- Each item requires a TMDb API call (batched, but not persisted)
+
+#### Problem
+Library and custom lists can have hundreds of items. Current approach would require too many API calls and no persistence between sessions.
+
+#### Proposed Solution: Database Caching
+
+**1. Schema Update**
+```sql
+-- Add provider caching to media table
+ALTER TABLE media ADD COLUMN watch_providers JSONB;
+ALTER TABLE media ADD COLUMN providers_synced_at TIMESTAMP;
+
+-- Index for stale provider queries
+CREATE INDEX idx_media_providers_sync ON media(providers_synced_at)
+  WHERE watch_providers IS NOT NULL;
+```
+
+**2. Sync Strategy**
+- Fetch providers when viewing detail page (already making TMDb call)
+- Store in `media.watch_providers` as JSON: `[{id: 8, name: "Netflix"}, ...]`
+- Mark `providers_synced_at` timestamp
+- Consider stale after 7 days (streaming rights change)
+- Background job option: refresh stale providers for items in user libraries
+
+**3. API Changes**
+- `GET /api/library` returns `watch_providers` if available
+- New endpoint or cron: `POST /api/sync-providers` for batch refresh
+
+**4. UI Updates**
+
+| View | Display |
+|------|---------|
+| **Grid View** | Provider icons bottom-left of poster (max 3), same as discovery rows |
+| **List View** | Small icons after metadata (year, rating) |
+| **Custom Lists** | Same treatment as library |
+
+**5. Component Changes**
+- `MediaCard.tsx` - Add provider icons overlay (conditional on data existing)
+- `ListCard.tsx` or equivalent - Show icons in list layout
+- Reuse `StreamingServiceIcon` component
+
+#### Effort Estimate
+
+| Task | Scope |
+|------|-------|
+| Schema migration | Small |
+| Update detail page to save providers | Small |
+| Update library API to return providers | Small |
+| MediaCard grid view icons | Medium |
+| List view icons | Small |
+| Stale refresh logic (optional) | Medium |
+
+#### Benefits
+- No extra API calls for cached items
+- Providers shown instantly on page load
+- Works for any list size
+- Data stays fresh via detail page views
+
+---
 
 ### UI Polish & Consistency Fixes
 - Settings page icons now white on purple backgrounds (matching profile page)
