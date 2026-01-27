@@ -12,6 +12,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Plus, Film, Tv } from 'lucide-react';
+import { useWatchProviders } from '@/hooks/useWatchProviders';
+import StreamingServiceIcon, { STREAMING_ICONS } from '@/components/icons/StreamingServiceIcons';
 
 export interface TrendingRowItem {
   id: number;
@@ -28,9 +30,16 @@ interface TrendingRowProps {
   items: TrendingRowItem[];
   seeAllHref?: string;
   onAddClick?: (item: TrendingRowItem) => void;
+  showProviders?: boolean;
 }
 
-export default function TrendingRow({ title, items, seeAllHref, onAddClick }: TrendingRowProps) {
+export default function TrendingRow({ title, items, seeAllHref, onAddClick, showProviders = true }: TrendingRowProps) {
+  // Fetch providers for items in this row
+  const { getProviders } = useWatchProviders(
+    items.map(item => ({ id: item.id, media_type: item.media_type })),
+    showProviders && items.length > 0
+  );
+
   if (items.length === 0) return null;
 
   return (
@@ -49,6 +58,10 @@ export default function TrendingRow({ title, items, seeAllHref, onAddClick }: Tr
             const displayTitle = item.title || item.name || 'Unknown';
             const year = (item.release_date || item.first_air_date)?.split('-')[0];
             const href = `/${item.media_type}/${item.id}`;
+            // Filter to only providers we have icons for
+            const itemProviders = showProviders
+              ? getProviders(item.id, item.media_type).filter(p => STREAMING_ICONS[p.provider_id])
+              : [];
 
             return (
               <Link
@@ -92,6 +105,20 @@ export default function TrendingRow({ title, items, seeAllHref, onAddClick }: Tr
                     >
                       <Plus className="w-3.5 h-3.5" />
                     </button>
+                  )}
+
+                  {/* Provider Icons Row - Bottom */}
+                  {itemProviders.length > 0 && (
+                    <div className="absolute bottom-2 left-2 right-2 flex gap-1">
+                      {itemProviders.slice(0, 3).map((provider) => (
+                        <StreamingServiceIcon
+                          key={provider.provider_id}
+                          providerId={provider.provider_id}
+                          size={20}
+                          showBackground
+                        />
+                      ))}
+                    </div>
                   )}
                 </div>
                 <h3 className="font-semibold text-sm line-clamp-2 mb-1">{displayTitle}</h3>

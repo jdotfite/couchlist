@@ -402,6 +402,7 @@ export default function SearchPage() {
             <SearchResults
               results={resultsForDisplay as (Movie | TVShow)[]}
               isLoading={isSearching || isDiscovering}
+              activeProvider={filters.providers.length === 1 ? filters.providers[0] : undefined}
             />
           </div>
         )}

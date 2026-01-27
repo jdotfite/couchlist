@@ -8,15 +8,25 @@ import { Movie, TVShow } from '@/types';
 import { Star, Plus } from 'lucide-react';
 import MediaOptionsSheet from './MediaOptionsSheet';
 import EmptyState from './EmptyState';
+import StreamingServiceIcon, { STREAMING_ICONS } from './icons/StreamingServiceIcons';
+import { useWatchProviders } from '@/hooks/useWatchProviders';
+import { TOP_US_PROVIDERS } from '@/types/streaming';
 
 interface SearchResultsProps {
   results: (Movie | TVShow)[];
   isLoading: boolean;
+  activeProvider?: number; // Provider ID when filtering by a specific service
 }
 
-export default function SearchResults({ results, isLoading }: SearchResultsProps) {
+export default function SearchResults({ results, isLoading, activeProvider }: SearchResultsProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<(Movie | TVShow) | null>(null);
+
+  // Fetch providers for results (only when not filtering by a specific provider)
+  const { getProviders, isLoading: providersLoading } = useWatchProviders(
+    results,
+    !activeProvider && results.length > 0
+  );
 
   const handleAddClick = (e: React.MouseEvent, item: Movie | TVShow) => {
     e.preventDefault();
@@ -24,6 +34,11 @@ export default function SearchResults({ results, isLoading }: SearchResultsProps
     setSelectedItem(item);
     setIsSheetOpen(true);
   };
+
+  // Get the active provider name for display
+  const activeProviderInfo = activeProvider
+    ? TOP_US_PROVIDERS.find(p => p.provider_id === activeProvider)
+    : null;
 
   if (isLoading) {
     return (
@@ -53,12 +68,19 @@ export default function SearchResults({ results, isLoading }: SearchResultsProps
     <>
       <div className="grid grid-cols-2 gap-3">
         {results.map((item) => {
-          const isMovie = 'title' in item;
-          const title = isMovie ? item.title : item.name;
-          const releaseDate = isMovie ? item.release_date : item.first_air_date;
+          // Check for explicit media_type first (from discover results), then infer from fields
+          const itemWithType = item as typeof item & { media_type?: 'movie' | 'tv' };
+          const mediaType = itemWithType.media_type || ('title' in item && !('name' in item) ? 'movie' : 'tv');
+          const isMovie = mediaType === 'movie';
+          const title = 'title' in item ? item.title : (item as TVShow).name;
+          const releaseDate = isMovie ? (item as Movie).release_date : (item as TVShow).first_air_date;
           const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
-          const mediaType = isMovie ? 'movie' : 'tv';
           const href = `/${mediaType}/${item.id}`;
+
+          // Get providers for this item (filter to only ones we have icons for)
+          const itemProviders = activeProvider
+            ? [] // When filtering by provider, we show the active provider badge instead
+            : getProviders(item.id, mediaType).filter(p => STREAMING_ICONS[p.provider_id]);
 
           return (
             <div key={item.id} className="group relative">
@@ -72,7 +94,7 @@ export default function SearchResults({ results, isLoading }: SearchResultsProps
                     className="object-cover group-hover:opacity-75 transition"
                     sizes="50vw"
                   />
-                  
+
                   {/* Rating Badge - Top Left */}
                   {item.vote_average > 0 && (
                     <div className="absolute top-2 left-2 bg-black/75 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1">
@@ -88,6 +110,31 @@ export default function SearchResults({ results, isLoading }: SearchResultsProps
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
+
+                  {/* Active Provider Badge - Bottom Left (when filtering by provider) */}
+                  {activeProvider && (
+                    <div className="absolute bottom-2 left-2">
+                      <StreamingServiceIcon
+                        providerId={activeProvider}
+                        size={24}
+                        showBackground
+                      />
+                    </div>
+                  )}
+
+                  {/* Provider Icons Row - Bottom (when not filtering) */}
+                  {!activeProvider && itemProviders.length > 0 && (
+                    <div className="absolute bottom-2 left-2 right-2 flex gap-1">
+                      {itemProviders.slice(0, 4).map((provider) => (
+                        <StreamingServiceIcon
+                          key={provider.provider_id}
+                          providerId={provider.provider_id}
+                          size={22}
+                          showBackground
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Info */}

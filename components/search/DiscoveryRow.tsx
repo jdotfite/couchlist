@@ -4,7 +4,21 @@ import { Loader2 } from 'lucide-react';
 import TrendingRow, { TrendingRowItem } from '@/components/home/TrendingRow';
 import RowKebabMenu from './RowKebabMenu';
 import { useDiscoveryRowContent } from '@/hooks/useDiscoveryRowContent';
-import { UserDiscoveryRowWithConfig } from '@/types/discovery-rows';
+import { useWatchProviders } from '@/hooks/useWatchProviders';
+import { UserDiscoveryRowWithConfig, PROVIDER_IDS } from '@/types/discovery-rows';
+import StreamingServiceIcon, { STREAMING_ICONS } from '@/components/icons/StreamingServiceIcons';
+
+// Map row types to their provider IDs (for platform-specific rows)
+const PLATFORM_ROW_PROVIDER: Record<string, number> = {
+  best_on_netflix: PROVIDER_IDS.netflix,
+  best_on_max: PROVIDER_IDS.max,
+  best_on_disney_plus: PROVIDER_IDS.disney_plus,
+  best_on_hulu: PROVIDER_IDS.hulu,
+  best_on_prime_video: PROVIDER_IDS.prime_video,
+  best_on_apple_tv_plus: PROVIDER_IDS.apple_tv_plus,
+  best_on_peacock: PROVIDER_IDS.peacock,
+  best_on_paramount_plus: PROVIDER_IDS.paramount_plus,
+};
 
 interface DiscoveryRowProps {
   row: UserDiscoveryRowWithConfig;
@@ -82,7 +96,11 @@ export default function DiscoveryRow({
           onHide={onHide}
         />
       </div>
-      <TrendingRowContent items={items} onAddClick={onAddClick} />
+      <TrendingRowContent
+        items={items}
+        onAddClick={onAddClick}
+        platformProviderId={PLATFORM_ROW_PROVIDER[row.rowType]}
+      />
     </section>
   );
 }
@@ -91,10 +109,18 @@ export default function DiscoveryRow({
 function TrendingRowContent({
   items,
   onAddClick,
+  platformProviderId,
 }: {
   items: TrendingRowItem[];
   onAddClick: (item: TrendingRowItem) => void;
+  platformProviderId?: number; // If set, this is a platform-specific row (e.g., "Best on Netflix")
 }) {
+  // Only fetch providers if this is NOT a platform-specific row
+  const { getProviders } = useWatchProviders(
+    items.map(item => ({ id: item.id, media_type: item.media_type })),
+    !platformProviderId && items.length > 0
+  );
+
   return (
     <div
       className="overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4"
@@ -105,6 +131,12 @@ function TrendingRowContent({
           const displayTitle = item.title || item.name || 'Unknown';
           const year = (item.release_date || item.first_air_date)?.split('-')[0];
           const href = `/${item.media_type}/${item.id}`;
+
+          // For platform rows, don't show any provider icons (we already know the platform from the row title)
+          // For other rows, get providers but filter to only ones we have icons for
+          const itemProviders = platformProviderId
+            ? []
+            : getProviders(item.id, item.media_type).filter(p => STREAMING_ICONS[p.provider_id]);
 
           return (
             <a
@@ -151,6 +183,20 @@ function TrendingRowContent({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 </button>
+
+                {/* Provider Icons Row - Bottom (only for non-platform rows) */}
+                {itemProviders.length > 0 && (
+                  <div className="absolute bottom-2 left-2 right-2 flex gap-1">
+                    {itemProviders.slice(0, 3).map((provider) => (
+                      <StreamingServiceIcon
+                        key={provider.provider_id}
+                        providerId={provider.provider_id}
+                        size={20}
+                        showBackground
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
               <h3 className="font-semibold text-sm line-clamp-2 mb-1">{displayTitle}</h3>
               {year && <p className="text-xs text-gray-400">{year}</p>}
