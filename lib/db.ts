@@ -448,6 +448,25 @@ export async function initDb() {
       // Column might already exist
     }
 
+    // Add watch providers caching to media table
+    try {
+      await sql`
+        ALTER TABLE media
+        ADD COLUMN IF NOT EXISTS watch_providers JSONB;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE media
+        ADD COLUMN IF NOT EXISTS providers_synced_at TIMESTAMP;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
     // User episodes table - tracks individual episode watch status
     await sql`
       CREATE TABLE IF NOT EXISTS user_episodes (

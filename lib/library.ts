@@ -54,6 +54,39 @@ export async function getMediaIdByTmdb(tmdbId: number, mediaType: string) {
   return result.rows[0]?.id as number | undefined;
 }
 
+interface WatchProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+}
+
+/**
+ * Update watch providers cache for a media item
+ * Called when viewing detail page (which already fetches providers from TMDb)
+ */
+export async function updateWatchProviders(
+  tmdbId: number,
+  mediaType: string,
+  providers: WatchProvider[]
+) {
+  await ensureDb();
+
+  // Store only the essential fields to keep JSONB small
+  const providersJson = JSON.stringify(
+    providers.slice(0, 4).map(p => ({
+      id: p.provider_id,
+      name: p.provider_name,
+    }))
+  );
+
+  await sql`
+    UPDATE media
+    SET watch_providers = ${providersJson}::jsonb,
+        providers_synced_at = CURRENT_TIMESTAMP
+    WHERE tmdb_id = ${tmdbId} AND media_type = ${mediaType}
+  `;
+}
+
 export async function upsertUserMediaStatus(
   userId: number,
   mediaId: number,
@@ -189,6 +222,7 @@ export async function getItemsByStatus(userId: number, status: string, includeCo
         media.poster_path,
         media.genre_ids,
         media.release_year,
+        media.watch_providers,
         user_media.status_updated_at AS added_date,
         user_media.rating,
         user_media.user_id AS owner_id,
@@ -225,6 +259,7 @@ export async function getItemsByStatus(userId: number, status: string, includeCo
       media.poster_path,
       media.genre_ids,
       media.release_year,
+      media.watch_providers,
       user_media.status_updated_at AS added_date,
       user_media.rating,
       user_media.user_id AS owner_id,

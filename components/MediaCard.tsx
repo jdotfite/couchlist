@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { MoreVertical, Heart, Star, Users } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
 import { getGenreNames } from '@/lib/genres';
+import StreamingServiceIcon, { STREAMING_ICONS } from '@/components/icons/StreamingServiceIcons';
+
+interface WatchProvider {
+  id: number;
+  name: string;
+}
 
 export interface MediaCardItem {
   id: number;
@@ -21,6 +27,7 @@ export interface MediaCardItem {
   owner_id?: number;
   added_by?: number;
   added_by_name?: string;
+  watch_providers?: WatchProvider[] | null;
 }
 
 interface MediaCardProps {
@@ -38,6 +45,11 @@ export default function MediaCard({ item, onOptionsClick, variant = 'grid', curr
 
   // Get genre names (limit to 2)
   const genres = getGenreNames(item.genre_ids, 2);
+
+  // Filter providers to only ones we have icons for (max 3)
+  const providers = (item.watch_providers || [])
+    .filter(p => STREAMING_ICONS[p.id])
+    .slice(0, 3);
 
   if (variant === 'list') {
     return (
@@ -71,6 +83,18 @@ export default function MediaCard({ item, onOptionsClick, variant = 'grid', curr
               <div className="flex items-center gap-1 text-xs text-gray-500">
                 <Users className="w-3 h-3" />
                 <span>{item.added_by_name}</span>
+              </div>
+            )}
+            {providers.length > 0 && (
+              <div className="flex items-center gap-1">
+                {providers.map((provider) => (
+                  <StreamingServiceIcon
+                    key={provider.id}
+                    providerId={provider.id}
+                    size={16}
+                    showBackground
+                  />
+                ))}
               </div>
             )}
           </div>
@@ -133,6 +157,18 @@ export default function MediaCard({ item, onOptionsClick, variant = 'grid', curr
                 <div className="flex items-center gap-0.5">
                   <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                   <span className="text-xs text-yellow-400 font-medium">{item.rating}</span>
+                </div>
+              )}
+              {providers.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {providers.map((provider) => (
+                    <StreamingServiceIcon
+                      key={provider.id}
+                      providerId={provider.id}
+                      size={18}
+                      showBackground
+                    />
+                  ))}
                 </div>
               )}
               {showAddedBy && (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { tmdbApi } from '@/lib/tmdb';
 import { TVShowDetails } from '@/types';
+import { updateWatchProviders } from '@/lib/library';
 
 export async function GET(
   request: NextRequest,
@@ -12,6 +13,15 @@ export async function GET(
     const response = await tmdbApi.get<TVShowDetails>(`/tv/${id}`, {
       params: { append_to_response: 'credits,watch/providers' },
     });
+
+    // Cache watch providers in database (fire and forget)
+    const usProviders = response.data['watch/providers']?.results?.US?.flatrate;
+    if (usProviders && usProviders.length > 0) {
+      updateWatchProviders(parseInt(id, 10), 'tv', usProviders).catch(() => {
+        // Ignore errors - this is best-effort caching
+      });
+    }
+
     return NextResponse.json(response.data);
   } catch (error: any) {
     console.error('Error fetching TV show details:', error);

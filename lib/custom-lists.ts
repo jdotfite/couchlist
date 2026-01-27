@@ -398,6 +398,7 @@ export async function getCustomListItems(userId: number, slug: string): Promise<
       m.poster_path,
       m.media_type,
       m.tmdb_id,
+      m.watch_providers,
       u.name as added_by_name
     FROM custom_list_items cli
     JOIN custom_lists cl ON cli.custom_list_id = cl.id
