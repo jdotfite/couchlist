@@ -184,8 +184,18 @@ function TrendingRowContent({
                   </svg>
                 </button>
 
-                {/* Provider Icons Row - Bottom (only for non-platform rows) */}
-                {itemProviders.length > 0 && (
+                {/* Provider Icon - Bottom Left */}
+                {/* For platform rows: show the platform icon */}
+                {/* For other rows: show fetched providers */}
+                {platformProviderId ? (
+                  <div className="absolute bottom-2 left-2">
+                    <StreamingServiceIcon
+                      providerId={platformProviderId}
+                      size={20}
+                      showBackground
+                    />
+                  </div>
+                ) : itemProviders.length > 0 ? (
                   <div className="absolute bottom-2 left-2 right-2 flex gap-1">
                     {itemProviders.slice(0, 3).map((provider) => (
                       <StreamingServiceIcon
@@ -196,7 +206,7 @@ function TrendingRowContent({
                       />
                     ))}
                   </div>
-                )}
+                ) : null}
               </div>
               <h3 className="font-semibold text-sm line-clamp-2 mb-1">{displayTitle}</h3>
               {year && <p className="text-xs text-gray-400">{year}</p>}
