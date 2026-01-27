@@ -4,9 +4,9 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Shield, Bell, Rows3, Database } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Upload, RefreshCw } from 'lucide-react';
 
-export default function SettingsPage() {
+export default function DataSyncPage() {
   const { status } = useSession();
   const router = useRouter();
 
@@ -19,7 +19,7 @@ export default function SettingsPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin-fast-fast text-gray-400" />
+        <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin-fast" />
       </div>
     );
   }
@@ -29,67 +29,57 @@ export default function SettingsPage() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
-          <Link href="/profile" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
+          <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
           </Link>
-          <h1 className="text-xl font-bold">Settings</h1>
+          <h1 className="text-xl font-bold">Data & Sync</h1>
         </div>
       </header>
 
       <main className="px-4">
+        <p className="text-gray-400 mb-6">
+          Import your watch history, sync with external services, or export your data.
+        </p>
+
         <div className="space-y-2">
           <Link
-            href="/settings/notifications"
+            href="/settings/import"
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Bell className="w-5 h-5 text-white" />
+              <Upload className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">Notifications</h3>
-              <p className="text-sm text-gray-400">Manage show alerts and notification preferences</p>
+              <h3 className="font-semibold">Import</h3>
+              <p className="text-sm text-gray-400">Import from Letterboxd or IMDb</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400" />
           </Link>
 
           <Link
-            href="/settings/discovery"
+            href="/settings/trakt"
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Rows3 className="w-5 h-5 text-white" />
+              <RefreshCw className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">Discovery Rows</h3>
-              <p className="text-sm text-gray-400">Customize which content rows appear on Search</p>
+              <h3 className="font-semibold">Trakt Sync</h3>
+              <p className="text-sm text-gray-400">Sync watch history from Kodi, Plex, and more</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400" />
           </Link>
 
           <Link
-            href="/settings/privacy"
+            href="/settings/export"
             className="card card-interactive flex items-center gap-4"
           >
             <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
+              <Download className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold">Privacy & Profile</h3>
-              <p className="text-sm text-gray-400">Manage your username and privacy settings</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-gray-400" />
-          </Link>
-
-          <Link
-            href="/settings/data"
-            className="card card-interactive flex items-center gap-4"
-          >
-            <div className="w-10 h-10 bg-brand-primary/20 rounded-full flex items-center justify-center">
-              <Database className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold">Data & Sync</h3>
-              <p className="text-sm text-gray-400">Import, export, and sync with Trakt</p>
+              <h3 className="font-semibold">Export</h3>
+              <p className="text-sm text-gray-400">Download your watch history as CSV or JSON</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400" />
           </Link>

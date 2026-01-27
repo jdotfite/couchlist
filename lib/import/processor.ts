@@ -7,7 +7,7 @@ import {
   getSystemTagId,
   addTagToUserMedia,
 } from '@/lib/library';
-import { searchTMDbMovie } from './tmdb-matcher';
+import { searchTMDbMovie, searchTMDbTV, findByIMDbId } from './tmdb-matcher';
 import { tmdbRateLimiter } from './rate-limiter';
 import type {
   ImportItem,
@@ -16,6 +16,7 @@ import type {
   ImportJobStatus,
   ConflictStrategy,
   MatchConfidence,
+  IMDbItem,
 } from '@/types/import';
 
 const BATCH_SIZE = 10;
@@ -193,11 +194,18 @@ function shouldUpdateRating(
 }
 
 /**
+ * Check if item is an IMDb item (has imdbId)
+ */
+function isIMDbItem(item: ImportItem | IMDbItem): item is IMDbItem {
+  return 'imdbId' in item && typeof item.imdbId === 'string';
+}
+
+/**
  * Process a single import item
  */
 async function processItem(
   userId: number,
-  item: ImportItem,
+  item: ImportItem | IMDbItem,
   config: ImportConfig
 ): Promise<ProcessItemResult> {
   // Check if we should import this item based on config
@@ -208,9 +216,30 @@ async function processItem(
     return { status: 'skipped', action: 'skipped_existing' };
   }
 
-  // Search TMDb for match (with rate limiting)
+  // Rate limit TMDb API calls
   await tmdbRateLimiter.acquire();
-  const match = await searchTMDbMovie(item.title, item.year);
+
+  let match;
+  let mediaType: 'movie' | 'tv' = 'movie';
+
+  // IMDb items: use findByIMDbId for exact matching
+  if (isIMDbItem(item)) {
+    mediaType = item.mediaType;
+    match = await findByIMDbId(item.imdbId, item.mediaType);
+
+    // Fallback to title search if IMDb ID lookup fails
+    if (!match) {
+      await tmdbRateLimiter.acquire();
+      if (item.mediaType === 'tv') {
+        match = await searchTMDbTV(item.title, item.year);
+      } else {
+        match = await searchTMDbMovie(item.title, item.year);
+      }
+    }
+  } else {
+    // Letterboxd items: title search only (movies only)
+    match = await searchTMDbMovie(item.title, item.year);
+  }
 
   if (!match) {
     return {
@@ -230,7 +259,10 @@ async function processItem(
     };
   }
 
-  const mediaType = 'movie'; // Letterboxd only has movies
+  // Use mediaType from match if available (for IMDb lookups that might differ)
+  if (match.mediaType) {
+    mediaType = match.mediaType;
+  }
 
   try {
     // Check if user already has this media
@@ -333,7 +365,7 @@ async function processItem(
 export async function processImportJob(
   jobId: number,
   userId: number,
-  items: ImportItem[],
+  items: (ImportItem | IMDbItem)[],
   config: ImportConfig
 ): Promise<void> {
   await updateImportJobStatus(jobId, 'processing');

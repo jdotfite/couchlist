@@ -21,16 +21,10 @@ const sources: Array<{ id: ImportSource; name: string; description: string; avai
     available: true,
   },
   {
-    id: 'trakt',
-    name: 'Trakt',
-    description: 'Import your watch history and ratings (coming soon)',
-    available: false,
-  },
-  {
     id: 'imdb',
     name: 'IMDb',
-    description: 'Import your ratings and watchlist (coming soon)',
-    available: false,
+    description: 'Import your ratings and watchlist (movies and TV shows)',
+    available: true,
   },
 ];
 
@@ -124,7 +118,7 @@ export default function ImportPage() {
   };
 
   const handleDismiss = () => {
-    router.push('/settings');
+    router.push('/settings/data');
   };
 
   const handleBack = () => {
@@ -155,7 +149,7 @@ export default function ImportPage() {
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
           {step === 'source' || step === 'processing' || step === 'complete' ? (
-            <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
+            <Link href="/settings/data" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
               <ChevronLeft className="w-6 h-6" />
             </Link>
           ) : (
@@ -208,6 +202,12 @@ export default function ImportPage() {
                   <>
                     Go to Letterboxd Settings → Import & Export → Export Your Data,
                     then upload the ZIP file here.
+                  </>
+                )}
+                {source === 'imdb' && (
+                  <>
+                    Go to IMDb → Your Ratings (or Watchlist) → click the three dots menu → Export,
+                    then upload the CSV file here.
                   </>
                 )}
               </p>

@@ -69,7 +69,7 @@ export default function ExportPage() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
-          <Link href="/settings" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
+          <Link href="/settings/data" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
             <ChevronLeft className="w-6 h-6" />
           </Link>
           <h1 className="text-xl font-bold">Export Data</h1>

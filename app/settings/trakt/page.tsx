@@ -215,7 +215,7 @@ export default function TraktSettingsPage() {
       <header className="sticky top-0 z-10 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
           <Link
-            href="/settings"
+            href="/settings/data"
             className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition"
           >
             <ChevronLeft className="w-6 h-6" />

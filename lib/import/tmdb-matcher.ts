@@ -1,6 +1,20 @@
 import { tmdbApi } from '@/lib/tmdb';
 import type { TMDbMatchResult, MatchConfidence } from '@/types/import';
-import type { Movie } from '@/types';
+
+interface TMDbFindResult {
+  movie_results: Array<{
+    id: number;
+    title: string;
+    release_date?: string;
+    poster_path: string | null;
+  }>;
+  tv_results: Array<{
+    id: number;
+    name: string;
+    first_air_date?: string;
+    poster_path: string | null;
+  }>;
+}
 
 interface TMDbSearchResult {
   id: number;
@@ -225,9 +239,154 @@ export async function searchTMDbMovie(
       posterPath: best.result.poster_path,
       confidence,
       score: best.score,
+      mediaType: 'movie',
     };
   } catch (error) {
     console.error('TMDb search error:', error);
+    return null;
+  }
+}
+
+/**
+ * Find media by IMDb ID using TMDb's external ID lookup
+ * This is more reliable than title search
+ */
+export async function findByIMDbId(
+  imdbId: string,
+  expectedType?: 'movie' | 'tv'
+): Promise<TMDbMatchResult | null> {
+  try {
+    const response = await tmdbApi.get<TMDbFindResult>(`/find/${imdbId}`, {
+      params: { external_source: 'imdb_id' },
+    });
+
+    const { movie_results, tv_results } = response.data;
+
+    // If we expect a specific type, prioritize that
+    if (expectedType === 'movie' && movie_results.length > 0) {
+      const movie = movie_results[0];
+      return {
+        tmdbId: movie.id,
+        title: movie.title,
+        year: extractYear(movie.release_date) || 0,
+        posterPath: movie.poster_path,
+        confidence: 'exact',
+        score: 100,
+        mediaType: 'movie',
+      };
+    }
+
+    if (expectedType === 'tv' && tv_results.length > 0) {
+      const tv = tv_results[0];
+      return {
+        tmdbId: tv.id,
+        title: tv.name,
+        year: extractYear(tv.first_air_date) || 0,
+        posterPath: tv.poster_path,
+        confidence: 'exact',
+        score: 100,
+        mediaType: 'tv',
+      };
+    }
+
+    // No expected type or didn't find expected type - return first result
+    if (movie_results.length > 0) {
+      const movie = movie_results[0];
+      return {
+        tmdbId: movie.id,
+        title: movie.title,
+        year: extractYear(movie.release_date) || 0,
+        posterPath: movie.poster_path,
+        confidence: 'exact',
+        score: 100,
+        mediaType: 'movie',
+      };
+    }
+
+    if (tv_results.length > 0) {
+      const tv = tv_results[0];
+      return {
+        tmdbId: tv.id,
+        title: tv.name,
+        year: extractYear(tv.first_air_date) || 0,
+        posterPath: tv.poster_path,
+        confidence: 'exact',
+        score: 100,
+        mediaType: 'tv',
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('TMDb find by IMDb ID error:', error);
+    return null;
+  }
+}
+
+/**
+ * Search TMDb for a TV show by title and optional year
+ */
+export async function searchTMDbTV(
+  title: string,
+  year?: number
+): Promise<TMDbMatchResult | null> {
+  try {
+    let response = await tmdbApi.get<{ results: TMDbSearchResult[] }>('/search/tv', {
+      params: {
+        query: title,
+        first_air_date_year: year,
+      },
+    });
+
+    let results = response.data.results || [];
+
+    // If no results with year, try without
+    if (results.length === 0 && year) {
+      response = await tmdbApi.get<{ results: TMDbSearchResult[] }>('/search/tv', {
+        params: { query: title },
+      });
+      results = response.data.results || [];
+    }
+
+    if (results.length === 0) {
+      return null;
+    }
+
+    // Score and pick best match (reusing movie scoring logic)
+    const scoredResults = results.map(result => ({
+      result: { ...result, title: result.title || (result as unknown as { name: string }).name },
+      score: calculateMatchScore(title, year, {
+        ...result,
+        title: result.title || (result as unknown as { name: string }).name,
+        release_date: result.release_date || (result as unknown as { first_air_date: string }).first_air_date,
+      }),
+    }));
+
+    scoredResults.sort((a, b) => b.score - a.score);
+
+    const best = scoredResults[0];
+    const tvResult = best.result as unknown as { name: string; first_air_date?: string; id: number; poster_path: string | null };
+    const confidence = getConfidence(title, year, {
+      ...best.result,
+      title: tvResult.name,
+      release_date: tvResult.first_air_date,
+    }, best.score);
+
+    if (confidence === 'failed' && best.score < 30) {
+      return null;
+    }
+
+    return {
+      tmdbId: tvResult.id,
+      title: tvResult.name,
+      year: extractYear(tvResult.first_air_date) || 0,
+      posterPath: tvResult.poster_path,
+      confidence,
+      score: best.score,
+      mediaType: 'tv',
+    };
+  } catch (error) {
+    console.error('TMDb TV search error:', error);
     return null;
   }
 }

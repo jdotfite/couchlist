@@ -28,6 +28,7 @@ export interface TMDbMatchResult {
   posterPath: string | null;
   confidence: MatchConfidence;
   score: number;
+  mediaType?: 'movie' | 'tv';
 }
 
 export interface ImportJob {
@@ -92,6 +93,56 @@ export interface ImportSummary {
   skippedItems: number;
   duration: number; // in seconds
   failedItemsList: ImportJobItem[];
+}
+
+// IMDb types
+export interface IMDbItem extends ImportItem {
+  imdbId: string;
+  mediaType: 'movie' | 'tv';
+  directors?: string;
+}
+
+export interface IMDbRatingsRow {
+  Const: string;
+  'Your Rating': string;
+  'Date Rated': string;
+  Title: string;
+  URL: string;
+  'Title Type': string;
+  'IMDb Rating': string;
+  'Runtime (mins)': string;
+  Year: string;
+  Genres: string;
+  'Num Votes': string;
+  'Release Date': string;
+  Directors: string;
+}
+
+export interface IMDbWatchlistRow {
+  Const: string;
+  Title: string;
+  URL: string;
+  'Title Type': string;
+  'IMDb Rating': string;
+  'Runtime (mins)': string;
+  Year: string;
+  Genres: string;
+  'Num Votes': string;
+  'Release Date': string;
+  Directors: string;
+}
+
+export interface IMDbParseResult {
+  items: IMDbItem[];
+  stats: {
+    ratingsCount: number;
+    watchlistCount: number;
+    moviesCount: number;
+    tvShowsCount: number;
+    skippedCount: number;
+    totalUnique: number;
+  };
+  errors: string[];
 }
 
 // Letterboxd CSV row types

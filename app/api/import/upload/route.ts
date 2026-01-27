@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getUserIdByEmail } from '@/lib/library';
 import { parseLetterboxdExport } from '@/lib/import/parsers/letterboxd';
+import { parseIMDbExport } from '@/lib/import/parsers/imdb';
 import {
   createImportJob,
   processImportJob,
 } from '@/lib/import/processor';
-import type { ImportConfig, ImportSource } from '@/types/import';
+import type { ImportConfig, ImportSource, ImportItem, IMDbItem } from '@/types/import';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -56,6 +57,13 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+    } else if (source === 'imdb') {
+      if (!file.name.endsWith('.csv')) {
+        return NextResponse.json(
+          { error: 'IMDb imports require a CSV file.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Parse the config
@@ -72,26 +80,30 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
 
     // Parse based on source
-    let items: Array<{ title: string; year?: number; rating?: number; originalRating?: number; status?: 'watchlist' | 'watched'; isRewatch?: boolean; tags?: string[] }> = [];
+    let items: (ImportItem | IMDbItem)[] = [];
     let parseErrors: string[] = [];
 
     if (source === 'letterboxd') {
       const result = await parseLetterboxdExport(arrayBuffer);
       items = result.items;
       parseErrors = result.errors;
-
-      if (items.length === 0) {
-        return NextResponse.json(
-          {
-            error: 'No items found in export',
-            parseErrors,
-          },
-          { status: 400 }
-        );
-      }
+    } else if (source === 'imdb') {
+      const result = await parseIMDbExport(arrayBuffer, file.name);
+      items = result.items;
+      parseErrors = result.errors;
     } else {
       return NextResponse.json(
         { error: `Import source "${source}" is not yet supported` },
+        { status: 400 }
+      );
+    }
+
+    if (items.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'No items found in export',
+          parseErrors,
+        },
         { status: 400 }
       );
     }

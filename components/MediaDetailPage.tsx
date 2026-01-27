@@ -184,17 +184,22 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
         {/* Ratings Row */}
         <div className="flex items-center gap-3 flex-wrap">
           {media.vote_average > 0 && (
-            <div className="bg-yellow-400 text-black px-2 py-0.5 rounded font-bold text-xs">
-              IMDb {tmdbRating}
+            <div className="flex items-center gap-1.5 bg-zinc-800 px-2 py-1 rounded">
+              <span className="text-yellow-400 text-sm">★</span>
+              <span className="text-white font-semibold text-sm">{tmdbRating}</span>
+              <span className="text-gray-500 text-xs">TMDb</span>
             </div>
           )}
           {session?.user && (
             <>
               <div className="w-px h-4 bg-zinc-700" />
-              <StarRatingPopup
-                rating={userRating}
-                onRate={handleRatingChange}
-              />
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 text-xs">Yours</span>
+                <StarRatingPopup
+                  rating={userRating}
+                  onRate={handleRatingChange}
+                />
+              </div>
             </>
           )}
         </div>
