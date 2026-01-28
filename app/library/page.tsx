@@ -120,7 +120,7 @@ export default function LibraryPage() {
                 href={`/library/${list.slug}`}
                 className="block bg-zinc-900 hover:bg-zinc-800 rounded-xl overflow-hidden transition group"
               >
-                <div className="flex items-center p-4">
+                <div className="flex items-center p-3">
                   {/* Icon */}
                   <div className={`w-12 h-12 rounded-lg flex items-center justify-center bg-gradient-to-br ${list.color} flex-shrink-0`}>
                     <IconComponent className="w-6 h-6 text-white" />
