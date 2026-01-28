@@ -1044,6 +1044,76 @@ export async function initDb() {
       ON user_discovery_rows(user_id, position);
     `;
 
+    // ========================================================================
+    // Saved Lists (Smart/Manual/Hybrid Lists)
+    // User-created lists with filter rules or manual item selection
+    // ========================================================================
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS saved_lists (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        slug VARCHAR(100) NOT NULL,
+        name VARCHAR(50) NOT NULL,
+        description VARCHAR(200),
+        icon VARCHAR(30) DEFAULT 'list',
+        color VARCHAR(20) DEFAULT 'gray',
+        list_type VARCHAR(20) DEFAULT 'smart' CHECK (list_type IN ('smart', 'manual', 'hybrid')),
+        filter_rules JSONB DEFAULT '{}',
+        sort_by VARCHAR(30) DEFAULT 'status_updated_at',
+        sort_direction VARCHAR(4) DEFAULT 'desc' CHECK (sort_direction IN ('asc', 'desc')),
+        item_limit INTEGER DEFAULT 0,
+        is_public BOOLEAN DEFAULT false,
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, slug)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_saved_lists_user
+      ON saved_lists(user_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_saved_lists_position
+      ON saved_lists(user_id, position);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_saved_lists_public
+      ON saved_lists(is_public) WHERE is_public = true;
+    `;
+
+    // Saved list pins - manually included/excluded items in lists
+    await sql`
+      CREATE TABLE IF NOT EXISTS saved_list_pins (
+        id SERIAL PRIMARY KEY,
+        saved_list_id INTEGER NOT NULL REFERENCES saved_lists(id) ON DELETE CASCADE,
+        media_id INTEGER NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+        pin_type VARCHAR(10) DEFAULT 'include' CHECK (pin_type IN ('include', 'exclude')),
+        position INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(saved_list_id, media_id)
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_saved_list_pins_list
+      ON saved_list_pins(saved_list_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_saved_list_pins_media
+      ON saved_list_pins(media_id);
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS idx_saved_list_pins_position
+      ON saved_list_pins(saved_list_id, pin_type, position);
+    `;
+
     // Insert system tags individually to handle partial index conflicts
     const systemTags = [
       { slug: 'favorites', label: 'Favorites' },
