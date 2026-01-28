@@ -556,7 +556,7 @@ These are ideas to consider but not yet prioritized:
 - Spoiler tags for reviews
 - Movie/TV quotes collection
 - Watchlist priority/ordering
-- "Recommend to friend" feature
+- ~~"Recommend to friend" feature~~ ✅ (Bulk send from library select mode)
 - Mood-based recommendations
 - Watch parties with chat
 - Achievement badges/gamification
@@ -593,6 +593,7 @@ These are ideas to consider but not yet prioritized:
 - [x] Partner & Friend sharing system (separate from custom list collaborators)
 - [x] Friend suggestions ("Send to Friend" from media options)
 - [x] Notification center redesign with grouped suggestions and swipe-to-dismiss
+- [x] Bulk send to friend from library select mode (multi-select items → send to friends)
 - [x] Dev tools: Account reset endpoint for testing
 - [x] Customizable discovery rows on Search page (add/remove/reorder content rows)
 - [x] IMDb import (CSV export with ratings/watchlist, movies + TV, IMDb ID matching)
@@ -602,6 +603,33 @@ These are ideas to consider but not yet prioritized:
 ---
 
 ## Recent Changes (January 2025)
+
+### Bulk Send to Friend Feature
+
+**Goal:** Allow users to multi-select items in their library and send recommendations to friends.
+
+#### Implementation
+- **Library Select Mode**: Added "Send" button to action bar (alongside Move/Remove)
+- **BulkSendSheet**: New component for selecting friends and adding optional note
+- **Multi-item API**: Extended `/api/suggestions` to accept array of items
+- **Grouped Notifications**: Multiple items from same sender group into single notification
+
+#### User Flow
+1. Go to any library list (Watched, Watchlist, etc.)
+2. Tap "Select" button in filter bar
+3. Multi-select your top picks
+4. Tap purple "Send" button in action bar
+5. Select friend(s) to share with
+6. Optionally add a note ("My favorites from 2025!")
+7. Send → Items arrive in friend's inbox as grouped notification
+
+#### Files
+- `components/suggestions/BulkSendSheet.tsx` - New bulk send sheet component
+- `lib/suggestions.ts` - Added `createBulkMultiItemSuggestions()` function
+- `app/api/suggestions/route.ts` - Extended POST to accept `items` array
+- `app/library/[slug]/page.tsx` - Added Send button and sheet integration
+
+---
 
 ### IMDb Import & Settings Reorganization
 
