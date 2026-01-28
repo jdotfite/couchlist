@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { getUserIdByEmail } from '@/lib/library';
+import { getUserIdByEmail, getMediaIdByTmdb } from '@/lib/library';
 import {
   getLists,
   createList,
+  getListsContainingMedia,
   LIST_COLORS,
   LIST_ICONS,
   SORT_OPTIONS,
 } from '@/lib/lists';
 
 // GET /api/lists - Get all lists for the current user
-export async function GET() {
+// Optional query params:
+//   ?mediaId=123 - includes which lists contain that media (internal ID)
+//   ?tmdbId=456&mediaType=movie - includes which lists contain that media (TMDB lookup)
+export async function GET(request: Request) {
   try {
     const session = await auth();
     if (!session?.user?.email) {
@@ -21,16 +25,42 @@ export async function GET() {
     if (!userId) {
       return NextResponse.json({
         lists: [],
+        containsMedia: [],
         colors: LIST_COLORS,
         icons: LIST_ICONS,
         sortOptions: SORT_OPTIONS,
       });
     }
 
+    const { searchParams } = new URL(request.url);
+    const mediaIdParam = searchParams.get('mediaId');
+    const tmdbIdParam = searchParams.get('tmdbId');
+    const mediaTypeParam = searchParams.get('mediaType');
+
     const lists = await getLists(userId);
+
+    // Determine internal media ID
+    let internalMediaId: number | undefined;
+
+    if (mediaIdParam) {
+      internalMediaId = parseInt(mediaIdParam, 10);
+      if (isNaN(internalMediaId)) internalMediaId = undefined;
+    } else if (tmdbIdParam && mediaTypeParam) {
+      const tmdbId = parseInt(tmdbIdParam, 10);
+      if (!isNaN(tmdbId)) {
+        internalMediaId = await getMediaIdByTmdb(tmdbId, mediaTypeParam);
+      }
+    }
+
+    // Get which lists contain the media
+    let containsMedia: number[] = [];
+    if (internalMediaId) {
+      containsMedia = await getListsContainingMedia(userId, internalMediaId);
+    }
 
     return NextResponse.json({
       lists,
+      containsMedia,
       colors: LIST_COLORS,
       icons: LIST_ICONS,
       sortOptions: SORT_OPTIONS,

@@ -7,11 +7,13 @@ import {
   Send,
   Trash2,
   Loader2,
+  ListPlus,
 } from 'lucide-react';
 import BottomSheet from './BottomSheet';
 import { useMediaStatus, type MediaInfo, type MediaStatus } from '@/hooks/useMediaStatus';
 import { getImageUrl } from '@/lib/tmdb';
 import FriendSuggestionSheet from './suggestions/FriendSuggestionSheet';
+import AddToListSheet from './lists/AddToListSheet';
 import { SYSTEM_LISTS, SYSTEM_LIST_MAP } from '@/lib/list-config';
 
 // Status lists are mutually exclusive
@@ -57,6 +59,7 @@ export default function MediaOptionsSheet({
   onRemove,
 }: MediaOptionsSheetProps) {
   const [suggestionSheetOpen, setSuggestionSheetOpen] = useState(false);
+  const [addToListSheetOpen, setAddToListSheetOpen] = useState(false);
 
   const {
     status: fetchedStatus,
@@ -215,6 +218,14 @@ export default function MediaOptionsSheet({
           {/* Other Actions */}
           <div className="border-t border-zinc-800 mt-2">
             <button
+              onClick={() => setAddToListSheetOpen(true)}
+              className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition"
+            >
+              <ListPlus className="w-5 h-5 text-[#8b5ef4]" />
+              <span className="text-white">Add to List</span>
+            </button>
+
+            <button
               onClick={handleShare}
               className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition"
             >
@@ -253,6 +264,15 @@ export default function MediaOptionsSheet({
         title={title}
         posterPath={posterPath}
         releaseYear={releaseYear}
+      />
+
+      <AddToListSheet
+        isOpen={addToListSheetOpen}
+        onClose={() => setAddToListSheetOpen(false)}
+        tmdbId={mediaId}
+        mediaType={mediaType}
+        title={title}
+        posterPath={posterPath}
       />
     </>
   );

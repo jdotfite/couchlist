@@ -386,6 +386,27 @@ export async function reorderLists(
   }
 }
 
+/**
+ * Get list IDs that contain a specific media item (as include pins)
+ */
+export async function getListsContainingMedia(
+  userId: number,
+  mediaId: number
+): Promise<number[]> {
+  await ensureDb();
+
+  const result = await sql`
+    SELECT sl.id
+    FROM saved_lists sl
+    JOIN saved_list_pins slp ON slp.saved_list_id = sl.id
+    WHERE sl.user_id = ${userId}
+      AND slp.media_id = ${mediaId}
+      AND slp.pin_type = 'include'
+  `;
+
+  return result.rows.map(row => row.id as number);
+}
+
 // Helper to map database row to List
 function mapRowToList(row: Record<string, unknown>): List {
   return {
