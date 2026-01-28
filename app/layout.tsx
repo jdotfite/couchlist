@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/SidebarContext";
 import AppLayout from "@/components/AppLayout";
 import InstallPrompt from "@/components/InstallPrompt";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import ToastProvider from "@/components/providers/ToastProvider";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -82,6 +83,7 @@ export default function RootLayout({
             <BottomNav />
             <InstallPrompt />
             <ServiceWorkerRegistration />
+            <ToastProvider />
           </SidebarProvider>
         </AuthProvider>
       </body>

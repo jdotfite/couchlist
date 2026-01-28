@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import type { MediaStatus } from '@/lib/library';
+import { showStatusChange, showRemovedFromLibrary } from '@/lib/toast';
 
 export type { MediaStatus };
 
@@ -85,7 +86,16 @@ export function useMediaStatus(): UseMediaStatusReturn {
       }
 
       // Update local state
+      const previousStatus = status?.status || null;
       setStatus(prev => prev ? { ...prev, status: targetStatus } : null);
+
+      // Show toast notification
+      showStatusChange(targetStatus as 'watchlist' | 'watching' | 'watched', {
+        title: mediaInfo.title,
+        mediaType: mediaInfo.mediaType,
+        previousStatus,
+      });
+
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -115,6 +125,10 @@ export function useMediaStatus(): UseMediaStatusReturn {
 
       // Update local state
       setStatus(prev => prev ? { ...prev, status: null } : null);
+
+      // Show toast notification
+      showRemovedFromLibrary(mediaInfo.title);
+
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';

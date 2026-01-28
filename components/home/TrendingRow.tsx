@@ -9,11 +9,21 @@
  * For user's library items, use MediaRow instead (compact 3-up layout with placeholders).
  */
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Plus, Film, Tv } from 'lucide-react';
+import { Plus, Film, Tv, Clock, Play, CheckCircle2 } from 'lucide-react';
 import { useWatchProviders } from '@/hooks/useWatchProviders';
+import { useLibraryStatusBatch } from '@/hooks/useLibraryStatusBatch';
 import StreamingServiceIcon, { STREAMING_ICONS } from '@/components/icons/StreamingServiceIcons';
+
+// Status icon mapping for in-library items
+const STATUS_ICONS: Record<string, { icon: typeof Clock; colorClass: string }> = {
+  watchlist: { icon: Clock, colorClass: 'bg-blue-600' },
+  watching: { icon: Play, colorClass: 'bg-green-600' },
+  watched: { icon: CheckCircle2, colorClass: 'bg-brand-primary' },
+  finished: { icon: CheckCircle2, colorClass: 'bg-brand-primary' },
+};
 
 export interface TrendingRowItem {
   id: number;
@@ -34,11 +44,33 @@ interface TrendingRowProps {
 }
 
 export default function TrendingRow({ title, items, seeAllHref, onAddClick, showProviders = true }: TrendingRowProps) {
+  // Track local status updates (for immediate feedback after adding)
+  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
+
   // Fetch providers for items in this row
   const { getProviders } = useWatchProviders(
     items.map(item => ({ id: item.id, media_type: item.media_type })),
     showProviders && items.length > 0
   );
+
+  // Fetch library status for items
+  const { getStatus } = useLibraryStatusBatch(items, items.length > 0);
+
+  // Helper to get combined status (local override or fetched)
+  const getCombinedStatus = (id: number, mediaType: 'movie' | 'tv'): string | null => {
+    const key = `${mediaType}-${id}`;
+    return localStatuses[key] || getStatus(id, mediaType);
+  };
+
+  // Update local status when item is added
+  const handleAddClick = (item: TrendingRowItem) => {
+    if (onAddClick) {
+      onAddClick(item);
+      // Optimistically set to watchlist (most common default)
+      const key = `${item.media_type}-${item.id}`;
+      setLocalStatuses(prev => ({ ...prev, [key]: 'watchlist' }));
+    }
+  };
 
   if (items.length === 0) return null;
 
@@ -94,18 +126,34 @@ export default function TrendingRow({ title, items, seeAllHref, onAddClick, show
                     )}
                   </div>
 
-                  {onAddClick && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onAddClick(item);
-                      }}
-                      className="absolute top-2 right-2 w-6 h-6 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+                  {onAddClick && (() => {
+                    const status = getCombinedStatus(item.id, item.media_type);
+                    const statusConfig = status ? STATUS_ICONS[status] : null;
+
+                    if (statusConfig) {
+                      // Item is in library - show status icon
+                      const StatusIconComponent = statusConfig.icon;
+                      return (
+                        <div className={`absolute top-2 right-2 w-6 h-6 ${statusConfig.colorClass} rounded-full flex items-center justify-center z-10`}>
+                          <StatusIconComponent className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      );
+                    }
+
+                    // Item not in library - show add button
+                    return (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleAddClick(item);
+                        }}
+                        className="absolute top-2 right-2 w-6 h-6 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    );
+                  })()}
 
                   {/* Provider Icons Row - Bottom */}
                   {itemProviders.length > 0 && (
