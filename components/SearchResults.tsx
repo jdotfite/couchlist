@@ -5,12 +5,22 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
 import { Movie, TVShow } from '@/types';
-import { Star, Plus } from 'lucide-react';
+import { Star, Plus, Clock, Play, CheckCircle2 } from 'lucide-react';
+import { MediaTypeBadge } from './icons/MediaTypeIcons';
 import MediaOptionsSheet from './MediaOptionsSheet';
 import EmptyState from './EmptyState';
 import StreamingServiceIcon, { STREAMING_ICONS } from './icons/StreamingServiceIcons';
 import { useWatchProviders } from '@/hooks/useWatchProviders';
+import { useLibraryStatusBatch } from '@/hooks/useLibraryStatusBatch';
 import { TOP_US_PROVIDERS } from '@/types/streaming';
+
+// Status icon mapping for in-library items
+const STATUS_ICONS: Record<string, { icon: typeof Clock; colorClass: string }> = {
+  watchlist: { icon: Clock, colorClass: 'bg-blue-600' },
+  watching: { icon: Play, colorClass: 'bg-green-600' },
+  watched: { icon: CheckCircle2, colorClass: 'bg-brand-primary' },
+  finished: { icon: CheckCircle2, colorClass: 'bg-brand-primary' },
+};
 
 interface SearchResultsProps {
   results: (Movie | TVShow)[];
@@ -22,17 +32,46 @@ export default function SearchResults({ results, isLoading, activeProvider }: Se
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<(Movie | TVShow) | null>(null);
 
+  // Track local status updates (for immediate feedback after adding)
+  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
+
   // Fetch providers for results (only when not filtering by a specific provider)
   const { getProviders, isLoading: providersLoading } = useWatchProviders(
     results,
     !activeProvider && results.length > 0
   );
 
+  // Fetch library status for items
+  const { getStatus } = useLibraryStatusBatch(
+    results.map(item => ({
+      id: item.id,
+      media_type: ('title' in item && !('name' in item) ? 'movie' : 'tv') as 'movie' | 'tv',
+    })),
+    results.length > 0
+  );
+
+  // Helper to get combined status (local override or fetched)
+  const getCombinedStatus = (id: number, mediaType: 'movie' | 'tv'): string | null => {
+    const key = `${mediaType}-${id}`;
+    return localStatuses[key] || getStatus(id, mediaType);
+  };
+
   const handleAddClick = (e: React.MouseEvent, item: Movie | TVShow) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedItem(item);
     setIsSheetOpen(true);
+  };
+
+  // Update local status when sheet closes (item was likely added)
+  const handleSheetClose = () => {
+    if (selectedItem) {
+      const mediaType = 'title' in selectedItem && !('name' in selectedItem) ? 'movie' : 'tv';
+      const key = `${mediaType}-${selectedItem.id}`;
+      // Optimistically set to watchlist (most common default)
+      setLocalStatuses(prev => ({ ...prev, [key]: 'watchlist' }));
+    }
+    setIsSheetOpen(false);
   };
 
   // Get the active provider name for display
@@ -95,21 +134,37 @@ export default function SearchResults({ results, isLoading, activeProvider }: Se
                     sizes="50vw"
                   />
 
-                  {/* Rating Badge - Top Left */}
-                  {item.vote_average > 0 && (
-                    <div className="absolute top-2 left-2 bg-black/75 backdrop-blur-sm px-2 py-1 rounded-md flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                      <span className="text-xs font-semibold">{item.vote_average.toFixed(1)}</span>
-                    </div>
-                  )}
+                  {/* Media Type Badge - Top Left */}
+                  <MediaTypeBadge mediaType={mediaType as 'movie' | 'tv'} className="absolute top-2 left-2" />
 
-                  {/* Plus Button - Top Right */}
-                  <button
-                    onClick={(e) => handleAddClick(e, item)}
-                    className="absolute top-2 right-2 w-6 h-6 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
+                  {/* Status/Add Button - Top Right */}
+                  {(() => {
+                    const status = getCombinedStatus(item.id, mediaType as 'movie' | 'tv');
+                    const statusConfig = status ? STATUS_ICONS[status] : null;
+
+                    if (statusConfig) {
+                      // Item is in library - show white status icon
+                      const StatusIconComponent = statusConfig.icon;
+                      return (
+                        <button
+                          onClick={(e) => handleAddClick(e, item)}
+                          className="absolute top-2 right-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center z-10"
+                        >
+                          <StatusIconComponent className="w-3.5 h-3.5 text-white" />
+                        </button>
+                      );
+                    }
+
+                    // Item not in library - show add button
+                    return (
+                      <button
+                        onClick={(e) => handleAddClick(e, item)}
+                        className="absolute top-2 right-2 w-6 h-6 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    );
+                  })()}
 
                   {/* Active Provider Badge - Bottom Left (when filtering by provider) */}
                   {activeProvider && (
@@ -122,10 +177,10 @@ export default function SearchResults({ results, isLoading, activeProvider }: Se
                     </div>
                   )}
 
-                  {/* Provider Icons Row - Bottom (when not filtering) */}
+                  {/* Provider Icons Row - Bottom Left (when not filtering) */}
                   {!activeProvider && itemProviders.length > 0 && (
-                    <div className="absolute bottom-2 left-2 right-2 flex gap-1">
-                      {itemProviders.slice(0, 4).map((provider) => (
+                    <div className="absolute bottom-2 left-2 flex gap-1">
+                      {itemProviders.slice(0, 3).map((provider) => (
                         <StreamingServiceIcon
                           key={provider.provider_id}
                           providerId={provider.provider_id}
@@ -133,6 +188,14 @@ export default function SearchResults({ results, isLoading, activeProvider }: Se
                           showBackground
                         />
                       ))}
+                    </div>
+                  )}
+
+                  {/* Rating Badge - Bottom Right */}
+                  {item.vote_average > 0 && (
+                    <div className="absolute bottom-2 right-2 bg-black/75 backdrop-blur-sm px-1.5 py-0.5 rounded flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                      <span className="text-xs font-semibold">{item.vote_average.toFixed(1)}</span>
                     </div>
                   )}
                 </div>
@@ -161,7 +224,7 @@ export default function SearchResults({ results, isLoading, activeProvider }: Se
       {selectedItem && (
         <MediaOptionsSheet
           isOpen={isSheetOpen}
-          onClose={() => setIsSheetOpen(false)}
+          onClose={handleSheetClose}
           title={'title' in selectedItem ? selectedItem.title : selectedItem.name}
           posterPath={getImageUrl(selectedItem.poster_path)}
           mediaType={'title' in selectedItem ? 'movie' : 'tv'}

@@ -12,10 +12,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Plus, Film, Tv, Clock, Play, CheckCircle2 } from 'lucide-react';
+import { Plus, Clock, Play, CheckCircle2 } from 'lucide-react';
 import { useWatchProviders } from '@/hooks/useWatchProviders';
 import { useLibraryStatusBatch } from '@/hooks/useLibraryStatusBatch';
 import StreamingServiceIcon, { STREAMING_ICONS } from '@/components/icons/StreamingServiceIcons';
+import { MediaTypeBadge } from '@/components/icons/MediaTypeIcons';
 
 // Status icon mapping for in-library items
 const STATUS_ICONS: Record<string, { icon: typeof Clock; colorClass: string }> = {
@@ -118,13 +119,7 @@ export default function TrendingRow({ title, items, seeAllHref, onAddClick, show
                   )}
 
                   {/* Media type badge */}
-                  <div className="absolute top-2 left-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
-                    {item.media_type === 'movie' ? (
-                      <Film className="w-3.5 h-3.5 text-white" />
-                    ) : (
-                      <Tv className="w-3.5 h-3.5 text-white" />
-                    )}
-                  </div>
+                  <MediaTypeBadge mediaType={item.media_type} className="absolute top-2 left-2" />
 
                   {onAddClick && (() => {
                     const status = getCombinedStatus(item.id, item.media_type);

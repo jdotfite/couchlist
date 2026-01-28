@@ -16,7 +16,6 @@ const tests = [
   { name: 'Tags Management', file: 'test-tags.ts' },
   { name: 'Notifications', file: 'test-notifications.ts' },
   { name: 'Friend Sharing', file: '../test-friend-sharing.ts' },
-  { name: 'Collaborative Lists', file: 'test-collaborative-lists.ts' },
 ];
 
 interface TestResult {

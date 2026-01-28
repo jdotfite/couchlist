@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { MovieDetails, TVShowDetails } from '@/types';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
-import { Calendar, Clock as ClockIcon, Tv, ArrowLeft, Plus, Play, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock as ClockIcon, ArrowLeft, Plus, Play, CheckCircle2 } from 'lucide-react';
+import { TvIcon } from '@/components/icons/MediaTypeIcons';
 import { SYSTEM_LIST_MAP } from '@/lib/list-config';
 import Link from 'next/link';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
@@ -254,7 +255,7 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
             )
           ) : (
             <div className="flex items-center gap-1.5">
-              <Tv className="w-4 h-4" />
+              <TvIcon className="w-4 h-4" />
               <span>{media.number_of_seasons} Season{media.number_of_seasons !== 1 ? 's' : ''}</span>
             </div>
           )}

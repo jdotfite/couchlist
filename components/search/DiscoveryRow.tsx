@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2, Clock, Play, CheckCircle2, Plus } from 'lucide-react';
+import { MediaTypeBadge } from '@/components/icons/MediaTypeIcons';
 import TrendingRow, { TrendingRowItem } from '@/components/home/TrendingRow';
 import RowKebabMenu from './RowKebabMenu';
 import { useDiscoveryRowContent } from '@/hooks/useDiscoveryRowContent';
@@ -189,17 +190,7 @@ function TrendingRowContent({
                 )}
 
                 {/* Media type badge */}
-                <div className="absolute top-2 left-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
-                  {item.media_type === 'movie' ? (
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  )}
-                </div>
+                <MediaTypeBadge mediaType={item.media_type} className="absolute top-2 left-2" />
 
                 {(() => {
                   const status = getCombinedStatus(item.id, item.media_type);

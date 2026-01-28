@@ -16,15 +16,21 @@ export function useLibraryStatusBatch(items: MediaItem[], enabled: boolean = tru
   const [isLoading, setIsLoading] = useState(false);
   const fetchedRef = useRef<string>('');
 
-  // Create a stable key for the items array
+  // Store items in a ref so we can access them in the effect without causing re-runs
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+
+  // Create a stable key for the items array (computed each render but only used as string)
   const itemsKey = items.map(item => {
     const mediaType = item.media_type || ('title' in item ? 'movie' : 'tv');
     return `${mediaType}-${item.id}`;
   }).sort().join(',');
 
   useEffect(() => {
-    if (!enabled || items.length === 0) {
-      setStatuses({});
+    if (!enabled || itemsKey === '') {
+      if (Object.keys(statuses).length > 0) {
+        setStatuses({});
+      }
       return;
     }
 
@@ -36,7 +42,8 @@ export function useLibraryStatusBatch(items: MediaItem[], enabled: boolean = tru
     const fetchStatuses = async () => {
       setIsLoading(true);
       try {
-        const requestItems = items.map(item => ({
+        const currentItems = itemsRef.current;
+        const requestItems = currentItems.map(item => ({
           tmdbId: item.id,
           mediaType: item.media_type || ('title' in item ? 'movie' : 'tv'),
         }));
@@ -60,7 +67,8 @@ export function useLibraryStatusBatch(items: MediaItem[], enabled: boolean = tru
     };
 
     fetchStatuses();
-  }, [items, enabled, itemsKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, itemsKey]);
 
   const getStatus = useCallback((id: number, mediaType: 'movie' | 'tv'): string | null => {
     const key = `${mediaType}-${id}`;

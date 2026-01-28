@@ -15,7 +15,7 @@ import MainHeader from '@/components/ui/MainHeader';
 import { StateDisplay } from '@/components/ui';
 import { useProfileImage } from '@/hooks/useProfileImage';
 import { FriendCard } from '@/components/friends';
-import { FriendSharingSheet, FriendAcceptanceSheet } from '@/components/sharing';
+import { FriendAcceptanceSheet } from '@/components/sharing';
 
 interface LibraryCounts {
   movies: number;
@@ -119,9 +119,6 @@ export default function ProfilePage() {
   // Logout modal state
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
-
-  // Friend sharing sheet state
-  const [friendSharingUserId, setFriendSharingUserId] = useState<number | null>(null);
 
   // Friend acceptance flow state (for showing list sharing options)
   const [pendingFriendAccept, setPendingFriendAccept] = useState<{
@@ -622,13 +619,12 @@ export default function ProfilePage() {
                       key={friend.id || friend.collaboratorId}
                       friend={{
                         id: friend.id || friend.collaboratorId || 0,
-                        user_id: friend.user_id || friend.oduserId || 0,
+                        user_id: friend.user_id || 0,
                         name: friend.name,
                         username: friend.username,
                         image: friend.image,
                         connected_at: friend.connected_at || friend.connectedAt || new Date().toISOString(),
                       }}
-                      onManageSharing={(friendUserId) => setFriendSharingUserId(friendUserId)}
                       onRemove={(collaboratorId, friendName) => {
                         setConfirmModal({
                           show: true,
@@ -937,17 +933,6 @@ export default function ProfilePage() {
         </div>,
         document.body
       )}
-
-      {/* Friend Sharing Sheet */}
-      <FriendSharingSheet
-        isOpen={friendSharingUserId !== null}
-        onClose={() => setFriendSharingUserId(null)}
-        friendUserId={friendSharingUserId || 0}
-        onSharingUpdated={() => {
-          // Optionally refresh friend data
-          fetchSharingData();
-        }}
-      />
 
       {/* Friend Acceptance Sheet (list sharing options when accepting) */}
       {pendingFriendAccept && (

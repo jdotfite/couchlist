@@ -469,27 +469,46 @@ CREATE TABLE IF NOT EXISTS user_stats_cache (
 
 ## Phase 4: Social & Community
 
+> **Note:** The friend system has been simplified. Friends are now purely identity/trust connections, NOT list sharing permissions. See "Shared Lists System Cleanup" in Recent Changes.
+
+### Current Friend System ✅
+- [x] Friend invites via link (7-day expiry)
+- [x] Accept/decline friend requests
+- [x] Manage friends in `/settings/collaborators`
+- [x] Send suggestions to friends (recommendations)
+- [x] Friend notifications in notification center
+
 ### User Profiles
 - [ ] Public profile page with stats
 - [ ] Profile customization (bio, avatar)
 - [ ] Privacy settings (public/private library)
 - [ ] Shareable profile links
 
-### Friend System
-- [ ] Follow/unfollow users
-- [ ] Friends list
-- [ ] Activity feed (what friends are watching)
-- [ ] Friend suggestions
+### Follow System (New)
+> Asymmetric following for taste-based subscriptions
+
+- [ ] Follow/unfollow users (one-way, no approval needed)
+- [ ] See who you follow / who follows you
+- [ ] Activity feed (what followed users are watching)
+- [ ] Follow suggestions based on taste similarity
+
+### List Publishing (New)
+> Lists become social objects that can be published/followed
+
+- [ ] Publish a list (make it public with unique URL)
+- [ ] Followers can subscribe to list updates
+- [ ] List discovery page (popular, trending, curated)
+- [ ] Copy/fork a published list to your own library
 
 ### Community Page (/community)
 - [ ] Implement community page (currently placeholder)
 - [ ] User search integration (reuse existing searchUsers from lib/users.ts)
-- [ ] Find and follow friends by username
+- [ ] Find and follow users by username
 - [ ] See who's watching what in your network
 - [ ] Discover users with similar taste
 
 ### Social Features
-- [ ] Share lists/collections
+- [ ] Share lists/collections (via publish)
 - [ ] Comments on reviews
 - [ ] Like/react to reviews
 - [ ] Watch together (sync feature)
@@ -643,7 +662,7 @@ These are ideas to consider but not yet prioritized:
 - [x] PWA support
 - [x] Mobile-responsive design
 - [x] Session caching for library pages
-- [x] Collaborative lists (share system lists via invite link)
+- [x] ~~Collaborative lists (share system lists via invite link)~~ **REMOVED** - See "Shared Lists System Cleanup"
 - [x] Custom list names (rename system lists like Watchlist → "My Queue")
 - [x] Custom lists core (create up to 10 custom lists with icons/colors)
 - [x] Add media to custom lists from options sheet
@@ -661,6 +680,71 @@ These are ideas to consider but not yet prioritized:
 - [x] IMDb import (CSV export with ratings/watchlist, movies + TV, IMDb ID matching)
 - [x] Data & Sync settings hub (consolidated Import, Export, Trakt Sync)
 - [x] Fixed detail page ratings label (TMDb instead of mislabeled IMDb)
+
+---
+
+## Recent Changes (January 2025)
+
+### Shared Lists System Cleanup ✅
+
+**What was removed:**
+The original "friends = shared lists" model has been completely removed. This system conflated friend connections with list sharing permissions, which was confusing and limited.
+
+**Deleted Components:**
+- `components/sharing/ListShareSelector.tsx` - List sharing UI
+- `components/sharing/FriendSharingSheet.tsx` - Friend sharing management
+- `components/sharing/ListVisibilityBadge.tsx` - Visibility indicators
+- `components/sharing/ListVisibilitySheet.tsx` - Visibility controls
+
+**Deleted API Routes:**
+- `/api/collaborative-lists/` - Shared lists between friends
+- `/api/friends/[id]/collaborative-list/` - Friend's shared list access
+- `/api/friends/[id]/sharing-summary/` - Sharing status with friend
+
+**Deleted Pages:**
+- `/app/friends/[friendId]/list/` - View friend's shared items
+
+**Simplified Files:**
+- `app/library/page.tsx` - Removed "Shared With Friends" section
+- `app/lists/page.tsx` - Now redirects to `/saved-lists`
+- `app/friends/[friendId]/page.tsx` - Shows friend info only (no shared lists)
+- `app/invite/[code]/page.tsx` - Removed list selection after acceptance
+- `app/settings/sharing/page.tsx` - Removed default sharing section
+- `components/friends/FriendCard.tsx` - Simplified to remove sharing stats
+- `components/sharing/index.ts` - Only exports FriendAcceptanceSheet
+
+**Database tables dropped:**
+- `shared_lists` - Which lists were shared between friends
+- `collaborative_lists` - Items shared between friends (if existed)
+
+**What remains:**
+- Friends = identity/trust connections only (mutual)
+- Friend invites and acceptance flow
+- `/settings/collaborators` for managing friend connections
+- Suggestions system (send recommendations to friends)
+
+### New Social Model (Planned)
+
+The app is transitioning to a cleaner social model with 5 primitives:
+
+| Primitive | Description |
+|-----------|-------------|
+| **Title** | Movie or TV show from TMDb |
+| **Library Entry** | User's relationship to a title (status, rating, labels) |
+| **List** | Saved collection of titles (system or custom) |
+| **Follow** | Asymmetric - subscribe to someone's lists (future) |
+| **Friend** | Symmetric - mutual trust/identity connection |
+
+**Key changes:**
+- Friends = identity/trust, NOT list permissions
+- Lists = social objects (publishable, followable) - separate from friends
+- Following = asymmetric, taste-based subscription (future feature)
+
+This cleaner separation allows:
+1. Public lists anyone can follow (no friend request needed)
+2. Private lists only visible to you
+3. Friends for suggestions/recommendations (trusted identity)
+4. Follow for taste curation (one-way, like Twitter)
 
 ---
 

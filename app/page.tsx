@@ -94,6 +94,7 @@ export default function Home() {
           items={watchingItems}
           seeAllHref="/library?status=watching"
           addHref="/search"
+          status="watching"
         />
 
         {/* Watchlist */}
@@ -102,6 +103,7 @@ export default function Home() {
           items={watchlistItems}
           seeAllHref="/library?status=watchlist"
           addHref="/search"
+          status="watchlist"
         />
 
         {/* Watched */}
@@ -110,6 +112,7 @@ export default function Home() {
           items={finishedItems}
           seeAllHref="/library?status=finished"
           addHref="/search"
+          status="finished"
         />
       </main>
     </div>

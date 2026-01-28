@@ -8,11 +8,11 @@ import {
   ArrowLeft,
   Loader2,
   Film,
-  Tv,
   Plus,
   Check,
   Star,
 } from 'lucide-react';
+import { TvIcon } from '@/components/icons/MediaTypeIcons';
 // MediaCard not needed - using inline rendering for friend's items
 
 interface FriendInfo {
@@ -237,7 +237,7 @@ export default function FriendListViewPage({ params }: { params: Promise<PagePar
                           {item.media_type === 'movie' ? (
                             <Film className="w-8 h-8 text-gray-600" />
                           ) : (
-                            <Tv className="w-8 h-8 text-gray-600" />
+                            <TvIcon className="w-8 h-8 text-gray-600" />
                           )}
                         </div>
                       )}

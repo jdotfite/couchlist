@@ -10,12 +10,11 @@ import {
   Trash2,
   ArrowRightLeft,
   X,
-  Film,
-  Tv,
   Star,
   Loader2,
   ChevronDown,
 } from 'lucide-react';
+import { MediaTypeBadge } from '@/components/icons/MediaTypeIcons';
 import { getImageUrl } from '@/lib/tmdb';
 import { LayoutOption } from '@/components/ui/LayoutToggle';
 
@@ -270,13 +269,7 @@ export default function ManageListView({
                           <Square className="w-5 h-5 text-white/60 bg-black/50 rounded" />
                         )
                       ) : (
-                        <div className="w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
-                          {item.media_type === 'movie' ? (
-                            <Film className="w-3.5 h-3.5 text-white" />
-                          ) : (
-                            <Tv className="w-3.5 h-3.5 text-white" />
-                          )}
-                        </div>
+                        <MediaTypeBadge mediaType={item.media_type as 'movie' | 'tv'} />
                       )}
                     </div>
 

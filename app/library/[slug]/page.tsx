@@ -5,7 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MoreVertical, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star, ChevronLeft, Film, Tv, Square, CheckSquare, Trash2, ArrowRightLeft, Loader2, Eye, X, Send } from 'lucide-react';
+import { MoreVertical, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star, ChevronLeft, Square, CheckSquare, Trash2, ArrowRightLeft, Loader2, Eye, X, Send } from 'lucide-react';
+import { MediaTypeBadge } from '@/components/icons/MediaTypeIcons';
 import { createPortal } from 'react-dom';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import BulkSendSheet from '@/components/suggestions/BulkSendSheet';
@@ -13,8 +14,6 @@ import EmptyState from '@/components/EmptyState';
 import MediaListSkeleton from '@/components/MediaListSkeleton';
 import SortFilterBar, { SortOption, LayoutOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
-import { ListVisibilityBadge } from '@/components/sharing/ListVisibilityBadge';
-import { ListVisibilitySheet } from '@/components/sharing/ListVisibilitySheet';
 import { getImageUrl } from '@/lib/tmdb';
 import { useListPreferences } from '@/hooks/useListPreferences';
 
@@ -145,7 +144,6 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   const [portalMounted, setPortalMounted] = useState(false);
 
   // Visibility sheet state
-  const [isVisibilitySheetOpen, setIsVisibilitySheetOpen] = useState(false);
 
   useEffect(() => {
     setPortalMounted(true);
@@ -396,14 +394,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold truncate">{displayName}</h1>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <span>{items.length} items</span>
-              <span className="text-gray-600">•</span>
-              <ListVisibilityBadge
-                listType={slug}
-                onOpenSheet={() => setIsVisibilitySheetOpen(true)}
-              />
-            </div>
+            <p className="text-xs text-gray-400">{items.length} items</p>
           </div>
         </div>
 
@@ -511,13 +502,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                         className="object-cover"
                         sizes="56px"
                       />
-                      <div className="absolute bottom-1 left-1 w-5 h-5 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
-                        {item.media_type === 'movie' ? (
-                          <Film className="w-3 h-3 text-white" />
-                        ) : (
-                          <Tv className="w-3 h-3 text-white" />
-                        )}
-                      </div>
+                      <MediaTypeBadge mediaType={item.media_type as 'movie' | 'tv'} size="sm" className="absolute bottom-1 left-1" />
                     </Link>
                   )}
 
@@ -600,13 +585,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                           className="object-cover group-hover:opacity-75 transition"
                           sizes="33vw"
                         />
-                        <div className="absolute top-2 left-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center">
-                          {item.media_type === 'movie' ? (
-                            <Film className="w-3.5 h-3.5 text-white" />
-                          ) : (
-                            <Tv className="w-3.5 h-3.5 text-white" />
-                          )}
-                        </div>
+                        <MediaTypeBadge mediaType={item.media_type as 'movie' | 'tv'} className="absolute top-2 left-2" />
                       </div>
                     </Link>
                   )}
@@ -772,14 +751,6 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
         </div>,
         document.body
       )}
-
-      {/* List Visibility Sheet */}
-      <ListVisibilitySheet
-        isOpen={isVisibilitySheetOpen}
-        onClose={() => setIsVisibilitySheetOpen(false)}
-        listType={slug}
-        listName={displayName}
-      />
 
       {/* Bulk Send Sheet */}
       <BulkSendSheet

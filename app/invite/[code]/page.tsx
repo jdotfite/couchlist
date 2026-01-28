@@ -18,10 +18,7 @@ import {
   Loader2,
   Check,
   UserPlus,
-  Eye,
-  ArrowRight,
 } from 'lucide-react';
-import { ListShareSelector, type ListOption } from '@/components/sharing/ListShareSelector';
 
 type InviteType = 'partner' | 'friend' | 'collaboration';
 
@@ -115,14 +112,6 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [duplicatesCount, setDuplicatesCount] = useState(0);
-
-  // Friend list sharing state
-  const [showListSelection, setShowListSelection] = useState(false);
-  const [friendUserId, setFriendUserId] = useState<number | null>(null);
-  const [availableLists, setAvailableLists] = useState<ListOption[]>([]);
-  const [selectedShareLists, setSelectedShareLists] = useState<string[]>([]);
-  const [savingSharedLists, setSavingSharedLists] = useState(false);
-  const [saveAsDefault, setSaveAsDefault] = useState(false);
 
   useEffect(() => {
     fetchInviteDetails();
@@ -242,16 +231,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
       setDuplicatesCount(data.duplicatesCount || 0);
       setAccepted(true);
 
-      // For friend invites, show list selection step
-      if (invite.type === 'friend' && data.friendUserId) {
-        setFriendUserId(data.friendUserId);
-        // Fetch available lists
-        await fetchAvailableLists(data.friendUserId);
-        setShowListSelection(true);
-        return; // Don't redirect yet
-      }
-
-      // Redirect after a short delay for other types
+      // Redirect after a short delay
       setTimeout(() => {
         if (invite.type === 'partner') {
           router.push('/partner-lists');
@@ -264,70 +244,6 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
     } finally {
       setAccepting(false);
     }
-  };
-
-  const fetchAvailableLists = async (friendId: number) => {
-    try {
-      const response = await fetch(`/api/friends/${friendId}/shared`);
-      const data = await response.json();
-      if (response.ok && data.availableLists) {
-        setAvailableLists(data.availableLists);
-      }
-    } catch (err) {
-      console.error('Failed to fetch available lists:', err);
-    }
-  };
-
-  const handleSaveSharedLists = async () => {
-    if (!friendUserId) return;
-
-    setSavingSharedLists(true);
-
-    try {
-      // Save selected lists to share with this friend
-      const lists = selectedShareLists.map(listType => ({
-        listType,
-        listId: null,
-        canEdit: false,
-      }));
-
-      const response = await fetch(`/api/friends/${friendUserId}/shared`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lists }),
-      });
-
-      if (!response.ok) {
-        console.error('Failed to save shared lists');
-      }
-
-      // Optionally save as default
-      if (saveAsDefault && selectedShareLists.length > 0) {
-        const defaultLists = selectedShareLists.map(listType => ({
-          listType,
-          listId: null,
-          shareByDefault: true,
-        }));
-
-        await fetch('/api/list-visibility/defaults', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lists: defaultLists }),
-        });
-      }
-
-      // Redirect to profile/sharing
-      router.push('/settings/sharing');
-    } catch (err) {
-      console.error('Failed to save shared lists:', err);
-      router.push('/settings/sharing');
-    } finally {
-      setSavingSharedLists(false);
-    }
-  };
-
-  const handleSkipListSelection = () => {
-    router.push('/settings/sharing');
   };
 
   // Loading state
@@ -461,86 +377,7 @@ export default function InviteAcceptPage({ params }: { params: Promise<{ code: s
     }
   }
 
-  // Success state - Friend with list selection
-  if (accepted && invite?.type === 'friend' && showListSelection) {
-    return (
-      <div className="min-h-screen bg-black text-white p-6">
-        <div className="max-w-md mx-auto pt-8">
-          {/* Success header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold mb-2">You're friends with {invite.ownerName}!</h1>
-            <p className="text-gray-400">
-              Now choose which lists {invite.ownerName} can see.
-            </p>
-          </div>
-
-          {/* List selection */}
-          <div className="mb-6">
-            <ListShareSelector
-              lists={availableLists}
-              selectedLists={selectedShareLists}
-              onSelectionChange={setSelectedShareLists}
-              title={`Share your lists with ${invite.ownerName}`}
-              description="They'll be able to browse items in your selected lists."
-              showItemCounts={true}
-            />
-          </div>
-
-          {/* Save as default checkbox */}
-          <label className="flex items-center gap-3 p-4 bg-zinc-900 rounded-lg mb-6 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={saveAsDefault}
-              onChange={(e) => setSaveAsDefault(e.target.checked)}
-              className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-brand-primary focus:ring-brand-primary focus:ring-offset-0"
-            />
-            <div>
-              <p className="font-medium text-white">Save as my default</p>
-              <p className="text-sm text-gray-400">Use these settings for future friends</p>
-            </div>
-          </label>
-
-          {/* Action buttons */}
-          <div className="space-y-3">
-            <button
-              onClick={handleSaveSharedLists}
-              disabled={savingSharedLists}
-              className="w-full py-4 bg-brand-primary hover:bg-brand-primary-dark disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-full font-bold transition flex items-center justify-center gap-2"
-            >
-              {savingSharedLists ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Saving...
-                </>
-              ) : selectedShareLists.length > 0 ? (
-                <>
-                  <Eye className="w-5 h-5" />
-                  Share {selectedShareLists.length} List{selectedShareLists.length !== 1 ? 's' : ''}
-                </>
-              ) : (
-                <>
-                  <ArrowRight className="w-5 h-5" />
-                  Continue Without Sharing
-                </>
-              )}
-            </button>
-
-            <button
-              onClick={handleSkipListSelection}
-              className="w-full py-3 text-gray-400 hover:text-white transition text-sm"
-            >
-              Skip for now
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Success state - Other types
+  // Success state
   if (accepted) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">

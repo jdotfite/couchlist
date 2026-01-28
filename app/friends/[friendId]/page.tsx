@@ -3,51 +3,42 @@
 import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   ArrowLeft,
   Loader2,
-  ChevronRight,
   Users,
+  MessageCircle,
 } from 'lucide-react';
-import { SYSTEM_LISTS, SYSTEM_LIST_MAP } from '@/lib/list-config';
 
 interface FriendInfo {
   id: number;
   name: string;
   username: string | null;
   image: string | null;
+  connectedAt: string;
 }
 
-interface SharedList {
-  listType: string;
-  listId: number | null;
-  listName: string;
-  visibility: string;
-  itemCount: number;
-  canEdit: boolean;
-}
-
-interface CollaborativeList {
-  id: number;
-  name: string;
-  itemCount: number;
+interface SuggestionStats {
+  sent: number;
+  received: number;
+  pending: number;
 }
 
 export default function FriendProfilePage({ params }: { params: Promise<{ friendId: string }> }) {
   const { friendId } = use(params);
-  const { data: session, status: authStatus } = useSession();
+  const { status: authStatus } = useSession();
   const router = useRouter();
 
   const [friend, setFriend] = useState<FriendInfo | null>(null);
-  const [sharedLists, setSharedLists] = useState<SharedList[]>([]);
-  const [collaborativeList, setCollaborativeList] = useState<CollaborativeList | null>(null);
+  const [suggestionStats, setSuggestionStats] = useState<SuggestionStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authStatus === 'authenticated') {
       fetchFriendData();
+    } else if (authStatus === 'unauthenticated') {
+      router.push('/login');
     }
   }, [authStatus, friendId]);
 
@@ -56,8 +47,7 @@ export default function FriendProfilePage({ params }: { params: Promise<{ friend
       setLoading(true);
       setError(null);
 
-      // Fetch friend info and their shared lists
-      const response = await fetch(`/api/friends/${friendId}/lists`);
+      const response = await fetch(`/api/friends/${friendId}`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -72,14 +62,7 @@ export default function FriendProfilePage({ params }: { params: Promise<{ friend
 
       const data = await response.json();
       setFriend(data.friend);
-      setSharedLists(data.lists || []);
-
-      // Fetch collaborative list if exists
-      const collabResponse = await fetch(`/api/friends/${friendId}/collaborative-list`);
-      if (collabResponse.ok) {
-        const collabData = await collabResponse.json();
-        setCollaborativeList(collabData.list);
-      }
+      setSuggestionStats(data.suggestionStats || null);
     } catch (err) {
       console.error('Error fetching friend data:', err);
       setError('Failed to load friend data');
@@ -151,72 +134,64 @@ export default function FriendProfilePage({ params }: { params: Promise<{ friend
       </div>
 
       <div className="p-4">
-        {/* Lists they share with you */}
-        {sharedLists.length > 0 && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">Lists shared with you</h2>
-            <div className="space-y-2">
-              {sharedLists.map((list) => {
-                const config = SYSTEM_LIST_MAP[list.listType];
-                const IconComponent = config?.icon;
-
-                return (
-                  <Link
-                    key={`${list.listType}-${list.listId || 'system'}`}
-                    href={`/friends/${friendId}/${list.listType}${list.listId ? `?listId=${list.listId}` : ''}`}
-                    className="flex items-center gap-3 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
-                  >
-                    {config && IconComponent && (
-                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${config.bgColorClass} flex items-center justify-center`}>
-                        <IconComponent className="w-5 h-5 text-white" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <p className="font-medium">{list.listName}</p>
-                      <p className="text-sm text-gray-500">
-                        {list.itemCount} {list.itemCount === 1 ? 'item' : 'items'}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
-                  </Link>
-                );
-              })}
+        {/* Friend Info Card */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center overflow-hidden">
+              {friend?.image ? (
+                <img
+                  src={friend.image}
+                  alt={friend.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white text-2xl font-semibold">
+                  {friend?.name?.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
-          </section>
-        )}
-
-        {/* Collaborative list */}
-        {collaborativeList && (
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">Shared list</h2>
-            <Link
-              href={`/friends/${friendId}/list`}
-              className="flex items-center gap-3 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition"
-            >
-              <div className="w-10 h-10 rounded-lg bg-brand-primary flex items-center justify-center">
-                <Users className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">{collaborativeList.name}</p>
-                <p className="text-sm text-gray-500">
-                  {collaborativeList.itemCount} {collaborativeList.itemCount === 1 ? 'item' : 'items'}
+            <div>
+              <h2 className="text-xl font-semibold">{friend?.name}</h2>
+              {friend?.username && (
+                <p className="text-gray-500">@{friend.username}</p>
+              )}
+              {friend?.connectedAt && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Friends since {new Date(friend.connectedAt).toLocaleDateString()}
                 </p>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </Link>
-          </section>
-        )}
-
-        {/* Empty state */}
-        {sharedLists.length === 0 && !collaborativeList && (
-          <div className="text-center py-12">
-            <Users className="w-12 h-12 mx-auto mb-4 text-gray-600" />
-            <p className="text-gray-400 mb-2">No shared lists yet</p>
-            <p className="text-sm text-gray-500">
-              {friend?.name} hasn't shared any lists with you yet.
-            </p>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Suggestion Stats */}
+          {suggestionStats && (
+            <div className="flex items-center gap-6 pt-4 border-t border-zinc-800">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-400">
+                  {suggestionStats.sent} sent
+                </span>
+              </div>
+              <div className="text-sm text-gray-400">
+                {suggestionStats.received} received
+              </div>
+              {suggestionStats.pending > 0 && (
+                <div className="text-sm text-brand-primary">
+                  {suggestionStats.pending} pending
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Coming soon notice */}
+        <div className="text-center py-8 bg-zinc-900/50 rounded-xl">
+          <Users className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+          <p className="text-gray-400 mb-2">Friend profiles coming soon</p>
+          <p className="text-sm text-gray-500">
+            View suggestions and shared lists with {friend?.name}
+          </p>
+        </div>
       </div>
     </div>
   );
