@@ -8,6 +8,7 @@ import Image from 'next/image';
 import {
   ChevronRight,
   LucideIcon,
+  Plus,
 } from 'lucide-react';
 import LibraryPageSkeleton from '@/components/skeletons/LibraryPageSkeleton';
 import MainHeader from '@/components/ui/MainHeader';
@@ -16,6 +17,7 @@ import { getImageUrl } from '@/lib/tmdb';
 import { useListPreferences } from '@/hooks/useListPreferences';
 import SectionHeader from '@/components/ui/SectionHeader';
 import { SYSTEM_LISTS } from '@/lib/list-config';
+import ListCard from '@/components/lists/ListCard';
 
 interface ListData {
   slug: string;
@@ -24,6 +26,17 @@ interface ListData {
   color: string;
   items: { poster_path: string | null }[];
   count: number;
+}
+
+interface CustomList {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  color: string;
+  isPublic: boolean;
+  itemCount?: number;
 }
 
 // Core system lists - uses centralized config from lib/list-config.ts
@@ -41,6 +54,7 @@ export default function LibraryPage() {
   const { getListName } = useListPreferences();
 
   const [lists, setLists] = useState<ListData[]>([]);
+  const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -54,37 +68,42 @@ export default function LibraryPage() {
   const fetchAllLists = async () => {
     setIsLoading(true);
     try {
-      const systemListsResults = await Promise.all(
-        listConfig.map(async (config) => {
-          try {
-            const response = await fetch(config.api);
-            if (response.ok) {
-              const data = await response.json();
-              const items = data.items || [];
-              return {
-                slug: config.slug,
-                title: config.title,
-                icon: config.icon,
-                color: config.color,
-                items: items.slice(0, 5),
-                count: items.length,
-              };
+      // Fetch system lists and custom lists in parallel
+      const [systemListsResults, customListsResponse] = await Promise.all([
+        Promise.all(
+          listConfig.map(async (config) => {
+            try {
+              const response = await fetch(config.api);
+              if (response.ok) {
+                const data = await response.json();
+                const items = data.items || [];
+                return {
+                  slug: config.slug,
+                  title: config.title,
+                  icon: config.icon,
+                  color: config.color,
+                  items: items.slice(0, 5),
+                  count: items.length,
+                };
+              }
+            } catch (error) {
+              console.error(`Failed to fetch ${config.slug}:`, error);
             }
-          } catch (error) {
-            console.error(`Failed to fetch ${config.slug}:`, error);
-          }
-          return {
-            slug: config.slug,
-            title: config.title,
-            icon: config.icon,
-            color: config.color,
-            items: [],
-            count: 0,
-          };
-        })
-      );
+            return {
+              slug: config.slug,
+              title: config.title,
+              icon: config.icon,
+              color: config.color,
+              items: [],
+              count: 0,
+            };
+          })
+        ),
+        fetch('/api/lists').then(res => res.ok ? res.json() : { lists: [] }),
+      ]);
 
       setLists(systemListsResults);
+      setCustomLists(customListsResponse.lists || []);
     } catch (error) {
       console.error('Failed to fetch lists:', error);
     } finally {
@@ -102,7 +121,7 @@ export default function LibraryPage() {
 
       <main className="px-4">
         <SectionHeader
-          title="Your Library"
+          title="My Library"
           ctaText="View All"
           ctaHref="/library/manage"
           className="mb-3"
@@ -167,6 +186,56 @@ export default function LibraryPage() {
               </Link>
             );
           })}
+        </div>
+
+        {/* Your Lists Section */}
+        <div className="mt-8">
+          <SectionHeader
+            title="Your Lists"
+            ctaText={customLists.length > 0 ? "See All" : undefined}
+            ctaHref={customLists.length > 0 ? "/lists" : undefined}
+            className="mb-3"
+          />
+
+          {customLists.length === 0 ? (
+            <Link
+              href="/lists"
+              className="flex items-center gap-4 p-4 bg-zinc-900 hover:bg-zinc-800 rounded-xl transition group"
+            >
+              <div className="w-12 h-12 rounded-lg bg-zinc-800 group-hover:bg-zinc-700 flex items-center justify-center transition">
+                <Plus className="w-6 h-6 text-gray-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">Create a list</p>
+                <p className="text-sm text-gray-400">Organize your favorites</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition" />
+            </Link>
+          ) : (
+            <div className="space-y-3">
+              {customLists.slice(0, 3).map((list) => (
+                <ListCard
+                  key={list.id}
+                  id={list.id}
+                  slug={list.slug}
+                  name={list.name}
+                  description={list.description}
+                  icon={list.icon}
+                  color={list.color}
+                  itemCount={list.itemCount || 0}
+                  isPublic={list.isPublic}
+                />
+              ))}
+              {customLists.length > 3 && (
+                <Link
+                  href="/lists"
+                  className="block text-center py-3 text-sm text-gray-400 hover:text-white transition"
+                >
+                  View all {customLists.length} lists
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Quick Stats Section */}
