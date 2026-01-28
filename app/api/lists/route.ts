@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getUserIdByEmail } from '@/lib/library';
 import {
-  getSavedLists,
-  createSavedList,
+  getLists,
+  createList,
   LIST_COLORS,
   LIST_ICONS,
   SORT_OPTIONS,
-} from '@/lib/saved-lists';
+} from '@/lib/lists';
 
-// GET /api/saved-lists - Get all saved lists for the current user
+// GET /api/lists - Get all lists for the current user
 export async function GET() {
   try {
     const session = await auth();
@@ -27,7 +27,7 @@ export async function GET() {
       });
     }
 
-    const lists = await getSavedLists(userId);
+    const lists = await getLists(userId);
 
     return NextResponse.json({
       lists,
@@ -36,15 +36,15 @@ export async function GET() {
       sortOptions: SORT_OPTIONS,
     });
   } catch (error) {
-    console.error('Error fetching saved lists:', error);
+    console.error('Error fetching lists:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch saved lists' },
+      { error: 'Failed to fetch lists' },
       { status: 500 }
     );
   }
 }
 
-// POST /api/saved-lists - Create a new saved list
+// POST /api/lists - Create a new list
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const list = await createSavedList(userId, {
+    const list = await createList(userId, {
       name: name.trim(),
       description: description?.trim(),
       icon,
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ list }, { status: 201 });
   } catch (error) {
-    console.error('Error creating saved list:', error);
+    console.error('Error creating list:', error);
     const message = error instanceof Error ? error.message : 'Failed to create list';
     return NextResponse.json(
       { error: message },

@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { getUserIdByEmail } from '@/lib/library';
 import { previewFilter, countFilterMatches, type FilterRules } from '@/lib/list-resolver';
 
-// POST /api/saved-lists/preview - Preview filter results without saving
+// POST /api/lists/preview - Preview filter results without saving
 export async function POST(request: Request) {
   try {
     const session = await auth();

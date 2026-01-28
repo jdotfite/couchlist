@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getUserIdByEmail } from '@/lib/library';
-import { getListItems } from '@/lib/saved-lists';
+import { getListItems } from '@/lib/lists';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// GET /api/saved-lists/[id]/items - Get resolved items for a list
+// GET /api/lists/[id]/items - Get resolved items for a list
 export async function GET(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;

@@ -10,7 +10,7 @@ async function ensureDb() {
   }
 }
 
-export interface SavedList {
+export interface List {
   id: number;
   slug: string;
   name: string;
@@ -88,9 +88,9 @@ function slugify(name: string): string {
 }
 
 /**
- * Get all saved lists for a user
+ * Get all lists for a user
  */
-export async function getSavedLists(userId: number): Promise<SavedList[]> {
+export async function getLists(userId: number): Promise<List[]> {
   await ensureDb();
 
   const result = await sql`
@@ -110,12 +110,12 @@ export async function getSavedLists(userId: number): Promise<SavedList[]> {
 }
 
 /**
- * Get a single saved list by ID
+ * Get a single list by ID
  */
-export async function getSavedListById(
+export async function getListById(
   userId: number,
   listId: number
-): Promise<SavedList | null> {
+): Promise<List | null> {
   await ensureDb();
 
   const result = await sql`
@@ -131,12 +131,12 @@ export async function getSavedListById(
 }
 
 /**
- * Get a saved list by slug
+ * Get a list by slug
  */
-export async function getSavedListBySlug(
+export async function getListBySlug(
   userId: number,
   slug: string
-): Promise<SavedList | null> {
+): Promise<List | null> {
   await ensureDb();
 
   const result = await sql`
@@ -152,12 +152,12 @@ export async function getSavedListBySlug(
 }
 
 /**
- * Create a new saved list
+ * Create a new list
  */
-export async function createSavedList(
+export async function createList(
   userId: number,
   input: CreateListInput
-): Promise<SavedList> {
+): Promise<List> {
   await ensureDb();
 
   // Generate slug
@@ -213,17 +213,17 @@ export async function createSavedList(
 }
 
 /**
- * Update a saved list
+ * Update a list
  */
-export async function updateSavedList(
+export async function updateList(
   userId: number,
   listId: number,
   input: UpdateListInput
-): Promise<SavedList> {
+): Promise<List> {
   await ensureDb();
 
   // Check if list exists
-  const existing = await getSavedListById(userId, listId);
+  const existing = await getListById(userId, listId);
   if (!existing) {
     throw new Error('List not found');
   }
@@ -275,13 +275,13 @@ export async function updateSavedList(
     WHERE id = ${listId}
   `;
 
-  return (await getSavedListById(userId, listId))!;
+  return (await getListById(userId, listId))!;
 }
 
 /**
- * Delete a saved list
+ * Delete a list
  */
-export async function deleteSavedList(userId: number, listId: number): Promise<void> {
+export async function deleteList(userId: number, listId: number): Promise<void> {
   await ensureDb();
 
   const result = await sql`
@@ -296,13 +296,13 @@ export async function deleteSavedList(userId: number, listId: number): Promise<v
 }
 
 /**
- * Get resolved items for a saved list
+ * Get resolved items for a list
  */
 export async function getListItems(
   userId: number,
   listId: number
 ): Promise<ResolvedItem[]> {
-  const list = await getSavedListById(userId, listId);
+  const list = await getListById(userId, listId);
   if (!list) {
     throw new Error('List not found');
   }
@@ -322,7 +322,7 @@ export async function addListPin(
   await ensureDb();
 
   // Verify list exists and belongs to user
-  const list = await getSavedListById(userId, listId);
+  const list = await getListById(userId, listId);
   if (!list) {
     throw new Error('List not found');
   }
@@ -357,7 +357,7 @@ export async function removeListPin(
   await ensureDb();
 
   // Verify list exists and belongs to user
-  const list = await getSavedListById(userId, listId);
+  const list = await getListById(userId, listId);
   if (!list) {
     throw new Error('List not found');
   }
@@ -386,8 +386,8 @@ export async function reorderLists(
   }
 }
 
-// Helper to map database row to SavedList
-function mapRowToList(row: Record<string, unknown>): SavedList {
+// Helper to map database row to List
+function mapRowToList(row: Record<string, unknown>): List {
   return {
     id: row.id as number,
     slug: row.slug as string,

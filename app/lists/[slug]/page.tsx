@@ -50,7 +50,7 @@ interface ResolvedItem {
   isPinned: boolean;
 }
 
-interface SavedList {
+interface List {
   id: number;
   slug: string;
   name: string;
@@ -109,12 +109,12 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default function SavedListPage({ params }: PageProps) {
+export default function ListPage({ params }: PageProps) {
   const { slug } = use(params);
   const { status } = useSession();
   const router = useRouter();
 
-  const [list, setList] = useState<SavedList | null>(null);
+  const [list, setList] = useState<List | null>(null);
   const [items, setItems] = useState<ResolvedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
@@ -135,15 +135,15 @@ export default function SavedListPage({ params }: PageProps) {
     setIsLoading(true);
     try {
       // First get the list details
-      const listsRes = await fetch('/api/saved-lists');
+      const listsRes = await fetch('/api/lists');
       if (listsRes.ok) {
         const data = await listsRes.json();
-        const foundList = data.lists.find((l: SavedList) => l.slug === slug);
+        const foundList = data.lists.find((l: List) => l.slug === slug);
         if (foundList) {
           setList(foundList);
 
           // Then get the items
-          const itemsRes = await fetch(`/api/saved-lists/${foundList.id}/items`);
+          const itemsRes = await fetch(`/api/lists/${foundList.id}/items`);
           if (itemsRes.ok) {
             const itemsData = await itemsRes.json();
             setItems(itemsData.items || []);
@@ -165,7 +165,7 @@ export default function SavedListPage({ params }: PageProps) {
     if (!confirm(`Delete "${list.name}"? This cannot be undone.`)) return;
 
     try {
-      const res = await fetch(`/api/saved-lists/${list.id}`, {
+      const res = await fetch(`/api/lists/${list.id}`, {
         method: 'DELETE',
       });
 
@@ -185,7 +185,7 @@ export default function SavedListPage({ params }: PageProps) {
     if (!list) return;
 
     try {
-      const res = await fetch(`/api/saved-lists/${list.id}`, {
+      const res = await fetch(`/api/lists/${list.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isPublic: !list.isPublic }),

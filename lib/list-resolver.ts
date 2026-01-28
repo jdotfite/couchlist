@@ -1,5 +1,5 @@
 import { db as sql, initDb } from './db';
-import type { SavedList } from './saved-lists';
+import type { List } from './lists';
 
 // Ensure tables exist
 let dbInitialized = false;
@@ -63,11 +63,11 @@ export interface ResolvedItem {
 }
 
 /**
- * Resolve a saved list to its items by executing the filter query
+ * Resolve a list to its items by executing the filter query
  */
 export async function resolveList(
   userId: number,
-  list: SavedList
+  list: List
 ): Promise<ResolvedItem[]> {
   await ensureDb();
 

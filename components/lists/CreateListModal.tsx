@@ -26,7 +26,7 @@ import {
 import { showSuccess, showError } from '@/lib/toast';
 import type { FilterRules } from '@/lib/list-resolver';
 
-interface SaveAsListModalProps {
+interface CreateListModalProps {
   isOpen: boolean;
   onClose: () => void;
   filterRules?: FilterRules;
@@ -81,13 +81,13 @@ const COLOR_CLASSES: Record<string, string> = {
 const AVAILABLE_COLORS = Object.keys(COLOR_CLASSES);
 const AVAILABLE_ICONS = Object.keys(ICON_COMPONENTS);
 
-export default function SaveAsListModal({
+export default function CreateListModal({
   isOpen,
   onClose,
   filterRules,
   previewCount,
   onCreated,
-}: SaveAsListModalProps) {
+}: CreateListModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('list');
@@ -115,7 +115,7 @@ export default function SaveAsListModal({
     setIsLoading(true);
 
     try {
-      const res = await fetch('/api/saved-lists', {
+      const res = await fetch('/api/lists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -162,7 +162,7 @@ export default function SaveAsListModal({
       <div className="relative bg-zinc-900 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Save as List</h2>
+          <h2 className="text-lg font-semibold">Create List</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-zinc-800 rounded-full transition"

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getUserIdByEmail } from '@/lib/library';
-import { addListPin, removeListPin } from '@/lib/saved-lists';
+import { addListPin, removeListPin } from '@/lib/lists';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// POST /api/saved-lists/[id]/pins - Add a pin to a list
+// POST /api/lists/[id]/pins - Add a pin to a list
 export async function POST(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
@@ -57,7 +57,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/saved-lists/[id]/pins - Remove a pin from a list
+// DELETE /api/lists/[id]/pins - Remove a pin from a list
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;

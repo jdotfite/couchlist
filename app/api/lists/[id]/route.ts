@@ -2,18 +2,18 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getUserIdByEmail } from '@/lib/library';
 import {
-  getSavedListById,
-  updateSavedList,
-  deleteSavedList,
+  getListById,
+  updateList,
+  deleteList,
   LIST_COLORS,
   LIST_ICONS,
-} from '@/lib/saved-lists';
+} from '@/lib/lists';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
-// GET /api/saved-lists/[id] - Get a specific saved list
+// GET /api/lists/[id] - Get a specific list
 export async function GET(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
@@ -33,14 +33,14 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const list = await getSavedListById(userId, listId);
+    const list = await getListById(userId, listId);
     if (!list) {
       return NextResponse.json({ error: 'List not found' }, { status: 404 });
     }
 
     return NextResponse.json({ list });
   } catch (error) {
-    console.error('Error fetching saved list:', error);
+    console.error('Error fetching list:', error);
     return NextResponse.json(
       { error: 'Failed to fetch list' },
       { status: 500 }
@@ -48,7 +48,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   }
 }
 
-// PATCH /api/saved-lists/[id] - Update a saved list
+// PATCH /api/lists/[id] - Update a list
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
@@ -128,7 +128,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       );
     }
 
-    const list = await updateSavedList(userId, listId, {
+    const list = await updateList(userId, listId, {
       name: name?.trim(),
       description: description !== undefined ? description?.trim() : undefined,
       icon,
@@ -144,7 +144,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({ list });
   } catch (error) {
-    console.error('Error updating saved list:', error);
+    console.error('Error updating list:', error);
     const message = error instanceof Error ? error.message : 'Failed to update list';
     return NextResponse.json(
       { error: message },
@@ -153,7 +153,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/saved-lists/[id] - Delete a saved list
+// DELETE /api/lists/[id] - Delete a list
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
@@ -173,11 +173,11 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    await deleteSavedList(userId, listId);
+    await deleteList(userId, listId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting saved list:', error);
+    console.error('Error deleting list:', error);
     const message = error instanceof Error ? error.message : 'Failed to delete list';
     return NextResponse.json(
       { error: message },

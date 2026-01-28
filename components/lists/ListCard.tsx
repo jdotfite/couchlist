@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { ChevronRight, List, Star, Heart, Bookmark, Folder, Film, Tv, Trophy, Crown, Flame, Sparkles, Zap, Clock, Calendar, Eye, Play, Check, Flag, Globe } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
 
-interface SavedListCardProps {
+interface ListCardProps {
   id: number;
   slug: string;
   name: string;
@@ -61,7 +61,7 @@ const COLOR_CLASSES: Record<string, string> = {
   rose: 'bg-rose-500',
 };
 
-export default function SavedListCard({
+export default function ListCard({
   id,
   slug,
   name,
@@ -71,13 +71,13 @@ export default function SavedListCard({
   itemCount,
   isPublic,
   previewPosters = [],
-}: SavedListCardProps) {
+}: ListCardProps) {
   const IconComponent = ICON_COMPONENTS[icon] || List;
   const colorClass = COLOR_CLASSES[color] || 'bg-gray-500';
 
   return (
     <Link
-      href={`/saved-lists/${slug}`}
+      href={`/lists/${slug}`}
       className="block bg-zinc-900 hover:bg-zinc-800 rounded-xl overflow-hidden transition group"
     >
       <div className="flex items-center p-4">
