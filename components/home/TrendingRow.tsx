@@ -131,10 +131,10 @@ export default function TrendingRow({ title, items, seeAllHref, onAddClick, show
                     const statusConfig = status ? STATUS_ICONS[status] : null;
 
                     if (statusConfig) {
-                      // Item is in library - show status icon
+                      // Item is in library - show white status icon
                       const StatusIconComponent = statusConfig.icon;
                       return (
-                        <div className={`absolute top-2 right-2 w-6 h-6 ${statusConfig.colorClass} rounded-full flex items-center justify-center z-10`}>
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center z-10">
                           <StatusIconComponent className="w-3.5 h-3.5 text-white" />
                         </div>
                       );
