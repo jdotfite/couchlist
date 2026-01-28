@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { MovieDetails, TVShowDetails } from '@/types';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
-import { Calendar, Clock, Tv, ArrowLeft, Plus, MoreVertical } from 'lucide-react';
+import { Calendar, Clock as ClockIcon, Tv, ArrowLeft, Plus, Play, CheckCircle2 } from 'lucide-react';
+import { SYSTEM_LIST_MAP } from '@/lib/list-config';
 import Link from 'next/link';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import StarRatingPopup from '@/components/StarRatingPopup';
@@ -170,11 +171,19 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
             onClick={() => setIsSheetOpen(true)}
             className="w-10 h-10 bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-full flex items-center justify-center transition"
           >
-            {libraryStatus ? (
-              <MoreVertical className="w-5 h-5" />
-            ) : (
-              <Plus className="w-5 h-5" />
-            )}
+            {(() => {
+              if (!libraryStatus) {
+                return <Plus className="w-5 h-5" />;
+              }
+              // Get the icon from list config
+              const normalizedStatus = libraryStatus === 'watched' ? 'finished' : libraryStatus;
+              const config = SYSTEM_LIST_MAP[normalizedStatus];
+              if (config) {
+                const StatusIcon = config.icon;
+                return <StatusIcon className="w-5 h-5" />;
+              }
+              return <Plus className="w-5 h-5" />;
+            })()}
           </button>
         </div>
       </div>
@@ -239,7 +248,7 @@ export default function MediaDetailPage({ mediaType, id }: MediaDetailPageProps)
           {isMovie(media) ? (
             media.runtime > 0 && (
               <div className="flex items-center gap-1.5">
-                <Clock className="w-4 h-4" />
+                <ClockIcon className="w-4 h-4" />
                 <span>{Math.floor(media.runtime / 60)}h {media.runtime % 60}m</span>
               </div>
             )
