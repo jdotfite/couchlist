@@ -3,9 +3,6 @@
 import { useEffect, useCallback, useState } from 'react';
 import Image from 'next/image';
 import {
-  Clock,
-  Play,
-  CheckCircle2,
   Share2,
   Send,
   Trash2,
@@ -15,16 +12,10 @@ import BottomSheet from './BottomSheet';
 import { useMediaStatus, type MediaInfo, type MediaStatus } from '@/hooks/useMediaStatus';
 import { getImageUrl } from '@/lib/tmdb';
 import FriendSuggestionSheet from './suggestions/FriendSuggestionSheet';
+import { SYSTEM_LISTS, SYSTEM_LIST_MAP } from '@/lib/list-config';
 
 // Status lists are mutually exclusive
 const STATUS_LISTS = ['watchlist', 'watching', 'finished', 'watched'];
-
-interface StatusOption {
-  key: string;
-  label: string;
-  icon: React.ReactNode;
-  color: string;
-}
 
 interface MediaOptionsSheetProps {
   isOpen: boolean;
@@ -139,38 +130,25 @@ export default function MediaOptionsSheet({
     onClose();
   }, [title, mediaType, mediaId, onClose]);
 
-  // Determine which status options to show
-  const getStatusOptions = (): StatusOption[] => {
-    const options: StatusOption[] = [];
+  // Build status options from SYSTEM_LISTS config
+  // Order: Watchlist, Watching, Watched
+  // Show all options except the current one
+  const getStatusOptions = () => {
+    const isInLibrary = !!currentList;
+    const normalizedCurrent = currentList === 'watched' ? 'finished' : currentList;
 
-    // If no current status (item not in any list), show all "Add to" options
-    if (!currentList) {
-      return [
-        { key: 'watching', label: 'Add to Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
-        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
-        { key: 'finished', label: 'Mark as Watched', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
-      ];
-    }
-
-    // Context-aware options based on current list
-    if (currentList === 'watchlist') {
-      options.push(
-        { key: 'watching', label: 'Start Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
-        { key: 'finished', label: 'Mark as Watched', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
-      );
-    } else if (currentList === 'watching') {
-      options.push(
-        { key: 'finished', label: 'Mark as Watched', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
-        { key: 'watchlist', label: 'Back to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
-      );
-    } else if (currentList === 'finished' || currentList === 'watched') {
-      options.push(
-        { key: 'watching', label: 'Watch Again', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
-        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
-      );
-    }
-
-    return options;
+    return SYSTEM_LISTS
+      .filter(list => list.slug !== normalizedCurrent) // Don't show current status
+      .map(list => {
+        const Icon = list.icon;
+        const prefix = isInLibrary ? 'Move to' : 'Add to';
+        return {
+          key: list.slug,
+          label: `${prefix} ${list.title}`,
+          icon: <Icon className="w-5 h-5" />,
+          config: list,
+        };
+      });
   };
 
   const statusOptions = getStatusOptions();
@@ -224,7 +202,9 @@ export default function MediaOptionsSheet({
                   disabled={isUpdating}
                   className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
                 >
-                  <span className={option.color}>{option.icon}</span>
+                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${option.config.bgColorClass} flex items-center justify-center`}>
+                    <span className="text-white">{option.icon}</span>
+                  </div>
                   <span className="text-white">{option.label}</span>
                   {isUpdating && <Loader2 className="w-4 h-4 animate-spin-fast ml-auto text-gray-400" />}
                 </button>

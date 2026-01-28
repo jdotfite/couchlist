@@ -1,12 +1,22 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Loader2, Clock, Play, CheckCircle2, Plus } from 'lucide-react';
 import TrendingRow, { TrendingRowItem } from '@/components/home/TrendingRow';
 import RowKebabMenu from './RowKebabMenu';
 import { useDiscoveryRowContent } from '@/hooks/useDiscoveryRowContent';
 import { useWatchProviders } from '@/hooks/useWatchProviders';
+import { useLibraryStatusBatch } from '@/hooks/useLibraryStatusBatch';
 import { UserDiscoveryRowWithConfig, PROVIDER_IDS } from '@/types/discovery-rows';
 import StreamingServiceIcon, { STREAMING_ICONS } from '@/components/icons/StreamingServiceIcons';
+
+// Status icon mapping for in-library items
+const STATUS_ICONS: Record<string, { icon: typeof Clock; colorClass: string }> = {
+  watchlist: { icon: Clock, colorClass: 'bg-blue-500' },
+  watching: { icon: Play, colorClass: 'bg-emerald-500' },
+  watched: { icon: CheckCircle2, colorClass: 'bg-purple-500' },
+  finished: { icon: CheckCircle2, colorClass: 'bg-purple-500' },
+};
 
 // Map row types to their provider IDs (for platform-specific rows)
 const PLATFORM_ROW_PROVIDER: Record<string, number> = {
@@ -115,11 +125,31 @@ function TrendingRowContent({
   onAddClick: (item: TrendingRowItem) => void;
   platformProviderId?: number; // If set, this is a platform-specific row (e.g., "Best on Netflix")
 }) {
+  // Track local status updates (for immediate feedback after adding)
+  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
+
   // Only fetch providers if this is NOT a platform-specific row
   const { getProviders } = useWatchProviders(
     items.map(item => ({ id: item.id, media_type: item.media_type })),
     !platformProviderId && items.length > 0
   );
+
+  // Fetch library status for items
+  const { getStatus } = useLibraryStatusBatch(items, items.length > 0);
+
+  // Helper to get combined status (local override or fetched)
+  const getCombinedStatus = (id: number, mediaType: 'movie' | 'tv'): string | null => {
+    const key = `${mediaType}-${id}`;
+    return localStatuses[key] || getStatus(id, mediaType);
+  };
+
+  // Update local status when item is added
+  const handleAddClick = (item: TrendingRowItem) => {
+    onAddClick(item);
+    // Optimistically set to watchlist (most common default)
+    const key = `${item.media_type}-${item.id}`;
+    setLocalStatuses(prev => ({ ...prev, [key]: 'watchlist' }));
+  };
 
   return (
     <div
@@ -171,18 +201,34 @@ function TrendingRowContent({
                   )}
                 </div>
 
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onAddClick(item);
-                  }}
-                  className="absolute top-2 right-2 w-6 h-6 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </button>
+                {(() => {
+                  const status = getCombinedStatus(item.id, item.media_type);
+                  const statusConfig = status ? STATUS_ICONS[status] : null;
+
+                  if (statusConfig) {
+                    // Item is in library - show status icon
+                    const StatusIconComponent = statusConfig.icon;
+                    return (
+                      <div className={`absolute top-2 right-2 w-6 h-6 ${statusConfig.colorClass} rounded-full flex items-center justify-center z-10`}>
+                        <StatusIconComponent className="w-3.5 h-3.5 text-white" />
+                      </div>
+                    );
+                  }
+
+                  // Item not in library - show add button
+                  return (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddClick(item);
+                      }}
+                      className="absolute top-2 right-2 w-6 h-6 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  );
+                })()}
 
                 {/* Provider Icon - Bottom Left */}
                 {/* For platform rows: show the platform icon */}
