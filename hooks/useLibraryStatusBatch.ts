@@ -41,7 +41,7 @@ export function useLibraryStatusBatch(items: MediaItem[], enabled: boolean = tru
           mediaType: item.media_type || ('title' in item ? 'movie' : 'tv'),
         }));
 
-        const response = await fetch('/api/library/batch-status', {
+        const response = await fetch('/api/batch-status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ items: requestItems }),
