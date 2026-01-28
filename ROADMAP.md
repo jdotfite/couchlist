@@ -37,6 +37,68 @@
 - [ ] Tag management UI (create, edit, delete)
 - [ ] Tag colors/icons
 
+### Labels UI Enhancement
+
+> **Status:** Infrastructure exists (DB, API, settings page). Missing: visual display throughout UI.
+
+**Current State:**
+- Database: `tags`, `user_media_tags` tables
+- API: `/api/labels`, `/api/labels/[id]`
+- Settings: `/settings/labels` for management
+- System labels: favorites, rewatch, nostalgia
+- Custom labels: up to 20 per user, 18 colors, 20+ icons
+
+**Missing: Visual Display**
+- [ ] Grid view: Show colored dot (8px, top-right) for first label
+- [ ] List view: Show label chips (max 2-3) after metadata
+- [ ] Detail page: Labels section below genres with add/remove
+- [ ] Library filter: Filter by label dropdown
+- [ ] Quick label access: Tap dot to open label picker
+
+**Implementation:**
+```
+Grid Card:
+┌─────────────┐
+│  [poster]   │
+│         [●] │  ← 8px dot, first label's color
+│      [▶️]   │  ← Status icon (bottom-right)
+└─────────────┘
+
+List View:
+┌────┐
+│post│  The Shining     [Label1] [Label2] →
+│ er │  Watched • ★★★★★
+└────┘
+
+Detail Page (below genres):
+Your Labels
+[● Troy Picks] [● Horror Night] [+ Add]
+```
+
+### Suggestions Inbox
+
+> **Status:** Suggestions work via notification panel. Missing: dedicated inbox page.
+
+- [ ] Create `/inbox` page for viewing all suggestions
+- [ ] Group by sender (like notification panel)
+- [ ] Bulk accept/dismiss actions
+- [ ] Filter: pending, accepted, dismissed
+- [ ] Show suggestion history (what you sent, responses)
+- [ ] Persist suggestions (don't disappear after notification read)
+
+### Shareable Public Lists
+
+> **Status:** Private recommendations (1-to-1) complete. Missing: public shareable lists.
+
+**Use Case:** Create curated list ("Best Horror 2025") and share link publicly.
+
+- [ ] Create shareable list from library selection or scratch
+- [ ] Public link anyone can view (no login required)
+- [ ] Optional: Allow comments/reactions from viewers
+- [ ] Embed support (share on social media with preview card)
+- [ ] List templates (e.g., "Top 10", "Watchlist", "Year in Review")
+- [ ] Clone list to own library button for viewers
+
 ### Library Enhancements
 - [ ] Unified library view option (movies + TV together)
 - [ ] Batch operations (mark multiple as watched)
