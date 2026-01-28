@@ -394,11 +394,6 @@ export async function getRating(userId: number, tmdbId: number, mediaType: strin
 
 export interface MediaStatus {
   status: string | null;
-  tags: {
-    favorites: boolean;
-    rewatch: boolean;
-    nostalgia: boolean;
-  };
   rating: number | null;
   notes: string | null;
 }
@@ -421,31 +416,13 @@ export async function getMediaStatus(userId: number, tmdbId: number, mediaType: 
   if (!userMedia) {
     return {
       status: null,
-      tags: { favorites: false, rewatch: false, nostalgia: false },
       rating: null,
       notes: null,
     };
   }
 
-  // Get tags for this user_media
-  const tagsResult = await sql`
-    SELECT tags.slug
-    FROM user_media_tags
-    JOIN tags ON tags.id = user_media_tags.tag_id
-    WHERE user_media_tags.user_media_id = ${userMedia.id}
-      AND tags.user_id IS NULL
-      AND tags.slug IN ('favorites', 'rewatch', 'nostalgia')
-  `;
-
-  const tagSlugs = tagsResult.rows.map(r => r.slug);
-
   return {
     status: userMedia.status,
-    tags: {
-      favorites: tagSlugs.includes('favorites'),
-      rewatch: tagSlugs.includes('rewatch'),
-      nostalgia: tagSlugs.includes('nostalgia'),
-    },
     rating: userMedia.rating,
     notes: userMedia.notes,
   };

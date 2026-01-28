@@ -5,14 +5,11 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, List, CheckCircle2, PauseCircle, XCircle, RotateCcw, Sparkles, Heart, ChevronLeft, Settings, Plus, Users, ChevronRight, ChevronDown, Settings2 } from 'lucide-react';
+import { Play, List, CheckCircle2, ChevronLeft, Settings, Users, ChevronRight, Settings2 } from 'lucide-react';
 import LayoutToggle, { LayoutOption } from '@/components/ui/LayoutToggle';
 import AllListsSkeleton from '@/components/AllListsSkeleton';
 import ListSettingsSheet from '@/components/ListSettingsSheet';
 import ListCardSettingsSheet from '@/components/ListCardSettingsSheet';
-import CreateListModal from '@/components/custom-lists/CreateListModal';
-import { getIconComponent } from '@/components/custom-lists/IconPicker';
-import { getColorValue } from '@/components/custom-lists/ColorPicker';
 import { getImageUrl } from '@/lib/tmdb';
 import { useListPreferences, type ListCardSettings } from '@/hooks/useListPreferences';
 
@@ -24,41 +21,16 @@ interface LibraryItem {
   poster_path: string;
 }
 
-interface CustomListItem {
-  media_id: number;
-  title: string;
-  poster_path: string;
-  media_type: string;
-}
-
-interface CustomList {
-  id: number;
-  slug: string;
-  name: string;
-  icon: string;
-  color: string;
-  item_count: number;
-  items: CustomListItem[];
-}
-
 export default function AllMoviesListsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [watchingItems, setWatchingItems] = useState<LibraryItem[]>([]);
   const [watchlistItems, setWatchlistItems] = useState<LibraryItem[]>([]);
   const [watchedItems, setWatchedItems] = useState<LibraryItem[]>([]);
-  const [onHoldItems, setOnHoldItems] = useState<LibraryItem[]>([]);
-  const [droppedItems, setDroppedItems] = useState<LibraryItem[]>([]);
-  const [rewatchItems, setRewatchItems] = useState<LibraryItem[]>([]);
-  const [nostalgiaItems, setNostalgiaItems] = useState<LibraryItem[]>([]);
-  const [favoritesItems, setFavoritesItems] = useState<LibraryItem[]>([]);
-  const [customLists, setCustomLists] = useState<CustomList[]>([]);
   const [sharedLists, setSharedLists] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [layout, setLayout] = useState<LayoutOption>('grid');
-  const [showMoreLists, setShowMoreLists] = useState(false);
   const { getListName, isListHidden, getListCardSettings, updateListCardSettings, refetch: refetchPreferences } = useListPreferences();
   const [cardSettingsOpen, setCardSettingsOpen] = useState<string | null>(null);
   const [cardSettingsKind, setCardSettingsKind] = useState<'system' | 'custom'>('system');
@@ -90,18 +62,11 @@ export default function AllMoviesListsPage() {
   const fetchData = async () => {
     try {
       const [
-        watchingRes, watchlistRes, watchedRes, onHoldRes,
-        droppedRes, rewatchRes, nostalgiaRes, favoritesRes, customListsRes, sharedListsRes
+        watchingRes, watchlistRes, watchedRes, sharedListsRes
       ] = await Promise.all([
         fetch('/api/watching'),
         fetch('/api/watchlist'),
         fetch('/api/watched'),
-        fetch('/api/onhold'),
-        fetch('/api/dropped'),
-        fetch('/api/rewatch'),
-        fetch('/api/nostalgia'),
-        fetch('/api/favorites'),
-        fetch('/api/custom-lists?mediaType=movie'),
         fetch('/api/collaborators/shared-lists')
       ]);
 
@@ -115,18 +80,6 @@ export default function AllMoviesListsPage() {
       setWatchingItems(await parseRes(watchingRes, 'watching'));
       setWatchlistItems(await parseRes(watchlistRes, 'watchlist'));
       setWatchedItems(await parseRes(watchedRes, 'watched'));
-      setOnHoldItems(await parseRes(onHoldRes, 'onhold'));
-      setDroppedItems(await parseRes(droppedRes, 'dropped'));
-      setRewatchItems(await parseRes(rewatchRes, 'rewatch'));
-      setNostalgiaItems(await parseRes(nostalgiaRes, 'nostalgia'));
-
-      const favoritesData = await favoritesRes.json().catch(() => ({}));
-      const favorites = (favoritesData.favorites || []).filter((item: LibraryItem) => item.media_type === 'movie');
-      setFavoritesItems(favorites);
-
-      // Parse custom lists
-      const customListsData = await customListsRes.json().catch(() => ({ lists: [] }));
-      setCustomLists(customListsData.lists || []);
 
       // Parse shared lists
       const sharedListsData = await sharedListsRes.json().catch(() => ({ sharedLists: [] }));
@@ -138,24 +91,14 @@ export default function AllMoviesListsPage() {
     }
   };
 
-  const handleListCreated = (list: CustomList) => {
-    // Refresh data to show the new list if it has items
-    fetchData();
-  };
-
   if (status === 'loading' || isLoading) {
     return <AllListsSkeleton />;
   }
 
   const allSystemLists = [
-    { slug: 'watching', title: getListName('watching') || 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900', colorHex: '#10b981', isCore: true },
-    { slug: 'watchlist', title: getListName('watchlist') || 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900', colorHex: '#3b82f6', isCore: true },
-    { slug: 'finished', title: getListName('finished') || 'Watched', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker', colorHex: '#8b5ef4', isCore: true },
-    { slug: 'onhold', title: getListName('onhold') || 'On Hold', items: onHoldItems, icon: PauseCircle, color: 'from-yellow-500 to-yellow-900', colorHex: '#eab308', isCore: false },
-    { slug: 'dropped', title: getListName('dropped') || 'Dropped', items: droppedItems, icon: XCircle, color: 'from-red-600 to-red-900', colorHex: '#ef4444', isCore: false },
-    { slug: 'rewatch', title: getListName('rewatch') || 'Rewatch', items: rewatchItems, icon: RotateCcw, color: 'from-cyan-500 to-cyan-900', colorHex: '#06b6d4', isCore: false },
-    { slug: 'nostalgia', title: getListName('nostalgia') || 'Classics', items: nostalgiaItems, icon: Sparkles, color: 'from-amber-500 to-amber-900', colorHex: '#f59e0b', isCore: false },
-    { slug: 'favorites', title: getListName('favorites') || 'Favorites', items: favoritesItems, icon: Heart, color: 'from-pink-600 to-pink-900', colorHex: '#ec4899', isCore: false },
+    { slug: 'watching', title: getListName('watching') || 'Watching', items: watchingItems, icon: Play, color: 'from-emerald-500 to-emerald-900', colorHex: '#10b981' },
+    { slug: 'watchlist', title: getListName('watchlist') || 'Watchlist', items: watchlistItems, icon: List, color: 'from-blue-600 to-blue-900', colorHex: '#3b82f6' },
+    { slug: 'finished', title: getListName('finished') || 'Watched', items: watchedItems, icon: CheckCircle2, color: 'from-brand-primary to-brand-primary-darker', colorHex: '#8b5ef4' },
   ];
 
   // Helper to get the cover image for a list based on its settings
@@ -189,45 +132,11 @@ export default function AllMoviesListsPage() {
   };
 
   const handleSaveCardSettings = async (listSlug: string, settings: Partial<ListCardSettings>) => {
-    if (cardSettingsKind === 'system') {
-      return await updateListCardSettings(listSlug, settings);
-    } else {
-      // For custom lists, use the custom-lists API
-      const response = await fetch(`/api/custom-lists/${listSlug}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cover_type: settings.coverType,
-          cover_media_id: settings.coverMediaId,
-          show_icon: settings.showIcon,
-          display_info: settings.displayInfo,
-        }),
-      });
-      if (response.ok) {
-        fetchData(); // Refresh custom lists
-        return true;
-      }
-      return false;
-    }
+    return await updateListCardSettings(listSlug, settings);
   };
 
-  // Filter out hidden lists, then separate into visible and more lists
-  const visibleSystemLists = allSystemLists.filter(list => !isListHidden(list.slug));
-
-  // Core lists are always shown, secondary lists only if they have items OR showMoreLists is true
-  const coreLists = visibleSystemLists.filter(list => list.isCore);
-  const secondaryLists = visibleSystemLists.filter(list => !list.isCore);
-  const populatedSecondaryLists = secondaryLists.filter(list => list.items.length > 0);
-  const emptySecondaryLists = secondaryLists.filter(list => list.items.length === 0);
-
-  // Show core + populated secondary, then empty secondary only if expanded
-  const lists = [
-    ...coreLists,
-    ...populatedSecondaryLists,
-    ...(showMoreLists ? emptySecondaryLists : [])
-  ];
-
-  const hasHiddenEmptyLists = emptySecondaryLists.length > 0;
+  // Filter out hidden lists
+  const lists = allSystemLists.filter(list => !isListHidden(list.slug));
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -306,91 +215,7 @@ export default function AllMoviesListsPage() {
               );
             })}
 
-            {/* Custom Lists - Grid View */}
-            {customLists.map((list) => {
-              const IconComponent = getIconComponent(list.icon);
-              const colorValue = getColorValue(list.color);
-              const coverType = (list as any).cover_type || 'last_added';
-              const coverMediaId = (list as any).cover_media_id;
-              const showIcon = (list as any).show_icon !== false;
-
-              // Determine cover
-              let coverImage: string | null = null;
-              if (coverType === 'specific_item' && coverMediaId) {
-                const item = list.items.find(i => i.media_id === coverMediaId);
-                coverImage = item?.poster_path || null;
-              } else if (coverType === 'last_added') {
-                coverImage = list.items[0]?.poster_path || null;
-              }
-
-              return (
-                <Link
-                  key={`custom-${list.slug}`}
-                  href={`/lists/${list.slug}`}
-                  className="group relative aspect-square rounded-lg overflow-hidden"
-                  style={{ backgroundColor: `${colorValue}30` }}
-                >
-                  {coverImage && (
-                    <Image
-                      src={getImageUrl(coverImage)}
-                      alt={list.name}
-                      fill
-                      className="object-cover object-top opacity-60"
-                      sizes="50vw"
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                  <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      {(coverType === 'color' ? showIcon : true) && (
-                        <IconComponent className="w-6 h-6" style={{ color: colorValue }} />
-                      )}
-                      {coverType === 'color' && !showIcon && <div />}
-                      <button
-                        onClick={(e) => handleOpenCardSettings(e, list.slug, 'custom')}
-                        className="bg-black/50 rounded-full p-1.5 opacity-0 group-hover:opacity-100 md:opacity-0 transition-opacity"
-                      >
-                        <Settings2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div>
-                      <h3 className="text-lg mb-1">{list.name}</h3>
-                      <p className="text-sm text-gray-200">{list.item_count} movies</p>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-
-            {/* Create New List Card - Grid View */}
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="relative aspect-square rounded-lg overflow-hidden border-2 border-dashed border-zinc-700 hover:border-zinc-500 transition flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white"
-            >
-              <Plus className="w-8 h-8" />
-              <span className="text-sm">Create List</span>
-            </button>
           </div>
-
-          {/* Show More Lists Toggle - Grid View */}
-          {hasHiddenEmptyLists && (
-            <button
-              onClick={() => setShowMoreLists(!showMoreLists)}
-              className="w-full mt-4 flex items-center justify-center gap-2 py-3 text-sm text-gray-400 hover:text-white transition"
-            >
-              {showMoreLists ? (
-                <>
-                  <ChevronDown className="w-4 h-4 rotate-180" />
-                  Hide empty lists
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="w-4 h-4" />
-                  Show {emptySecondaryLists.length} more {emptySecondaryLists.length === 1 ? 'list' : 'lists'}
-                </>
-              )}
-            </button>
-          )}
         </>) : (
           <div className="space-y-1">
             {/* System Lists - List View */}
@@ -440,97 +265,6 @@ export default function AllMoviesListsPage() {
                 </div>
               );
             })}
-
-            {/* Custom Lists - List View */}
-            {customLists.map((list) => {
-              const IconComponent = getIconComponent(list.icon);
-              const colorValue = getColorValue(list.color);
-              const coverType = (list as any).cover_type || 'last_added';
-              const coverMediaId = (list as any).cover_media_id;
-              const showIcon = (list as any).show_icon !== false;
-
-              // Determine cover
-              let coverImage: string | null = null;
-              if (coverType === 'specific_item' && coverMediaId) {
-                const item = list.items.find(i => i.media_id === coverMediaId);
-                coverImage = item?.poster_path || null;
-              } else if (coverType === 'last_added') {
-                coverImage = list.items[0]?.poster_path || null;
-              }
-
-              return (
-                <div key={`custom-${list.slug}`} className="group flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition">
-                  <Link
-                    href={`/lists/${list.slug}`}
-                    className="flex items-center gap-3 flex-1 min-w-0"
-                  >
-                    {/* Poster thumbnail */}
-                    <div
-                      className="relative w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden"
-                      style={{ backgroundColor: `${colorValue}20` }}
-                    >
-                      {coverImage ? (
-                        <Image
-                          src={getImageUrl(coverImage)}
-                          alt={list.name}
-                          fill
-                          className="object-cover"
-                          sizes="48px"
-                        />
-                      ) : (coverType === 'color' ? showIcon : true) ? (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <IconComponent className="w-5 h-5" style={{ color: colorValue }} />
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm line-clamp-1">{list.name}</h3>
-                      <p className="text-xs text-gray-400">{list.item_count} movies</p>
-                    </div>
-                  </Link>
-                  <button
-                    onClick={(e) => handleOpenCardSettings(e, list.slug, 'custom')}
-                    className="p-2 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-opacity flex-shrink-0"
-                  >
-                    <Settings2 className="w-4 h-4 text-gray-400" />
-                  </button>
-                  <Link href={`/lists/${list.slug}`}>
-                    <ChevronRight className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                  </Link>
-                </div>
-              );
-            })}
-
-            {/* Create New List - List View */}
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="w-full flex items-center gap-3 p-2 rounded-lg border-2 border-dashed border-zinc-700 hover:border-zinc-500 transition text-gray-400 hover:text-white"
-            >
-              <div className="w-12 h-[68px] rounded-md bg-zinc-800 flex items-center justify-center flex-shrink-0">
-                <Plus className="w-5 h-5" />
-              </div>
-              <span className="font-medium text-sm">Create List</span>
-            </button>
-
-            {/* Show More Lists Toggle - List View */}
-            {hasHiddenEmptyLists && (
-              <button
-                onClick={() => setShowMoreLists(!showMoreLists)}
-                className="w-full mt-2 flex items-center justify-center gap-2 py-3 text-sm text-gray-400 hover:text-white transition"
-              >
-                {showMoreLists ? (
-                  <>
-                    <ChevronDown className="w-4 h-4 rotate-180" />
-                    Hide empty lists
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-4 h-4" />
-                    Show {emptySecondaryLists.length} more {emptySecondaryLists.length === 1 ? 'list' : 'lists'}
-                  </>
-                )}
-              </button>
-            )}
           </div>
         )}
       </main>
@@ -542,71 +276,32 @@ export default function AllMoviesListsPage() {
           setIsSettingsOpen(false);
           refetchPreferences();
         }}
-        onCreateList={() => setIsCreateOpen(true)}
         mediaType="movie"
-      />
-
-      {/* Create List Modal */}
-      <CreateListModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onCreated={handleListCreated}
       />
 
       {/* List Card Settings Sheet */}
       {cardSettingsOpen && (() => {
-        if (cardSettingsKind === 'system') {
-          const listData = allSystemLists.find(l => l.slug === cardSettingsOpen);
-          if (!listData) return null;
-          const settings = getListCardSettings(cardSettingsOpen);
-          return (
-            <ListCardSettingsSheet
-              isOpen={true}
-              onClose={() => setCardSettingsOpen(null)}
-              listType={cardSettingsOpen}
-              listKind="system"
-              listName={listData.title}
-              listColor={listData.colorHex}
-              listIcon={listData.icon}
-              items={listData.items.map(i => ({
-                mediaId: i.media_id,
-                posterPath: i.poster_path,
-                title: i.title,
-              }))}
-              settings={settings}
-              onSave={(newSettings) => handleSaveCardSettings(cardSettingsOpen, newSettings)}
-            />
-          );
-        } else {
-          const listData = customLists.find(l => l.slug === cardSettingsOpen);
-          if (!listData) return null;
-          const colorValue = getColorValue(listData.color);
-          const IconComponent = getIconComponent(listData.icon);
-          const settings: ListCardSettings = {
-            coverType: (listData as any).cover_type || 'last_added',
-            coverMediaId: (listData as any).cover_media_id,
-            showIcon: (listData as any).show_icon !== false,
-            displayInfo: (listData as any).display_info || 'none',
-          };
-          return (
-            <ListCardSettingsSheet
-              isOpen={true}
-              onClose={() => setCardSettingsOpen(null)}
-              listType={cardSettingsOpen}
-              listKind="custom"
-              listName={listData.name}
-              listColor={colorValue}
-              listIcon={IconComponent}
-              items={listData.items.map(i => ({
-                mediaId: i.media_id,
-                posterPath: i.poster_path,
-                title: i.title,
-              }))}
-              settings={settings}
-              onSave={(newSettings) => handleSaveCardSettings(cardSettingsOpen, newSettings)}
-            />
-          );
-        }
+        const listData = allSystemLists.find(l => l.slug === cardSettingsOpen);
+        if (!listData) return null;
+        const settings = getListCardSettings(cardSettingsOpen);
+        return (
+          <ListCardSettingsSheet
+            isOpen={true}
+            onClose={() => setCardSettingsOpen(null)}
+            listType={cardSettingsOpen}
+            listKind="system"
+            listName={listData.title}
+            listColor={listData.colorHex}
+            listIcon={listData.icon}
+            items={listData.items.map(i => ({
+              mediaId: i.media_id,
+              posterPath: i.poster_path,
+              title: i.title,
+            }))}
+            settings={settings}
+            onSave={(newSettings) => handleSaveCardSettings(cardSettingsOpen, newSettings)}
+          />
+        );
       })()}
     </div>
   );

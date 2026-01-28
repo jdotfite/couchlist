@@ -5,11 +5,6 @@ import {
   Clock,
   Play,
   CheckCircle2,
-  PauseCircle,
-  XCircle,
-  Heart,
-  RotateCcw,
-  Sparkles,
   Check,
   Loader2,
   Eye,
@@ -45,22 +40,12 @@ const listIcons: Record<string, React.ReactNode> = {
   watchlist: <Clock className="w-5 h-5 text-blue-500" />,
   watching: <Play className="w-5 h-5 text-green-500" />,
   finished: <CheckCircle2 className="w-5 h-5 text-brand-primary" />,
-  onhold: <PauseCircle className="w-5 h-5 text-yellow-500" />,
-  dropped: <XCircle className="w-5 h-5 text-red-500" />,
-  favorites: <Heart className="w-5 h-5 text-pink-500" />,
-  rewatch: <RotateCcw className="w-5 h-5 text-cyan-500" />,
-  nostalgia: <Sparkles className="w-5 h-5 text-amber-500" />,
 };
 
 const listDescriptions: Record<string, string> = {
   watchlist: 'Movies & shows to watch',
   watching: 'Currently in progress',
   finished: 'Completed titles',
-  onhold: 'Paused for later',
-  dropped: 'Stopped watching',
-  favorites: 'All-time favorites',
-  rewatch: 'Worth watching again',
-  nostalgia: 'Nostalgic classics',
 };
 
 export function ListShareSelector({

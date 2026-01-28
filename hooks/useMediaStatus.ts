@@ -21,7 +21,6 @@ interface UseMediaStatusReturn {
   error: string | null;
   fetchStatus: (mediaId: number, mediaType: string) => Promise<MediaStatus | null>;
   setStatusTo: (targetStatus: string, mediaInfo: MediaInfo) => Promise<boolean>;
-  toggleTag: (tag: string, add: boolean, mediaInfo: MediaInfo) => Promise<boolean>;
   removeFromList: (currentList: string, mediaInfo: MediaInfo) => Promise<boolean>;
   clearStatus: () => void;
 }
@@ -29,16 +28,8 @@ interface UseMediaStatusReturn {
 const STATUS_ENDPOINTS: Record<string, string> = {
   watchlist: '/api/watchlist',
   watching: '/api/watching',
-  onhold: '/api/onhold',
-  dropped: '/api/dropped',
   finished: '/api/watched',
   watched: '/api/watched',
-};
-
-const TAG_ENDPOINTS: Record<string, string> = {
-  favorites: '/api/favorites',
-  rewatch: '/api/rewatch',
-  nostalgia: '/api/nostalgia',
 };
 
 export function useMediaStatus(): UseMediaStatusReturn {
@@ -105,60 +96,8 @@ export function useMediaStatus(): UseMediaStatusReturn {
     }
   }, []);
 
-  const toggleTag = useCallback(async (tag: string, add: boolean, mediaInfo: MediaInfo): Promise<boolean> => {
-    const endpoint = TAG_ENDPOINTS[tag];
-    if (!endpoint) return false;
-
-    setIsUpdating(true);
-    setError(null);
-
-    try {
-      if (add) {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            media_id: mediaInfo.mediaId,
-            media_type: mediaInfo.mediaType,
-            title: mediaInfo.title,
-            poster_path: mediaInfo.posterPath,
-            genre_ids: mediaInfo.genreIds,
-            release_year: mediaInfo.releaseYear,
-          }),
-        });
-        if (!response.ok) throw new Error(`Failed to add ${tag}`);
-      } else {
-        const response = await fetch(
-          `${endpoint}?media_id=${mediaInfo.mediaId}&media_type=${mediaInfo.mediaType}`,
-          { method: 'DELETE' }
-        );
-        if (!response.ok) throw new Error(`Failed to remove ${tag}`);
-      }
-
-      // Update local state
-      setStatus(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          tags: { ...prev.tags, [tag]: add },
-        };
-      });
-      return true;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setError(message);
-      return false;
-    } finally {
-      setIsUpdating(false);
-    }
-  }, []);
-
   const removeFromList = useCallback(async (currentList: string, mediaInfo: MediaInfo): Promise<boolean> => {
-    // Determine the correct endpoint based on list type
-    const statusEndpoint = STATUS_ENDPOINTS[currentList];
-    const tagEndpoint = TAG_ENDPOINTS[currentList];
-    const endpoint = statusEndpoint || tagEndpoint;
-
+    const endpoint = STATUS_ENDPOINTS[currentList];
     if (!endpoint) return false;
 
     setIsUpdating(true);
@@ -175,17 +114,7 @@ export function useMediaStatus(): UseMediaStatusReturn {
       }
 
       // Update local state
-      if (statusEndpoint) {
-        setStatus(prev => prev ? { ...prev, status: null } : null);
-      } else if (tagEndpoint) {
-        setStatus(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            tags: { ...prev.tags, [currentList]: false },
-          };
-        });
-      }
+      setStatus(prev => prev ? { ...prev, status: null } : null);
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -208,7 +137,6 @@ export function useMediaStatus(): UseMediaStatusReturn {
     error,
     fetchStatus,
     setStatusTo,
-    toggleTag,
     removeFromList,
     clearStatus,
   };

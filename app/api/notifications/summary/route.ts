@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { getUnreadCount } from '@/lib/show-alerts';
-import { getPendingInviteCount } from '@/lib/invites';
 import { getPendingDirectInviteCount } from '@/lib/collaborators';
 import { getSuggestionCount } from '@/lib/suggestions';
 
@@ -17,14 +16,12 @@ export async function GET() {
     const userId = Number(session.user.id);
 
     // Fetch all counts in parallel
-    const [notificationCount, customListInviteCount, directInviteCount, suggestionCount] = await Promise.all([
+    const [notificationCount, inviteCount, suggestionCount] = await Promise.all([
       getUnreadCount(userId),
-      getPendingInviteCount(userId),
       getPendingDirectInviteCount(userId),
       getSuggestionCount(userId),
     ]);
 
-    const inviteCount = customListInviteCount + directInviteCount;
     const total = notificationCount + inviteCount + suggestionCount;
 
     return NextResponse.json({

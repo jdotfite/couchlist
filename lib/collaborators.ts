@@ -185,9 +185,7 @@ export async function acceptInvite(
     const statusLists = selectedLists.filter(l =>
       ['watchlist', 'watching', 'finished', 'onhold', 'dropped'].includes(l)
     );
-    const tagLists = selectedLists.filter(l =>
-      ['favorites', 'rewatch', 'nostalgia'].includes(l)
-    );
+    const tagLists: string[] = [];
 
     // Count duplicates in status-based lists
     if (statusLists.length > 0) {

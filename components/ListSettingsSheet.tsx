@@ -5,7 +5,6 @@ import {
   Eye,
   EyeOff,
   Pencil,
-  Plus,
   Check,
   X,
   Loader2,
@@ -13,10 +12,6 @@ import {
   Play,
   Clock,
   CheckCircle2,
-  PauseCircle,
-  XCircle,
-  Heart,
-  Sparkles,
 } from 'lucide-react';
 import BottomSheet from './BottomSheet';
 import { useListPreferences } from '@/hooks/useListPreferences';
@@ -24,7 +19,7 @@ import { useListPreferences } from '@/hooks/useListPreferences';
 interface ListSettingsSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateList: () => void;
+  onCreateList?: () => void;
   mediaType: 'movie' | 'tv';
 }
 
@@ -32,11 +27,6 @@ const SYSTEM_LISTS = [
   { type: 'watching', defaultName: 'Watching', icon: Play },
   { type: 'watchlist', defaultName: 'Watchlist', icon: Clock },
   { type: 'finished', defaultName: 'Watched', icon: CheckCircle2 },
-  { type: 'onhold', defaultName: 'On Hold', icon: PauseCircle },
-  { type: 'dropped', defaultName: 'Dropped', icon: XCircle },
-  { type: 'rewatch', defaultName: 'Rewatch', icon: RotateCcw },
-  { type: 'nostalgia', defaultName: 'Classics', icon: Sparkles },
-  { type: 'favorites', defaultName: 'Favorites', icon: Heart },
 ];
 
 export default function ListSettingsSheet({
@@ -159,20 +149,8 @@ export default function ListSettingsSheet({
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose}>
       <div className="pb-4 max-h-[70vh] overflow-y-auto">
-        {/* Create new list button */}
-        <button
-          onClick={() => {
-            onClose();
-            onCreateList();
-          }}
-          className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition"
-        >
-          <Plus className="w-5 h-5 text-gray-400" />
-          <span className="text-white">Create new list</span>
-        </button>
-
         {/* System lists */}
-        <div className="border-t border-zinc-800 mt-2 pt-2">
+        <div className="pt-2">
           <div className="px-4 py-2">
             <p className="text-xs text-gray-500 uppercase tracking-wider">System Lists</p>
           </div>

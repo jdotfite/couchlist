@@ -329,7 +329,6 @@ export default function MoviesListPage({ params }: { params: Promise<{ slug: str
           title={selectedItem.title}
           posterPath={selectedItem.poster_path}
           onStatusChange={handleStatusChange}
-          onTagToggle={handleTagToggle}
           onRemove={handleRemove}
         />
       )}

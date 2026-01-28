@@ -13,7 +13,6 @@ interface LibraryState {
   watchingItems: LibraryItem[];
   watchlistItems: LibraryItem[];
   finishedItems: LibraryItem[];
-  customListsCount: number;
   isLoading: boolean;
   lastFetched: number | null;
 
@@ -21,7 +20,6 @@ interface LibraryState {
   setWatchingItems: (items: LibraryItem[]) => void;
   setWatchlistItems: (items: LibraryItem[]) => void;
   setFinishedItems: (items: LibraryItem[]) => void;
-  setCustomListsCount: (count: number) => void;
   setIsLoading: (loading: boolean) => void;
 
   // Convenience actions
@@ -45,7 +43,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   watchingItems: [],
   watchlistItems: [],
   finishedItems: [],
-  customListsCount: 0,
   isLoading: false,
   lastFetched: null,
 
@@ -53,7 +50,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   setWatchingItems: (items) => set({ watchingItems: items }),
   setWatchlistItems: (items) => set({ watchlistItems: items }),
   setFinishedItems: (items) => set({ finishedItems: items }),
-  setCustomListsCount: (count) => set({ customListsCount: count }),
   setIsLoading: (loading) => set({ isLoading: loading }),
 
   // Add to watchlist
@@ -129,7 +125,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         watchingItems: data.watching || [],
         watchlistItems: data.watchlist || [],
         finishedItems: data.finished || [],
-        customListsCount: data.customListsCount || 0,
         lastFetched: Date.now(),
         isLoading: false,
       });

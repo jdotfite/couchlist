@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@vercel/postgres';
 import { createDirectInvite } from '@/lib/collaborators';
-import { sendListInvite } from '@/lib/invites';
 
 // POST /api/collaborators/invite-user - Send a direct invite to a user
 export async function POST(request: Request) {
@@ -13,7 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const body = await request.json();
-    const { username, targetUserId, lists, customListIds, message } = body;
+    const { username, targetUserId, lists, message } = body;
 
     if (!username && !targetUserId) {
       return NextResponse.json({ error: 'Username or targetUserId is required' }, { status: 400 });
@@ -55,24 +54,6 @@ export async function POST(request: Request) {
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 400 });
-    }
-
-    // Also send invites for custom lists if selected
-    if (customListIds && customListIds.length > 0) {
-      // Get the slugs for the custom lists
-      const customListResult = await sql`
-        SELECT slug FROM custom_lists
-        WHERE id = ANY(${customListIds}::int[])
-        AND user_id = ${userId}
-      `;
-
-      for (const row of customListResult.rows) {
-        try {
-          await sendListInvite(userId, targetUser.id, row.slug, message);
-        } catch (err) {
-          console.error(`Failed to send invite for custom list ${row.slug}:`, err);
-        }
-      }
     }
 
     return NextResponse.json({

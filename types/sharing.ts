@@ -249,12 +249,7 @@ export type VisibilityLevel = 'private' | 'select_friends' | 'friends' | 'public
 export const SYSTEM_LIST_TYPES = [
   'watchlist',
   'watching',
-  'finished',
-  'onhold',
-  'dropped',
-  'favorites',
-  'rewatch',
-  'nostalgia'
+  'finished'
 ] as const;
 
 export type SystemListType = typeof SYSTEM_LIST_TYPES[number];

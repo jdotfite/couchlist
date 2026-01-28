@@ -14,9 +14,7 @@ const projectRoot = pathResolve(__dirname, '../..');
 const tests = [
   { name: 'Library Management', file: 'test-library.ts' },
   { name: 'Tags Management', file: 'test-tags.ts' },
-  { name: 'Custom Lists', file: 'test-custom-lists.ts' },
   { name: 'Notifications', file: 'test-notifications.ts' },
-  { name: 'Streaming Services', file: 'test-streaming-services.ts' },
   { name: 'Friend Sharing', file: '../test-friend-sharing.ts' },
   { name: 'Collaborative Lists', file: 'test-collaborative-lists.ts' },
 ];

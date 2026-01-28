@@ -329,7 +329,6 @@ export default function ShowsListPage({ params }: { params: Promise<{ slug: stri
           title={selectedItem.title}
           posterPath={selectedItem.poster_path}
           onStatusChange={handleStatusChange}
-          onTagToggle={handleTagToggle}
           onRemove={handleRemove}
         />
       )}

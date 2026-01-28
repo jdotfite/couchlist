@@ -13,7 +13,6 @@ interface FilterBottomSheetProps {
   onFiltersChange: (filters: DiscoverFilters) => void;
   onApply: () => void;
   resultCount?: number;
-  userProviderIds?: number[];
 }
 
 export default function FilterBottomSheet({
@@ -23,7 +22,6 @@ export default function FilterBottomSheet({
   onFiltersChange,
   onApply,
   resultCount,
-  userProviderIds = [],
 }: FilterBottomSheetProps) {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -70,15 +68,6 @@ export default function FilterBottomSheet({
     onApply();
     onClose();
   };
-
-  // Sort providers: user's first, then others
-  const sortedProviders = [...TOP_US_PROVIDERS].sort((a, b) => {
-    const aIsUser = userProviderIds.includes(a.provider_id);
-    const bIsUser = userProviderIds.includes(b.provider_id);
-    if (aIsUser && !bIsUser) return -1;
-    if (!aIsUser && bIsUser) return 1;
-    return 0;
-  });
 
   if (!isOpen || !mounted) return null;
 
@@ -166,16 +155,10 @@ export default function FilterBottomSheet({
           <section className="mb-6">
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
               Streaming Services
-              {userProviderIds.length > 0 && (
-                <span className="ml-2 text-xs text-gray-500 normal-case font-normal">
-                  Your services shown first
-                </span>
-              )}
             </h3>
             <div className="flex flex-wrap gap-2">
-              {sortedProviders.map(provider => {
+              {TOP_US_PROVIDERS.map(provider => {
                 const isSelected = filters.providers.includes(provider.provider_id);
-                const isUserService = userProviderIds.includes(provider.provider_id);
                 const bgColor = STREAMING_COLORS[provider.provider_id] || '#374151';
                 return (
                   <button
@@ -184,8 +167,6 @@ export default function FilterBottomSheet({
                     className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
                       isSelected
                         ? 'bg-brand-primary text-white ring-2 ring-brand-primary ring-offset-2 ring-offset-zinc-900'
-                        : isUserService
-                        ? 'bg-zinc-700 text-white hover:bg-zinc-600 ring-1 ring-zinc-600'
                         : 'bg-zinc-800 text-white hover:bg-zinc-700'
                     }`}
                   >

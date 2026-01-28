@@ -17,11 +17,6 @@ import {
   Clock,
   Play,
   CheckCircle2,
-  PauseCircle,
-  XCircle,
-  Heart,
-  RotateCcw,
-  Sparkles,
   Share2,
   Settings,
   Link2,
@@ -67,22 +62,12 @@ const listIcons: Record<string, React.ReactNode> = {
   watchlist: <Clock className="w-4 h-4 text-blue-500" />,
   watching: <Play className="w-4 h-4 text-green-500" />,
   finished: <CheckCircle2 className="w-4 h-4 text-brand-primary" />,
-  onhold: <PauseCircle className="w-4 h-4 text-yellow-500" />,
-  dropped: <XCircle className="w-4 h-4 text-red-500" />,
-  favorites: <Heart className="w-4 h-4 text-pink-500" />,
-  rewatch: <RotateCcw className="w-4 h-4 text-cyan-500" />,
-  nostalgia: <Sparkles className="w-4 h-4 text-amber-500" />,
 };
 
 const listLabels: Record<string, string> = {
   watchlist: 'Watchlist',
   watching: 'Watching',
   finished: 'Watched',
-  onhold: 'On Hold',
-  dropped: 'Dropped',
-  favorites: 'Favorites',
-  rewatch: 'Rewatch',
-  nostalgia: 'Classics',
 };
 
 export default function CollaboratorsSettingsPage() {
@@ -457,7 +442,7 @@ export default function CollaboratorsSettingsPage() {
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <p className="text-sm">{error}</p>
             <button onClick={() => setError(null)} className="ml-auto">
-              <XCircle className="w-5 h-5" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         )}
@@ -787,7 +772,7 @@ export default function CollaboratorsSettingsPage() {
                       }}
                       className="p-1 hover:bg-zinc-700 rounded"
                     >
-                      <XCircle className="w-4 h-4 text-gray-400" />
+                      <X className="w-4 h-4 text-gray-400" />
                     </button>
                   </div>
                 )}

@@ -22,7 +22,6 @@ export default function Home() {
     watchingItems,
     watchlistItems,
     finishedItems,
-    customListsCount,
     isLoading,
     lastFetched,
     fetchLibrary,
@@ -70,7 +69,7 @@ export default function Home() {
     {
       slug: 'all',
       title: 'All Lists',
-      count: 3 + customListsCount,
+      count: 3, // System lists: watching, watchlist, finished
       posterPath: null,
       icon: LayoutGrid,
       color: 'from-zinc-600 to-zinc-800',

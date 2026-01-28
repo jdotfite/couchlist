@@ -6,23 +6,18 @@ import {
   Clock,
   Play,
   CheckCircle2,
-  Heart,
   Share2,
   Send,
   Trash2,
   Loader2,
-  ListPlus,
 } from 'lucide-react';
 import BottomSheet from './BottomSheet';
 import { useMediaStatus, type MediaInfo, type MediaStatus } from '@/hooks/useMediaStatus';
 import { getImageUrl } from '@/lib/tmdb';
-import CustomListSelector from './custom-lists/CustomListSelector';
 import FriendSuggestionSheet from './suggestions/FriendSuggestionSheet';
 
 // Status lists are mutually exclusive
 const STATUS_LISTS = ['watchlist', 'watching', 'finished', 'watched'];
-// Tag lists can be combined with any status
-const TAG_LISTS = ['favorites'];
 
 interface StatusOption {
   key: string;
@@ -45,14 +40,8 @@ interface MediaOptionsSheetProps {
   // Optional: provide current status if already known (e.g., from library page)
   // If not provided, status will be fetched when sheet opens
   currentStatus?: string | null;
-  currentTags?: {
-    favorites?: boolean;
-    rewatch?: boolean;
-    nostalgia?: boolean;
-  };
   // Callbacks for when actions complete (useful for parent to update its state)
   onStatusChange?: (newStatus: string) => void;
-  onTagToggle?: (tag: string, added: boolean) => void;
   onRemove?: () => void;
 }
 
@@ -61,7 +50,6 @@ const LIST_LABELS: Record<string, string> = {
   watching: 'Watching',
   finished: 'Watched',
   watched: 'Watched',
-  favorites: 'Favorites',
 };
 
 export default function MediaOptionsSheet({
@@ -74,9 +62,7 @@ export default function MediaOptionsSheet({
   genreIds,
   releaseYear,
   currentStatus: providedStatus,
-  currentTags: providedTags,
   onStatusChange,
-  onTagToggle,
   onRemove,
 }: MediaOptionsSheetProps) {
   const [suggestionSheetOpen, setSuggestionSheetOpen] = useState(false);
@@ -87,7 +73,6 @@ export default function MediaOptionsSheet({
     isUpdating,
     fetchStatus,
     setStatusTo,
-    toggleTag,
     removeFromList,
     clearStatus,
   } = useMediaStatus();
@@ -97,11 +82,6 @@ export default function MediaOptionsSheet({
   const effectiveStatus: MediaStatus | null = hasProvidedStatus
     ? {
         status: providedStatus,
-        tags: {
-          favorites: providedTags?.favorites ?? false,
-          rewatch: providedTags?.rewatch ?? false,
-          nostalgia: providedTags?.nostalgia ?? false,
-        },
         rating: null,
         notes: null,
       }
@@ -109,7 +89,6 @@ export default function MediaOptionsSheet({
 
   const currentList = effectiveStatus?.status || null;
   const isStatusList = currentList ? STATUS_LISTS.includes(currentList) : false;
-  const isTagList = currentList ? TAG_LISTS.includes(currentList) : false;
 
   // Fetch status when sheet opens (only if not provided)
   useEffect(() => {
@@ -138,15 +117,6 @@ export default function MediaOptionsSheet({
       onClose();
     }
   }, [setStatusTo, mediaInfo, onStatusChange, onClose]);
-
-  // Handle tag toggle
-  const handleToggleTag = useCallback(async (tag: string, currentlyHas: boolean) => {
-    const success = await toggleTag(tag, !currentlyHas, mediaInfo);
-    if (success) {
-      onTagToggle?.(tag, !currentlyHas);
-      // Don't close - let user toggle multiple tags
-    }
-  }, [toggleTag, mediaInfo, onTagToggle]);
 
   // Handle remove
   const handleRemove = useCallback(async () => {
@@ -198,20 +168,12 @@ export default function MediaOptionsSheet({
         { key: 'watching', label: 'Watch Again', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
         { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
       );
-    } else if (isTagList) {
-      // From tag lists, show all status options
-      options.push(
-        { key: 'watching', label: 'Start Watching', icon: <Play className="w-5 h-5" />, color: 'text-status-watching' },
-        { key: 'watchlist', label: 'Add to Watchlist', icon: <Clock className="w-5 h-5" />, color: 'text-status-watchlist' },
-        { key: 'finished', label: 'Mark as Watched', icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-status-finished' },
-      );
     }
 
     return options;
   };
 
   const statusOptions = getStatusOptions();
-  const hasFavorite = effectiveStatus?.tags?.favorites ?? false;
   const removeLabel = currentList ? LIST_LABELS[currentList] || 'List' : '';
 
   return (
@@ -269,36 +231,6 @@ export default function MediaOptionsSheet({
               ))}
             </>
           )}
-
-          {/* Custom Lists - Prominent placement */}
-          <div className={`${statusOptions.length > 0 ? 'border-t border-zinc-800 mt-2' : ''}`}>
-            <div className="px-4 py-2 flex items-center gap-2">
-              <ListPlus className="w-4 h-4 text-gray-500" />
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Your Lists</p>
-            </div>
-            <CustomListSelector
-              tmdbId={mediaId}
-              mediaType={mediaType}
-              title={title}
-              posterPath={posterPath}
-            />
-          </div>
-
-          {/* Tag Toggles */}
-          <div className="border-t border-zinc-800 mt-2">
-            <div className="px-4 py-2">
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Tags</p>
-            </div>
-
-            <button
-              onClick={() => handleToggleTag('favorites', hasFavorite)}
-              disabled={isUpdating}
-              className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-800 transition disabled:opacity-50"
-            >
-              <Heart className="w-5 h-5 text-tag-favorites" />
-              <span className="flex-1 text-left text-white">{hasFavorite ? 'Remove from Favorites' : 'Add to Favorites'}</span>
-            </button>
-          </div>
 
           {/* Other Actions */}
           <div className="border-t border-zinc-800 mt-2">

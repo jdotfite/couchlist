@@ -130,12 +130,3 @@ export const SORT_OPTIONS = [
   { value: 'vote_count.desc', label: 'Most Votes' },
 ];
 
-// User's saved streaming services
-export interface UserStreamingService {
-  id: number;
-  user_id: number;
-  provider_id: number;
-  provider_name: string;
-  logo_path: string | null;
-  created_at: string;
-}
