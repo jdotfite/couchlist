@@ -1,4 +1,4 @@
-import { tmdbApi } from '@/lib/tmdb';
+import { tmdbApi, tmdbGetWithRetry } from '@/lib/tmdb';
 import type { TMDbMatchResult, MatchConfidence } from '@/types/import';
 
 interface TMDbFindResult {
@@ -190,7 +190,7 @@ export async function searchTMDbMovie(
 ): Promise<TMDbMatchResult | null> {
   try {
     // First search with year if provided
-    let response = await tmdbApi.get<{ results: TMDbSearchResult[] }>('/search/movie', {
+    let response = await tmdbGetWithRetry<{ results: TMDbSearchResult[] }>('/search/movie', {
       params: {
         query: title,
         year: year,
@@ -202,7 +202,7 @@ export async function searchTMDbMovie(
 
     // If no results with year, try without year
     if (results.length === 0 && year) {
-      response = await tmdbApi.get<{ results: TMDbSearchResult[] }>('/search/movie', {
+      response = await tmdbGetWithRetry<{ results: TMDbSearchResult[] }>('/search/movie', {
         params: {
           query: title,
           include_adult: false,
@@ -256,7 +256,7 @@ export async function findByIMDbId(
   expectedType?: 'movie' | 'tv'
 ): Promise<TMDbMatchResult | null> {
   try {
-    const response = await tmdbApi.get<TMDbFindResult>(`/find/${imdbId}`, {
+    const response = await tmdbGetWithRetry<TMDbFindResult>(`/find/${imdbId}`, {
       params: { external_source: 'imdb_id' },
     });
 
@@ -331,7 +331,7 @@ export async function searchTMDbTV(
   year?: number
 ): Promise<TMDbMatchResult | null> {
   try {
-    let response = await tmdbApi.get<{ results: TMDbSearchResult[] }>('/search/tv', {
+    let response = await tmdbGetWithRetry<{ results: TMDbSearchResult[] }>('/search/tv', {
       params: {
         query: title,
         first_air_date_year: year,
@@ -342,7 +342,7 @@ export async function searchTMDbTV(
 
     // If no results with year, try without
     if (results.length === 0 && year) {
-      response = await tmdbApi.get<{ results: TMDbSearchResult[] }>('/search/tv', {
+      response = await tmdbGetWithRetry<{ results: TMDbSearchResult[] }>('/search/tv', {
         params: { query: title },
       });
       results = response.data.results || [];

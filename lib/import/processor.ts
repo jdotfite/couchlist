@@ -208,72 +208,106 @@ async function processItem(
   item: ImportItem | IMDbItem,
   config: ImportConfig
 ): Promise<ProcessItemResult> {
-  // Check if we should import this item based on config
-  if (item.status === 'watchlist' && !config.importWatchlist) {
-    return { status: 'skipped', action: 'skipped_existing' };
-  }
-  if (item.status === 'watched' && !config.importWatched) {
-    return { status: 'skipped', action: 'skipped_existing' };
-  }
-
-  // Rate limit TMDb API calls
-  await tmdbRateLimiter.acquire();
-
-  let match;
-  let mediaType: 'movie' | 'tv' = 'movie';
-
-  // IMDb items: use findByIMDbId for exact matching
-  if (isIMDbItem(item)) {
-    mediaType = item.mediaType;
-    match = await findByIMDbId(item.imdbId, item.mediaType);
-
-    // Fallback to title search if IMDb ID lookup fails
-    if (!match) {
-      await tmdbRateLimiter.acquire();
-      if (item.mediaType === 'tv') {
-        match = await searchTMDbTV(item.title, item.year);
-      } else {
-        match = await searchTMDbMovie(item.title, item.year);
-      }
-    }
-  } else {
-    // Letterboxd items: title search only (movies only)
-    match = await searchTMDbMovie(item.title, item.year);
-  }
-
-  if (!match) {
-    return {
-      status: 'failed',
-      errorMessage: `No TMDb match found for "${item.title}" (${item.year || 'unknown year'})`,
-    };
-  }
-
-  // Low confidence match
-  if (match.confidence === 'failed') {
-    return {
-      status: 'failed',
-      tmdbId: match.tmdbId,
-      matchedTitle: match.title,
-      matchConfidence: match.confidence,
-      errorMessage: `Low confidence match: "${item.title}" → "${match.title}" (${match.year})`,
-    };
-  }
-
-  // Use mediaType from match if available (for IMDb lookups that might differ)
-  if (match.mediaType) {
-    mediaType = match.mediaType;
-  }
+  const startTime = Date.now();
 
   try {
-    // Check if user already has this media
-    const exists = await userHasMedia(userId, match.tmdbId, mediaType);
+    // Check if we should import this item based on config
+    if (item.status === 'watchlist' && !config.importWatchlist) {
+      return { status: 'skipped', action: 'skipped_existing' };
+    }
+    if (item.status === 'watched' && !config.importWatched) {
+      return { status: 'skipped', action: 'skipped_existing' };
+    }
 
-    if (exists) {
-      // Handle conflict resolution
-      const existingRating = await getExistingRating(userId, match.tmdbId, mediaType);
-      const newRating = config.importRatings ? item.rating : null;
+    // Rate limit TMDb API calls
+    await tmdbRateLimiter.acquire();
 
-      if (config.conflictStrategy === 'skip') {
+    let match;
+    let mediaType: 'movie' | 'tv' = 'movie';
+
+    // IMDb items: use findByIMDbId for exact matching
+    if (isIMDbItem(item)) {
+      mediaType = item.mediaType;
+      match = await findByIMDbId(item.imdbId, item.mediaType);
+
+      // Fallback to title search if IMDb ID lookup fails
+      if (!match) {
+        await tmdbRateLimiter.acquire();
+        if (item.mediaType === 'tv') {
+          match = await searchTMDbTV(item.title, item.year);
+        } else {
+          match = await searchTMDbMovie(item.title, item.year);
+        }
+      }
+    } else {
+      // Letterboxd items: title search only (movies only)
+      match = await searchTMDbMovie(item.title, item.year);
+    }
+
+    if (!match) {
+      return {
+        status: 'failed',
+        errorMessage: `No TMDb match found for "${item.title}" (${item.year || 'unknown year'})`,
+      };
+    }
+
+    // Low confidence match
+    if (match.confidence === 'failed') {
+      return {
+        status: 'failed',
+        tmdbId: match.tmdbId,
+        matchedTitle: match.title,
+        matchConfidence: match.confidence,
+        errorMessage: `Low confidence match: "${item.title}" → "${match.title}" (${match.year})`,
+      };
+    }
+
+    // Use mediaType from match if available (for IMDb lookups that might differ)
+    if (match.mediaType) {
+      mediaType = match.mediaType;
+    }
+
+    try {
+      // Check if user already has this media
+      const exists = await userHasMedia(userId, match.tmdbId, mediaType);
+
+      if (exists) {
+        // Handle conflict resolution
+        const existingRating = await getExistingRating(userId, match.tmdbId, mediaType);
+        const newRating = config.importRatings ? item.rating : null;
+
+        if (config.conflictStrategy === 'skip') {
+          return {
+            status: 'skipped',
+            action: 'skipped_existing',
+            tmdbId: match.tmdbId,
+            matchedTitle: match.title,
+            matchConfidence: match.confidence,
+          };
+        }
+
+        // Check if we should update the rating
+        if (shouldUpdateRating(existingRating, newRating ?? null, config.conflictStrategy)) {
+          // Update rating
+          const mediaId = await getMediaIdByTmdb(match.tmdbId, mediaType);
+          if (mediaId) {
+            await sql`
+              UPDATE user_media
+              SET rating = ${newRating},
+                  updated_at = CURRENT_TIMESTAMP
+              WHERE user_id = ${userId} AND media_id = ${mediaId}
+            `;
+          }
+
+          return {
+            status: 'success',
+            action: 'updated',
+            tmdbId: match.tmdbId,
+            matchedTitle: match.title,
+            matchConfidence: match.confidence,
+          };
+        }
+
         return {
           status: 'skipped',
           action: 'skipped_existing',
@@ -283,79 +317,54 @@ async function processItem(
         };
       }
 
-      // Check if we should update the rating
-      if (shouldUpdateRating(existingRating, newRating ?? null, config.conflictStrategy)) {
-        // Update rating
-        const mediaId = await getMediaIdByTmdb(match.tmdbId, mediaType);
-        if (mediaId) {
-          await sql`
-            UPDATE user_media
-            SET rating = ${newRating},
-                updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = ${userId} AND media_id = ${mediaId}
-          `;
-        }
+      // Create new entry
+      const mediaId = await upsertMedia({
+        media_id: match.tmdbId,
+        media_type: mediaType,
+        title: match.title,
+        poster_path: match.posterPath,
+        release_year: match.year,
+      });
 
-        return {
-          status: 'success',
-          action: 'updated',
-          tmdbId: match.tmdbId,
-          matchedTitle: match.title,
-          matchConfidence: match.confidence,
-        };
+      // Map status: Letterboxd 'watchlist' → 'watchlist', 'watched' → 'finished'
+      const status = item.status === 'watchlist' ? 'watchlist' : 'finished';
+      const rating = config.importRatings ? item.rating : null;
+
+      await upsertUserMediaStatus(userId, mediaId, status, rating);
+
+      // Add rewatch tag if applicable
+      if (item.isRewatch && config.markRewatchAsTag) {
+        const userMediaId = await getUserMediaId(userId, mediaId);
+        if (userMediaId) {
+          const rewatchTagId = await getSystemTagId('rewatch', 'Rewatch');
+          if (rewatchTagId) {
+            await addTagToUserMedia(userMediaId, rewatchTagId);
+          }
+        }
       }
 
       return {
-        status: 'skipped',
-        action: 'skipped_existing',
+        status: 'success',
+        action: 'created',
         tmdbId: match.tmdbId,
         matchedTitle: match.title,
         matchConfidence: match.confidence,
       };
+    } catch (error) {
+      console.error('Error processing item:', error);
+      return {
+        status: 'failed',
+        tmdbId: match.tmdbId,
+        matchedTitle: match.title,
+        matchConfidence: match.confidence,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
-
-    // Create new entry
-    const mediaId = await upsertMedia({
-      media_id: match.tmdbId,
-      media_type: mediaType,
-      title: match.title,
-      poster_path: match.posterPath,
-      release_year: match.year,
-    });
-
-    // Map status: Letterboxd 'watchlist' → 'watchlist', 'watched' → 'finished'
-    const status = item.status === 'watchlist' ? 'watchlist' : 'finished';
-    const rating = config.importRatings ? item.rating : null;
-
-    await upsertUserMediaStatus(userId, mediaId, status, rating);
-
-    // Add rewatch tag if applicable
-    if (item.isRewatch && config.markRewatchAsTag) {
-      const userMediaId = await getUserMediaId(userId, mediaId);
-      if (userMediaId) {
-        const rewatchTagId = await getSystemTagId('rewatch', 'Rewatch');
-        if (rewatchTagId) {
-          await addTagToUserMedia(userMediaId, rewatchTagId);
-        }
-      }
+  } finally {
+    const elapsed = Date.now() - startTime;
+    if (elapsed > 10000) {
+      console.warn(`Slow import item: "${item.title}" took ${elapsed}ms`);
     }
-
-    return {
-      status: 'success',
-      action: 'created',
-      tmdbId: match.tmdbId,
-      matchedTitle: match.title,
-      matchConfidence: match.confidence,
-    };
-  } catch (error) {
-    console.error('Error processing item:', error);
-    return {
-      status: 'failed',
-      tmdbId: match.tmdbId,
-      matchedTitle: match.title,
-      matchConfidence: match.confidence,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error',
-    };
   }
 }
 
