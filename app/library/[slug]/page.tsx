@@ -5,9 +5,10 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MoreVertical, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star, ChevronLeft, Film, Tv, Square, CheckSquare, Trash2, ArrowRightLeft, Loader2, Eye, X } from 'lucide-react';
+import { MoreVertical, CheckCircle2, Heart, Clock, Play, PauseCircle, XCircle, RotateCcw, Sparkles, Star, ChevronLeft, Film, Tv, Square, CheckSquare, Trash2, ArrowRightLeft, Loader2, Eye, X, Send } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
+import BulkSendSheet from '@/components/suggestions/BulkSendSheet';
 import EmptyState from '@/components/EmptyState';
 import MediaListSkeleton from '@/components/MediaListSkeleton';
 import SortFilterBar, { SortOption, LayoutOption, sortItems, filterItems } from '@/components/SortFilterBar';
@@ -140,6 +141,7 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
   const [isMoving, setIsMoving] = useState(false);
   const [showMoveSheet, setShowMoveSheet] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showSendSheet, setShowSendSheet] = useState(false);
   const [portalMounted, setPortalMounted] = useState(false);
 
   // Visibility sheet state
@@ -670,6 +672,13 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
                 <span className="font-medium text-sm text-white">{selectedIds.size} selected</span>
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => setShowSendSheet(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#8b5ef4] hover:bg-[#7a4ed3] rounded-lg text-sm font-medium transition text-white"
+                  >
+                    <Send className="w-4 h-4" />
+                    Send
+                  </button>
+                  <button
                     onClick={() => setShowMoveSheet(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm font-medium transition text-white"
                   >
@@ -770,6 +779,24 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
         onClose={() => setIsVisibilitySheetOpen(false)}
         listType={slug}
         listName={displayName}
+      />
+
+      {/* Bulk Send Sheet */}
+      <BulkSendSheet
+        isOpen={showSendSheet}
+        onClose={() => setShowSendSheet(false)}
+        items={items
+          .filter(item => selectedIds.has(item.media_id))
+          .map(item => ({
+            mediaId: item.media_id,
+            mediaType: item.media_type as 'movie' | 'tv',
+            title: item.title,
+            posterPath: item.poster_path,
+          }))}
+        onSuccess={() => {
+          setSelectedIds(new Set());
+          setIsManageMode(false);
+        }}
       />
     </div>
   );

@@ -124,6 +124,43 @@ export async function createBulkSuggestions(
   return { created, alreadyExists, alreadyOnList, notFriends };
 }
 
+// Send multiple items to multiple friends
+export async function createBulkMultiItemSuggestions(
+  fromUserId: number,
+  toUserIds: number[],
+  mediaItems: Array<{
+    tmdbId: number;
+    mediaType: 'movie' | 'tv';
+    title: string;
+    posterPath?: string;
+    releaseYear?: number;
+  }>,
+  note?: string
+): Promise<{ created: number; alreadyExists: number; alreadyOnList: number; notFriends: number; totalAttempted: number }> {
+  let created = 0;
+  let alreadyExists = 0;
+  let alreadyOnList = 0;
+  let notFriends = 0;
+
+  for (const mediaData of mediaItems) {
+    for (const toUserId of toUserIds) {
+      const result = await createSuggestion(fromUserId, toUserId, mediaData, note);
+
+      if (result.success) {
+        created++;
+      } else if (result.error === 'Already suggested') {
+        alreadyExists++;
+      } else if (result.error === 'Already in their library') {
+        alreadyOnList++;
+      } else if (result.error === 'You can only suggest to friends') {
+        notFriends++;
+      }
+    }
+  }
+
+  return { created, alreadyExists, alreadyOnList, notFriends, totalAttempted: mediaItems.length * toUserIds.length };
+}
+
 // ============================================================================
 // Notification Grouping
 // ============================================================================

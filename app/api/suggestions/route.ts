@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import {
   createBulkSuggestions,
+  createBulkMultiItemSuggestions,
   getPendingSuggestions,
   getPendingSuggestionsGrouped,
   getSentSuggestions,
@@ -47,6 +48,8 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/suggestions - Create new suggestion(s)
+// Supports single item: { toUserIds, tmdbId, mediaType, title, posterPath, releaseYear, note }
+// Supports multiple items: { toUserIds, items: [{ tmdbId, mediaType, title, posterPath, releaseYear }], note }
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -56,13 +59,41 @@ export async function POST(request: NextRequest) {
 
     const userId = parseInt(session.user.id);
     const body = await request.json();
-    const { toUserIds, tmdbId, mediaType, title, posterPath, releaseYear, note } = body;
+    const { toUserIds, items, tmdbId, mediaType, title, posterPath, releaseYear, note } = body;
 
     // Validate required fields
     if (!toUserIds || !Array.isArray(toUserIds) || toUserIds.length === 0) {
       return NextResponse.json({ error: 'toUserIds is required and must be a non-empty array' }, { status: 400 });
     }
 
+    const parsedUserIds = toUserIds.map((id: number | string) => parseInt(String(id)));
+
+    // Multi-item format
+    if (items && Array.isArray(items) && items.length > 0) {
+      // Validate each item
+      for (const item of items) {
+        if (!item.tmdbId || !item.mediaType || !item.title) {
+          return NextResponse.json({ error: 'Each item must have tmdbId, mediaType, and title' }, { status: 400 });
+        }
+        if (!['movie', 'tv'].includes(item.mediaType)) {
+          return NextResponse.json({ error: 'mediaType must be movie or tv' }, { status: 400 });
+        }
+      }
+
+      const result = await createBulkMultiItemSuggestions(
+        userId,
+        parsedUserIds,
+        items,
+        note
+      );
+
+      return NextResponse.json({
+        success: true,
+        ...result,
+      });
+    }
+
+    // Single item format (backwards compatible)
     if (!tmdbId || !mediaType || !title) {
       return NextResponse.json({ error: 'tmdbId, mediaType, and title are required' }, { status: 400 });
     }
@@ -74,7 +105,7 @@ export async function POST(request: NextRequest) {
     // Create suggestions
     const result = await createBulkSuggestions(
       userId,
-      toUserIds.map((id: number | string) => parseInt(String(id))),
+      parsedUserIds,
       { tmdbId, mediaType, title, posterPath, releaseYear },
       note
     );
