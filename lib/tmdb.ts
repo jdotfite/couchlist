@@ -11,6 +11,7 @@ if (typeof window === 'undefined' && !TMDB_API_KEY && !TMDB_ACCESS_TOKEN) {
 
 export const tmdbApi = axios.create({
   baseURL: TMDB_BASE_URL,
+  timeout: 10000, // 10s timeout to avoid hangs
   headers: TMDB_ACCESS_TOKEN ? {
     Authorization: `Bearer ${TMDB_ACCESS_TOKEN}`,
   } : {},
@@ -18,6 +19,43 @@ export const tmdbApi = axios.create({
     api_key: TMDB_API_KEY,
   } : {},
 });
+
+/**
+ * Helper that retries TMDb GET requests on 429 or transient network errors with exponential backoff.
+ */
+export async function tmdbGetWithRetry<T = any>(path: string, opts?: any, retries = 3) {
+  let attempt = 0;
+
+  while (true) {
+    try {
+      return await tmdbApi.get<T>(path, opts);
+    } catch (err: any) {
+      attempt++;
+      const status = err?.response?.status;
+
+      // If we've exhausted retries, rethrow
+      if (attempt > retries) throw err;
+
+      // If TMDb returned Retry-After, honor it
+      if (status === 429) {
+        const retryAfter = err.response.headers?.['retry-after'];
+        const wait = retryAfter ? parseInt(retryAfter, 10) * 1000 : Math.pow(2, attempt) * 500 + Math.random() * 200;
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+
+      // Network error (no response) - retry with exponential backoff
+      if (!err.response) {
+        const wait = Math.pow(2, attempt) * 500 + Math.random() * 200;
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+
+      // Non-retriable HTTP error
+      throw err;
+    }
+  }
+}
 
 export const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 

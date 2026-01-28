@@ -169,15 +169,14 @@ export async function parseIMDbExport(
     totalUnique: 0,
   };
 
-  // Decode content - try Windows-1252 first (IMDb's encoding), fall back to UTF-8
-  let content: string;
+  // Decode content - try UTF-8 first, then Windows-1252 (IMDb often uses Windows-1252). Strip BOM if present.
+  let content = '';
   try {
-    const decoder = new TextDecoder('windows-1252');
-    content = decoder.decode(fileContent);
+    content = new TextDecoder('utf-8').decode(fileContent);
   } catch {
-    const decoder = new TextDecoder('utf-8');
-    content = decoder.decode(fileContent);
+    content = new TextDecoder('windows-1252').decode(fileContent);
   }
+  content = content.replace(/^[\uFEFF\u200B]+/, ''); // Remove BOM or stray zero-width chars
 
   // Check if file has content
   if (!content.trim()) {
@@ -188,12 +187,20 @@ export async function parseIMDbExport(
     };
   }
 
-  // Get headers to determine file type
-  const firstLine = content.split('\n')[0] || '';
-  const headers = firstLine.split(',').map(h => h.trim().replace(/"/g, ''));
+  // Use PapaParse to detect headers robustly (handles quoted headers and commas)
+  const preview = Papa.parse(content, {
+    header: true,
+    skipEmptyLines: true,
+    preview: 1,
+    transformHeader: (header) => header?.trim?.() ?? '',
+  });
+
+  const headers = (preview.meta && (preview.meta as any).fields)
+    ? (preview.meta as any).fields.map((h: string) => h.trim())
+    : [];
 
   // Check for required IMDb columns
-  if (!headers.some(h => h === 'Const' || h === 'const')) {
+  if (!headers.some((h: string) => h.toLowerCase() === 'const')) {
     return {
       items: [],
       stats,

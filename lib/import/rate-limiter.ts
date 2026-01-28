@@ -1,11 +1,11 @@
 /**
  * Rate limiter for TMDb API
- * TMDb allows approximately 40 requests per 10 seconds
+ * TMDb has practical limits and may return 429 - allow reasonable bursts per second and adjust below
  * We use a sliding window approach to stay within limits
  */
 
-const WINDOW_SIZE_MS = 10000; // 10 seconds
-const MAX_REQUESTS = 35; // Leave some buffer below the 40 limit
+const WINDOW_SIZE_MS = 1000; // 1 second window for bursts
+const MAX_REQUESTS = 25; // ~25 req/sec (adjust as necessary) 
 
 class RateLimiter {
   private timestamps: number[] = [];
