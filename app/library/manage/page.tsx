@@ -88,9 +88,15 @@ export default function LibraryManagePage() {
     }
   };
 
+  // For addToList mode, filter out items already in the list
+  const availableItems = useMemo(() => {
+    if (!isAddToListMode) return items;
+    return items.filter(item => !existingTmdbIds.has(item.tmdb_id));
+  }, [items, isAddToListMode, existingTmdbIds]);
+
   // Apply filters, search, and sort
   const filteredItems = useMemo(() => {
-    let result = isAddToListMode ? [...availableItems] : [...items];
+    let result = [...availableItems];
 
     // Media type filter
     if (filters.mediaType === 'movie') {
@@ -127,7 +133,7 @@ export default function LibraryManagePage() {
     // Search and sort
     const searched = filterItems(result, searchQuery);
     return sortItems(searched, sortBy);
-  }, [items, filters, searchQuery, sortBy]);
+  }, [availableItems, filters, searchQuery, sortBy]);
 
   const handleDelete = async (mediaIds: number[]) => {
     const res = await fetch('/api/library/bulk', {
@@ -192,12 +198,6 @@ export default function LibraryManagePage() {
       setIsAddingToList(false);
     }
   };
-
-  // For addToList mode, filter out items already in the list
-  const availableItems = useMemo(() => {
-    if (!isAddToListMode) return items;
-    return items.filter(item => !existingTmdbIds.has(item.tmdb_id));
-  }, [items, isAddToListMode, existingTmdbIds]);
 
   if (authStatus === 'loading' || isLoading) {
     return (
