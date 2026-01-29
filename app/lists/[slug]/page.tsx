@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -31,9 +31,11 @@ import {
   Check,
   Flag,
   Loader2,
+  Plus,
 } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
+import ListSearchSheet from '@/components/lists/ListSearchSheet';
 import { showSuccess, showError } from '@/lib/toast';
 
 interface ResolvedItem {
@@ -122,6 +124,14 @@ export default function ListPage({ params }: PageProps) {
   // Media options sheet state
   const [selectedItem, setSelectedItem] = useState<ResolvedItem | null>(null);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+
+  // Search sheet state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Track existing TMDB IDs to show checkmarks in search
+  const existingTmdbIds = useMemo(() => {
+    return new Set(items.map(item => item.tmdbId));
+  }, [items]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -252,13 +262,22 @@ export default function ListPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={() => setIsSearchOpen(true)}
               className="p-2 hover:bg-zinc-800 rounded-full transition"
+              title="Add items"
             >
-              <MoreVertical className="w-5 h-5" />
+              <Plus className="w-5 h-5" />
             </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-2 hover:bg-zinc-800 rounded-full transition"
+              >
+                <MoreVertical className="w-5 h-5" />
+              </button>
 
             {showMenu && (
               <>
@@ -288,6 +307,7 @@ export default function ListPage({ params }: PageProps) {
                 </div>
               </>
             )}
+            </div>
           </div>
         </div>
 
@@ -364,6 +384,18 @@ export default function ListPage({ params }: PageProps) {
           currentStatus={selectedItem.status}
           onStatusChange={() => fetchListData()}
           onRemove={() => fetchListData()}
+        />
+      )}
+
+      {/* Search Sheet for Adding Items */}
+      {list && (
+        <ListSearchSheet
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          listId={list.id}
+          listName={list.name}
+          existingTmdbIds={existingTmdbIds}
+          onItemAdded={() => fetchListData()}
         />
       )}
     </div>
