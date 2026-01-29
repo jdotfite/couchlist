@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Loader2, Plus } from 'lucide-react';
+import { ChevronLeft, Loader2, Plus, Check } from 'lucide-react';
 import ManageListView, { ManageableItem } from '@/components/library/ManageListView';
 import SortFilterBar, { SortOption, LayoutOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
@@ -31,6 +31,7 @@ export default function LibraryManagePage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isAddingToList, setIsAddingToList] = useState(false);
   const [existingTmdbIds, setExistingTmdbIds] = useState<Set<number>>(new Set());
+  const [addedCount, setAddedCount] = useState(0);
 
   // Get type filter from URL params
   const typeParam = searchParams.get('type');
@@ -188,14 +189,25 @@ export default function LibraryManagePage() {
               pinType: 'include',
             }),
           });
-          return res.ok;
+          return { ok: res.ok, tmdbId: item.tmdb_id };
         })
       );
 
-      const successCount = results.filter(Boolean).length;
+      const successfulItems = results.filter(r => r.ok);
+      const successCount = successfulItems.length;
+
       if (successCount > 0) {
         showSuccess(`Added ${successCount} item${successCount > 1 ? 's' : ''} to "${listInfo.name}"`);
-        router.push(`/lists/${listInfo.slug}`);
+        // Update added count
+        setAddedCount(prev => prev + successCount);
+        // Add to existing IDs so they're filtered out of available items
+        setExistingTmdbIds(prev => {
+          const newSet = new Set(prev);
+          successfulItems.forEach(item => newSet.add(item.tmdbId));
+          return newSet;
+        });
+        // Clear selection
+        setSelectedIds(new Set());
       } else {
         showError('Failed to add items');
       }
@@ -323,13 +335,25 @@ export default function LibraryManagePage() {
                 </div>
               ) : (
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-sm">Select items to add</p>
-                    <p className="text-xs text-gray-400">{listInfo.name}</p>
+                  <div className="flex items-center gap-3">
+                    {addedCount > 0 && (
+                      <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                        <Check className="w-4 h-4" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium text-sm">
+                        {addedCount > 0
+                          ? `${addedCount} item${addedCount > 1 ? 's' : ''} added`
+                          : 'Select items to add'
+                        }
+                      </p>
+                      <p className="text-xs text-gray-400">{listInfo.name}</p>
+                    </div>
                   </div>
                   <Link
                     href={`/lists/${listInfo.slug}`}
-                    className="px-6 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg font-medium text-sm transition"
+                    className="px-6 py-2 bg-brand-primary hover:bg-brand-primary/90 rounded-lg font-medium text-sm transition"
                   >
                     Done
                   </Link>
