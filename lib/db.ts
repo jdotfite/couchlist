@@ -724,6 +724,25 @@ export async function initDb() {
       // Column might already exist
     }
 
+    // Add login tracking columns to users table
+    try {
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
+    try {
+      await sql`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS login_count INTEGER DEFAULT 0;
+      `;
+    } catch (e) {
+      // Column might already exist
+    }
+
     // ========================================================================
     // Partner & Friend Sharing System
     // ========================================================================

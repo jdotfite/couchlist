@@ -77,27 +77,50 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           await initDb();
-          
+
           // Check if user exists
           const existingUser = await db`
             SELECT * FROM users WHERE email = ${user.email}
           `;
-          
+
           // If user doesn't exist, create them
           if (existingUser.rows.length === 0) {
             await db`
-              INSERT INTO users (email, name, password)
-              VALUES (${user.email}, ${user.name}, '')
+              INSERT INTO users (email, name, password, last_login, login_count)
+              VALUES (${user.email}, ${user.name}, '', CURRENT_TIMESTAMP, 1)
+            `;
+          } else {
+            // Update login tracking for existing user
+            await db`
+              UPDATE users
+              SET last_login = CURRENT_TIMESTAMP,
+                  login_count = COALESCE(login_count, 0) + 1
+              WHERE email = ${user.email}
             `;
           }
-          
+
           return true;
         } catch (error) {
           console.error('Error creating OAuth user:', error);
           return false;
         }
       }
-      
+
+      // Update login tracking for credentials login
+      if (account?.provider === 'credentials' && user?.email) {
+        try {
+          await initDb();
+          await db`
+            UPDATE users
+            SET last_login = CURRENT_TIMESTAMP,
+                login_count = COALESCE(login_count, 0) + 1
+            WHERE email = ${user.email}
+          `;
+        } catch (error) {
+          console.error('Error updating login tracking:', error);
+        }
+      }
+
       return true;
     },
     async jwt({ token, user, account }) {
