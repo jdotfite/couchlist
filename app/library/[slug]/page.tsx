@@ -16,6 +16,7 @@ import SortFilterBar, { SortOption, LayoutOption, sortItems, filterItems } from 
 import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
 import { getImageUrl } from '@/lib/tmdb';
 import { useListPreferences } from '@/hooks/useListPreferences';
+import { useLongPress } from '@/hooks/useLongPress';
 
 interface ListItem {
   id: number;
@@ -117,6 +118,196 @@ const listConfig: Record<string, { title: string; subtitle: string; apiEndpoint:
     emptySubMessage: 'Add your favorite movies and shows',
   },
 };
+
+// Wrapper component for list items with long press support
+function ListItemWrapper({
+  item,
+  isManageMode,
+  isSelected,
+  onToggleSelect,
+  onLongPress,
+  onOptionsClick,
+}: {
+  item: ListItem;
+  isManageMode: boolean;
+  isSelected: boolean;
+  onToggleSelect: () => void;
+  onLongPress: () => void;
+  onOptionsClick: () => void;
+}) {
+  const longPressHandlers = useLongPress({
+    onLongPress,
+    delay: 500,
+  });
+
+  return (
+    <div
+      {...(isManageMode ? {} : longPressHandlers)}
+      onClick={isManageMode ? onToggleSelect : undefined}
+      className={`flex items-center gap-3 p-2 rounded-lg transition group ${
+        isManageMode ? 'cursor-pointer' : ''
+      } ${isSelected ? 'bg-brand-primary/20 ring-1 ring-brand-primary' : 'hover:bg-zinc-900'}`}
+    >
+      {/* Checkbox (manage mode) */}
+      {isManageMode && (
+        <div className="flex-shrink-0">
+          {isSelected ? (
+            <CheckSquare className="w-5 h-5 text-brand-primary" />
+          ) : (
+            <Square className="w-5 h-5 text-gray-500" />
+          )}
+        </div>
+      )}
+
+      {/* Poster */}
+      {isManageMode ? (
+        <div className="relative w-14 h-20 flex-shrink-0 rounded-md overflow-hidden bg-zinc-800">
+          <Image
+            src={getImageUrl(item.poster_path)}
+            alt={item.title}
+            fill
+            className="object-cover"
+            sizes="56px"
+          />
+        </div>
+      ) : (
+        <Link
+          href={`/${item.media_type}/${item.media_id}`}
+          className="relative w-14 h-20 flex-shrink-0 rounded-md overflow-hidden bg-zinc-800"
+        >
+          <Image
+            src={getImageUrl(item.poster_path)}
+            alt={item.title}
+            fill
+            className="object-cover"
+            sizes="56px"
+          />
+          <MediaTypeBadge mediaType={item.media_type as 'movie' | 'tv'} size="sm" className="absolute bottom-1 left-1" />
+        </Link>
+      )}
+
+      {/* Info */}
+      {isManageMode ? (
+        <div className="flex-1 min-w-0">
+          <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
+          <p className="text-xs text-gray-400 capitalize">
+            {item.media_type === 'tv' ? 'TV Show' : 'Movie'}
+          </p>
+        </div>
+      ) : (
+        <Link
+          href={`/${item.media_type}/${item.media_id}`}
+          className="flex-1 min-w-0"
+        >
+          <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
+          <p className="text-xs text-gray-400 capitalize">
+            {item.media_type === 'tv' ? 'TV Show' : 'Movie'}
+          </p>
+        </Link>
+      )}
+
+      {/* Favorite Indicator */}
+      {item.is_favorite && !isManageMode && (
+        <Heart className="w-5 h-5 text-pink-500 flex-shrink-0" />
+      )}
+
+      {/* Options Button (not in manage mode) */}
+      {!isManageMode && (
+        <button
+          onClick={onOptionsClick}
+          className="p-2 text-gray-400 hover:text-white transition"
+        >
+          <MoreVertical className="w-5 h-5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Wrapper component for grid items with long press support
+function GridItemWrapper({
+  item,
+  isManageMode,
+  isSelected,
+  onToggleSelect,
+  onLongPress,
+  onOptionsClick,
+}: {
+  item: ListItem;
+  isManageMode: boolean;
+  isSelected: boolean;
+  onToggleSelect: () => void;
+  onLongPress: () => void;
+  onOptionsClick: () => void;
+}) {
+  const longPressHandlers = useLongPress({
+    onLongPress,
+    delay: 500,
+  });
+
+  return (
+    <div
+      {...(isManageMode ? {} : longPressHandlers)}
+      className={`group relative ${isManageMode ? 'cursor-pointer' : ''} ${
+        isSelected ? 'ring-2 ring-brand-primary rounded-lg' : ''
+      }`}
+      onClick={isManageMode ? onToggleSelect : undefined}
+    >
+      {isManageMode ? (
+        <div className="relative aspect-[2/3] mb-2 overflow-hidden rounded-lg bg-zinc-800">
+          {/* Checkbox */}
+          <div className="absolute top-2 left-2 z-[1]">
+            {isSelected ? (
+              <CheckSquare className="w-5 h-5 text-brand-primary bg-black rounded" />
+            ) : (
+              <Square className="w-5 h-5 text-white/60 bg-black/50 rounded" />
+            )}
+          </div>
+          <Image
+            src={getImageUrl(item.poster_path)}
+            alt={item.title}
+            fill
+            className={`object-cover ${isSelected ? 'opacity-80' : ''}`}
+            sizes="33vw"
+          />
+        </div>
+      ) : (
+        <Link href={`/${item.media_type}/${item.media_id}`}>
+          <div className="relative aspect-[2/3] mb-2 overflow-hidden rounded-lg bg-zinc-800">
+            <Image
+              src={getImageUrl(item.poster_path)}
+              alt={item.title}
+              fill
+              className="object-cover group-hover:opacity-75 transition"
+              sizes="33vw"
+            />
+            <MediaTypeBadge mediaType={item.media_type as 'movie' | 'tv'} className="absolute top-2 left-2" />
+          </div>
+        </Link>
+      )}
+
+      <h3 className="font-semibold text-xs line-clamp-2 leading-tight">
+        {item.title}
+      </h3>
+
+      {item.is_favorite && !isManageMode && (
+        <div className="absolute top-2 right-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center z-10">
+          <Heart className="w-3.5 h-3.5 text-pink-500" />
+        </div>
+      )}
+
+      {/* Options Button (visible on hover, not in manage mode) */}
+      {!isManageMode && (
+        <button
+          onClick={onOptionsClick}
+          className="absolute bottom-12 right-1 w-7 h-7 bg-black/75 hover:bg-zinc-700 backdrop-blur-sm rounded-full flex items-center justify-center transition z-10 opacity-0 group-hover:opacity-100"
+        >
+          <MoreVertical className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function ListPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -458,160 +649,38 @@ export default function ListPage({ params }: { params: Promise<{ slug: string }>
         ) : layout === 'list' ? (
           /* List View */
           <div className="space-y-1">
-            {filteredItems.map((item) => {
-              const isSelected = selectedIds.has(item.media_id);
-              return (
-                <div
-                  key={item.id}
-                  onClick={isManageMode ? () => toggleSelect(item.media_id) : undefined}
-                  className={`flex items-center gap-3 p-2 rounded-lg transition group ${
-                    isManageMode ? 'cursor-pointer' : ''
-                  } ${isSelected ? 'bg-brand-primary/20 ring-1 ring-brand-primary' : 'hover:bg-zinc-900'}`}
-                >
-                  {/* Checkbox (manage mode) */}
-                  {isManageMode && (
-                    <div className="flex-shrink-0">
-                      {isSelected ? (
-                        <CheckSquare className="w-5 h-5 text-brand-primary" />
-                      ) : (
-                        <Square className="w-5 h-5 text-gray-500" />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Poster */}
-                  {isManageMode ? (
-                    <div className="relative w-14 h-20 flex-shrink-0 rounded-md overflow-hidden bg-zinc-800">
-                      <Image
-                        src={getImageUrl(item.poster_path)}
-                        alt={item.title}
-                        fill
-                        className="object-cover"
-                        sizes="56px"
-                      />
-                    </div>
-                  ) : (
-                    <Link
-                      href={`/${item.media_type}/${item.media_id}`}
-                      className="relative w-14 h-20 flex-shrink-0 rounded-md overflow-hidden bg-zinc-800"
-                    >
-                      <Image
-                        src={getImageUrl(item.poster_path)}
-                        alt={item.title}
-                        fill
-                        className="object-cover"
-                        sizes="56px"
-                      />
-                      <MediaTypeBadge mediaType={item.media_type as 'movie' | 'tv'} size="sm" className="absolute bottom-1 left-1" />
-                    </Link>
-                  )}
-
-                  {/* Info */}
-                  {isManageMode ? (
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
-                      <p className="text-xs text-gray-400 capitalize">
-                        {item.media_type === 'tv' ? 'TV Show' : 'Movie'}
-                      </p>
-                    </div>
-                  ) : (
-                    <Link
-                      href={`/${item.media_type}/${item.media_id}`}
-                      className="flex-1 min-w-0"
-                    >
-                      <h3 className="font-medium text-sm line-clamp-1">{item.title}</h3>
-                      <p className="text-xs text-gray-400 capitalize">
-                        {item.media_type === 'tv' ? 'TV Show' : 'Movie'}
-                      </p>
-                    </Link>
-                  )}
-
-                  {/* Favorite Indicator */}
-                  {item.is_favorite && !isManageMode && (
-                    <Heart className="w-5 h-5 text-pink-500 flex-shrink-0" />
-                  )}
-
-                  {/* Options Button (not in manage mode) */}
-                  {!isManageMode && (
-                    <button
-                      onClick={() => openOptionsSheet(item)}
-                      className="p-2 text-gray-400 hover:text-white transition"
-                    >
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+            {filteredItems.map((item) => (
+              <ListItemWrapper
+                key={item.id}
+                item={item}
+                isManageMode={isManageMode}
+                isSelected={selectedIds.has(item.media_id)}
+                onToggleSelect={() => toggleSelect(item.media_id)}
+                onLongPress={() => {
+                  setIsManageMode(true);
+                  setSelectedIds(new Set([item.media_id]));
+                }}
+                onOptionsClick={() => openOptionsSheet(item)}
+              />
+            ))}
           </div>
         ) : (
           /* Grid View */
           <div className="grid grid-cols-3 gap-3">
-            {filteredItems.map((item) => {
-              const isSelected = selectedIds.has(item.media_id);
-              return (
-                <div
-                  key={item.id}
-                  className={`group relative ${isManageMode ? 'cursor-pointer' : ''} ${
-                    isSelected ? 'ring-2 ring-brand-primary rounded-lg' : ''
-                  }`}
-                  onClick={isManageMode ? () => toggleSelect(item.media_id) : undefined}
-                >
-                  {isManageMode ? (
-                    <div className="relative aspect-[2/3] mb-2 overflow-hidden rounded-lg bg-zinc-800">
-                      {/* Checkbox */}
-                      <div className="absolute top-2 left-2 z-[1]">
-                        {isSelected ? (
-                          <CheckSquare className="w-5 h-5 text-brand-primary bg-black rounded" />
-                        ) : (
-                          <Square className="w-5 h-5 text-white/60 bg-black/50 rounded" />
-                        )}
-                      </div>
-                      <Image
-                        src={getImageUrl(item.poster_path)}
-                        alt={item.title}
-                        fill
-                        className={`object-cover ${isSelected ? 'opacity-80' : ''}`}
-                        sizes="33vw"
-                      />
-                    </div>
-                  ) : (
-                    <Link href={`/${item.media_type}/${item.media_id}`}>
-                      <div className="relative aspect-[2/3] mb-2 overflow-hidden rounded-lg bg-zinc-800">
-                        <Image
-                          src={getImageUrl(item.poster_path)}
-                          alt={item.title}
-                          fill
-                          className="object-cover group-hover:opacity-75 transition"
-                          sizes="33vw"
-                        />
-                        <MediaTypeBadge mediaType={item.media_type as 'movie' | 'tv'} className="absolute top-2 left-2" />
-                      </div>
-                    </Link>
-                  )}
-
-                  <h3 className="font-semibold text-xs line-clamp-2 leading-tight">
-                    {item.title}
-                  </h3>
-
-                  {item.is_favorite && !isManageMode && (
-                    <div className="absolute top-2 right-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center z-10">
-                      <Heart className="w-3.5 h-3.5 text-pink-500" />
-                    </div>
-                  )}
-
-                  {/* Options Button (visible on hover, not in manage mode) */}
-                  {!isManageMode && (
-                    <button
-                      onClick={() => openOptionsSheet(item)}
-                      className="absolute bottom-12 right-1 w-7 h-7 bg-black/75 hover:bg-zinc-700 backdrop-blur-sm rounded-full flex items-center justify-center transition z-10 opacity-0 group-hover:opacity-100"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+            {filteredItems.map((item) => (
+              <GridItemWrapper
+                key={item.id}
+                item={item}
+                isManageMode={isManageMode}
+                isSelected={selectedIds.has(item.media_id)}
+                onToggleSelect={() => toggleSelect(item.media_id)}
+                onLongPress={() => {
+                  setIsManageMode(true);
+                  setSelectedIds(new Set([item.media_id]));
+                }}
+                onOptionsClick={() => openOptionsSheet(item)}
+              />
+            ))}
           </div>
         )}
       </main>
