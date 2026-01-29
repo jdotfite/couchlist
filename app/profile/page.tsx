@@ -753,10 +753,14 @@ export default function ProfilePage() {
                           }}
                           className="w-full flex items-center gap-3 p-3 hover:bg-zinc-700 transition"
                         >
-                          <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center">
-                            <span className="text-white font-semibold text-sm">
-                              {user.name?.[0]?.toUpperCase()}
-                            </span>
+                          <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center overflow-hidden">
+                            {user.image ? (
+                              <img src={user.image} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-white font-semibold text-sm">
+                                {user.name?.[0]?.toUpperCase()}
+                              </span>
+                            )}
                           </div>
                           <div className="text-left">
                             <p className="text-sm font-medium">{user.name}</p>
@@ -776,10 +780,14 @@ export default function ProfilePage() {
 
                 {selectedUser && (
                   <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/50 rounded-lg flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
-                      <span className="text-white font-semibold">
-                        {selectedUser.name?.[0]?.toUpperCase()}
-                      </span>
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center overflow-hidden">
+                      {selectedUser.image ? (
+                        <img src={selectedUser.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-white font-semibold">
+                          {selectedUser.name?.[0]?.toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">{selectedUser.name}</p>
