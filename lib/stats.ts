@@ -426,16 +426,20 @@ export async function getLibraryWithDetails(userId: number, filters?: {
 }
 
 // Bulk delete items from library
-export async function bulkDeleteFromLibrary(userId: number, mediaIds: number[]) {
-  if (mediaIds.length === 0) return { deleted: 0 };
+// Note: mediaIds are TMDB IDs, not internal media.id values
+export async function bulkDeleteFromLibrary(userId: number, tmdbIds: number[]) {
+  if (tmdbIds.length === 0) return { deleted: 0 };
 
-  const mediaIdList = mediaIds.join(',');
+  const tmdbIdList = tmdbIds.join(',');
 
-  // Delete from user_media
+  // Delete from user_media by joining with media table to match tmdb_id
   const result = await sql`
     DELETE FROM user_media
     WHERE user_id = ${userId}
-      AND media_id = ANY(string_to_array(${mediaIdList}, ',')::int[])
+      AND media_id IN (
+        SELECT id FROM media
+        WHERE tmdb_id = ANY(string_to_array(${tmdbIdList}, ',')::int[])
+      )
     RETURNING id
   `;
 
@@ -443,18 +447,23 @@ export async function bulkDeleteFromLibrary(userId: number, mediaIds: number[]) 
 }
 
 // Bulk update status
-export async function bulkUpdateStatus(userId: number, mediaIds: number[], newStatus: string) {
-  if (mediaIds.length === 0) return { updated: 0 };
+// Note: mediaIds are TMDB IDs, not internal media.id values
+export async function bulkUpdateStatus(userId: number, tmdbIds: number[], newStatus: string) {
+  if (tmdbIds.length === 0) return { updated: 0 };
 
-  const mediaIdList = mediaIds.join(',');
+  const tmdbIdList = tmdbIds.join(',');
 
+  // Update user_media by joining with media table to match tmdb_id
   const result = await sql`
     UPDATE user_media
     SET status = ${newStatus},
         status_updated_at = CURRENT_TIMESTAMP,
         updated_at = CURRENT_TIMESTAMP
     WHERE user_id = ${userId}
-      AND media_id = ANY(string_to_array(${mediaIdList}, ',')::int[])
+      AND media_id IN (
+        SELECT id FROM media
+        WHERE tmdb_id = ANY(string_to_array(${tmdbIdList}, ',')::int[])
+      )
     RETURNING id
   `;
 
