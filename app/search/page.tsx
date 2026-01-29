@@ -61,12 +61,23 @@ export default function SearchPage() {
         // schedule focus after render to avoid timing issues
         setTimeout(() => {
           inputRef.current?.focus();
+
+          // Remove the focus param from the URL so refreshing/returning doesn't re-trigger focus
+          try {
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete('focus');
+            const newPath = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+            // Replace to avoid adding a history entry
+            router.replace(newPath);
+          } catch (_) {
+            // ignore any errors updating the URL
+          }
         }, 0);
       }
     } catch (err) {
       // searchParams might be null in some environments; fail silently
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   // Add to list mode
   const addToListId = searchParams.get('addToList');
