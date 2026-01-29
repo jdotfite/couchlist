@@ -90,20 +90,20 @@ export default function ListsPage() {
       <main className="px-4 pt-4">
         {lists.length === 0 ? (
           // Empty state
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-4">
-              <ListPlus className="w-8 h-8 text-gray-400" />
-            </div>
-            <h2 className="text-lg font-semibold mb-2">No lists yet</h2>
-            <p className="text-gray-400 mb-6 max-w-xs">
-              Create smart lists to automatically organize your library, or manual lists to curate your favorites.
-            </p>
+          <div className="py-8">
             <button
               onClick={() => setIsCreateModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-brand-primary hover:bg-brand-primary/90 rounded-lg font-medium transition"
+              className="w-full py-12 border-2 border-dashed border-zinc-700 hover:border-brand-primary rounded-xl flex flex-col items-center justify-center gap-4 text-gray-400 hover:text-white transition group"
             >
-              <Plus className="w-5 h-5" />
-              <span>Create Your First List</span>
+              <div className="w-16 h-16 rounded-full bg-zinc-800 group-hover:bg-zinc-700 flex items-center justify-center transition">
+                <ListPlus className="w-8 h-8" />
+              </div>
+              <div className="text-center">
+                <h2 className="text-lg font-semibold mb-1">No lists yet</h2>
+                <p className="text-sm text-gray-500 max-w-xs">
+                  Create lists to curate and organize your favorite movies and shows
+                </p>
+              </div>
             </button>
           </div>
         ) : (

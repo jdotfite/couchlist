@@ -319,9 +319,19 @@ export default function ListPage({ params }: PageProps) {
       {/* Items Grid */}
       <main className="px-4 pt-4">
         {items.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-400">No items match your filters</p>
-            <p className="text-sm text-gray-500 mt-1">Add more to your library or adjust filters</p>
+          <div className="py-8">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="w-full py-8 border-2 border-dashed border-zinc-700 hover:border-brand-primary rounded-xl flex flex-col items-center justify-center gap-3 text-gray-400 hover:text-white transition group"
+            >
+              <div className="w-12 h-12 rounded-full bg-zinc-800 group-hover:bg-zinc-700 flex items-center justify-center transition">
+                <Plus className="w-6 h-6" />
+              </div>
+              <div className="text-center">
+                <p className="font-medium">Add your first item</p>
+                <p className="text-sm text-gray-500 mt-1">Search for movies and TV shows to add</p>
+              </div>
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">

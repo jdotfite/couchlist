@@ -123,7 +123,7 @@ export default function CreateListModal({
           description: description.trim() || null,
           icon,
           color,
-          listType: 'smart',
+          listType: 'manual',
           filterRules: filterRules || {},
           sortBy: 'status_updated_at',
           sortDirection: 'desc',
