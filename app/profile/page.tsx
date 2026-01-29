@@ -16,6 +16,7 @@ import { StateDisplay } from '@/components/ui';
 import { useProfileImage } from '@/hooks/useProfileImage';
 import { FriendCard } from '@/components/friends';
 import { FriendAcceptanceSheet } from '@/components/sharing';
+import { AdminCard } from '@/components/admin';
 
 interface LibraryCounts {
   movies: number;
@@ -457,6 +458,9 @@ export default function ProfilePage() {
             </Link>
           </div>
         </div>
+
+        {/* Admin Card - only visible to admin users */}
+        <AdminCard />
 
         {/* Friends Section */}
         <div className="card mb-6">
