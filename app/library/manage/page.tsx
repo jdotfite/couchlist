@@ -2,26 +2,42 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2, Plus } from 'lucide-react';
 import ManageListView, { ManageableItem } from '@/components/library/ManageListView';
 import SortFilterBar, { SortOption, LayoutOption, sortItems, filterItems } from '@/components/SortFilterBar';
 import LibraryFilterSheet, { LibraryFilters, DEFAULT_LIBRARY_FILTERS, countActiveFilters } from '@/components/library/LibraryFilterSheet';
+import { showSuccess, showError } from '@/lib/toast';
+
+interface ListInfo {
+  id: number;
+  name: string;
+  slug: string;
+}
 
 export default function LibraryManagePage() {
   const { status: authStatus } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check for addToList mode
+  const addToListId = searchParams.get('addToList');
+  const isAddToListMode = !!addToListId;
 
   const [items, setItems] = useState<ManageableItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [listInfo, setListInfo] = useState<ListInfo | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isAddingToList, setIsAddingToList] = useState(false);
+  const [existingTmdbIds, setExistingTmdbIds] = useState<Set<number>>(new Set());
 
   // Search, sort, filters, and layout
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('added-desc');
   const [filters, setFilters] = useState<LibraryFilters>(DEFAULT_LIBRARY_FILTERS);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [isSelectMode, setIsSelectMode] = useState(isAddToListMode);
   const [layout, setLayout] = useState<LayoutOption>('grid');
 
   useEffect(() => {
@@ -29,8 +45,33 @@ export default function LibraryManagePage() {
       router.push('/login');
     } else if (authStatus === 'authenticated') {
       fetchItems();
+      if (isAddToListMode && addToListId) {
+        fetchListInfo(parseInt(addToListId, 10));
+      }
     }
-  }, [authStatus, router]);
+  }, [authStatus, router, isAddToListMode, addToListId]);
+
+  const fetchListInfo = async (listId: number) => {
+    try {
+      const res = await fetch('/api/lists');
+      if (res.ok) {
+        const data = await res.json();
+        const list = data.lists.find((l: ListInfo) => l.id === listId);
+        if (list) {
+          setListInfo(list);
+          // Also fetch existing items in the list
+          const itemsRes = await fetch(`/api/lists/${listId}/items`);
+          if (itemsRes.ok) {
+            const itemsData = await itemsRes.json();
+            const tmdbIds = new Set<number>((itemsData.items || []).map((item: { tmdbId: number }) => item.tmdbId));
+            setExistingTmdbIds(tmdbIds);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch list info:', error);
+    }
+  };
 
   const fetchItems = async () => {
     setIsLoading(true);
@@ -49,7 +90,7 @@ export default function LibraryManagePage() {
 
   // Apply filters, search, and sort
   const filteredItems = useMemo(() => {
-    let result = [...items];
+    let result = isAddToListMode ? [...availableItems] : [...items];
 
     // Media type filter
     if (filters.mediaType === 'movie') {
@@ -107,8 +148,56 @@ export default function LibraryManagePage() {
   };
 
   const handleSelectModeChange = (newState: boolean) => {
+    // Don't allow disabling select mode in addToList mode
+    if (isAddToListMode && !newState) return;
     setIsSelectMode(newState);
   };
+
+  const handleAddToList = async () => {
+    if (selectedIds.size === 0 || !listInfo) return;
+
+    setIsAddingToList(true);
+    try {
+      // Get the selected items' details
+      const selectedItems = items.filter(item => selectedIds.has(item.media_id));
+
+      // Add each item to the list
+      const results = await Promise.all(
+        selectedItems.map(async (item) => {
+          const res = await fetch(`/api/lists/${listInfo.id}/pins`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tmdbId: item.tmdb_id,
+              mediaType: item.media_type,
+              title: item.title,
+              posterPath: item.poster_path,
+              pinType: 'include',
+            }),
+          });
+          return res.ok;
+        })
+      );
+
+      const successCount = results.filter(Boolean).length;
+      if (successCount > 0) {
+        showSuccess(`Added ${successCount} item${successCount > 1 ? 's' : ''} to "${listInfo.name}"`);
+        router.push(`/lists/${listInfo.slug}`);
+      } else {
+        showError('Failed to add items');
+      }
+    } catch (error) {
+      showError('Failed to add items');
+    } finally {
+      setIsAddingToList(false);
+    }
+  };
+
+  // For addToList mode, filter out items already in the list
+  const availableItems = useMemo(() => {
+    if (!isAddToListMode) return items;
+    return items.filter(item => !existingTmdbIds.has(item.tmdb_id));
+  }, [items, isAddToListMode, existingTmdbIds]);
 
   if (authStatus === 'loading' || isLoading) {
     return (
@@ -135,12 +224,21 @@ export default function LibraryManagePage() {
       {/* Header */}
       <header className="sticky top-0 z-20 bg-black px-4 py-3">
         <div className="flex items-center gap-3">
-          <Link href="/library" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full">
+          <Link
+            href={isAddToListMode && listInfo ? `/lists/${listInfo.slug}` : '/library'}
+            className="p-2 -ml-2 hover:bg-zinc-800 rounded-full"
+          >
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold">All Items</h1>
-            <p className="text-xs text-gray-400">{items.length} items total</p>
+            <h1 className="text-xl font-bold">
+              {isAddToListMode ? 'Select Items' : 'All Items'}
+            </h1>
+            <p className="text-xs text-gray-400">
+              {isAddToListMode && listInfo
+                ? `Adding to "${listInfo.name}"`
+                : `${items.length} items total`}
+            </p>
           </div>
         </div>
       </header>
@@ -172,6 +270,8 @@ export default function LibraryManagePage() {
         onRefresh={fetchItems}
         searchQuery=""
         onSearchChange={() => {}}
+        onSelectionChange={isAddToListMode ? setSelectedIds : undefined}
+        hideDefaultActions={isAddToListMode}
       />
 
       {/* Filter Sheet */}
@@ -185,6 +285,33 @@ export default function LibraryManagePage() {
         onApply={() => setIsFilterOpen(false)}
         resultCount={filteredItems.length}
       />
+
+      {/* Add to List Action Bar */}
+      {isAddToListMode && selectedIds.size > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-[100]">
+          <div className="bg-gradient-to-t from-black via-black/95 to-transparent pt-8 pb-20 px-4">
+            <div className="max-w-lg mx-auto">
+              <button
+                onClick={handleAddToList}
+                disabled={isAddingToList}
+                className="w-full py-3 bg-brand-primary hover:bg-brand-primary/90 rounded-xl font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isAddingToList ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5" />
+                    Add {selectedIds.size} item{selectedIds.size > 1 ? 's' : ''} to "{listInfo?.name}"
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

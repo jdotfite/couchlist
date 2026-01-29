@@ -42,6 +42,9 @@ interface ManageListViewProps {
   onRefresh: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  // For addToList mode - hides default actions and reports selection changes
+  onSelectionChange?: (selectedIds: Set<number>) => void;
+  hideDefaultActions?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -62,6 +65,8 @@ export default function ManageListView({
   onRefresh,
   searchQuery,
   onSearchChange,
+  onSelectionChange,
+  hideDefaultActions = false,
 }: ManageListViewProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
@@ -90,14 +95,19 @@ export default function ManageListView({
       newSelected.add(mediaId);
     }
     setSelectedIds(newSelected);
+    onSelectionChange?.(newSelected);
   };
 
   const selectAll = () => {
-    setSelectedIds(new Set(filteredItems.map((i) => i.media_id)));
+    const newSelected = new Set(filteredItems.map((i) => i.media_id));
+    setSelectedIds(newSelected);
+    onSelectionChange?.(newSelected);
   };
 
   const deselectAll = () => {
-    setSelectedIds(new Set());
+    const newSelected = new Set<number>();
+    setSelectedIds(newSelected);
+    onSelectionChange?.(newSelected);
   };
 
   const handleDelete = async () => {
@@ -343,7 +353,7 @@ export default function ManageListView({
       </div>
 
       {/* Fixed Action Bar - rendered via portal to escape transformed container */}
-      {mounted && selectedIds.size > 0 && createPortal(
+      {mounted && selectedIds.size > 0 && !hideDefaultActions && createPortal(
         <div className="fixed inset-x-0 bottom-0 z-[100]">
           <div className="bg-gradient-to-t from-black via-black/95 to-transparent pt-8 pb-20 px-4">
             <div className="max-w-lg mx-auto bg-zinc-900 border border-zinc-700 rounded-xl p-4 shadow-2xl">
