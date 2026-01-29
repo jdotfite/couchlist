@@ -336,7 +336,7 @@ export default function ListPage({ params }: PageProps) {
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             {items.map((item) => (
               <div
-                key={item.mediaId}
+                key={item.id || `${item.mediaType}-${item.tmdbId}`}
                 className="relative group cursor-pointer"
                 onClick={() => handleItemClick(item)}
                 onContextMenu={(e) => {
