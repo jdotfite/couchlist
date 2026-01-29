@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -135,6 +136,12 @@ export default function ListPage({ params }: PageProps) {
 
   // Add items sheet state
   const [showAddSheet, setShowAddSheet] = useState(false);
+
+  // Portal mount state
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -519,9 +526,9 @@ export default function ListPage({ params }: PageProps) {
         />
       )}
 
-      {/* Add Items Sheet */}
-      {showAddSheet && (
-        <div className="fixed inset-0 z-50 bg-black/80" onClick={() => setShowAddSheet(false)}>
+      {/* Add Items Sheet - rendered via portal */}
+      {mounted && showAddSheet && createPortal(
+        <div className="fixed inset-0 z-[100] bg-black/80" onClick={() => setShowAddSheet(false)}>
           <div
             className="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -564,7 +571,8 @@ export default function ListPage({ params }: PageProps) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

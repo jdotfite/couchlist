@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Loader2, X, SlidersHorizontal, ChevronLeft } from 'lucide-react';
+import { Search, Loader2, X, SlidersHorizontal, ChevronLeft, Check } from 'lucide-react';
 import SearchResults from '@/components/SearchResults';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import MainHeader from '@/components/ui/MainHeader';
@@ -72,6 +73,13 @@ export default function SearchPage() {
   const isAddToListMode = !!addToListId;
   const [listInfo, setListInfo] = useState<ListInfo | null>(null);
   const [existingTmdbIds, setExistingTmdbIds] = useState<Set<number>>(new Set());
+  const [addedCount, setAddedCount] = useState(0);
+
+  // Portal mount state
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Search state
   const [query, setQuery] = useState('');
@@ -181,8 +189,9 @@ export default function SearchPage() {
       throw new Error('Failed to add item to list');
     }
 
-    // Update existingTmdbIds locally
+    // Update existingTmdbIds locally and increment count
     setExistingTmdbIds(prev => new Set(prev).add(item.id));
+    setAddedCount(prev => prev + 1);
   };
 
   // Debounced search
@@ -601,6 +610,41 @@ export default function SearchPage() {
         addedRows={discoveryRows.map(r => r.rowType)}
         onAddRow={addRow}
       />
+
+      {/* Floating Done Bar for addToList mode */}
+      {mounted && isAddToListMode && listInfo && createPortal(
+        <div className="fixed inset-x-0 bottom-0 z-[100]">
+          <div className="bg-gradient-to-t from-black via-black/95 to-transparent pt-8 pb-20 px-4">
+            <div className="max-w-lg mx-auto bg-zinc-900 border border-zinc-700 rounded-xl p-4 shadow-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {addedCount > 0 && (
+                    <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-medium text-sm">
+                      {addedCount > 0
+                        ? `${addedCount} item${addedCount > 1 ? 's' : ''} added`
+                        : 'Adding to list'
+                      }
+                    </p>
+                    <p className="text-xs text-gray-400">{listInfo.name}</p>
+                  </div>
+                </div>
+                <Link
+                  href={`/lists/${listInfo.slug}`}
+                  className="px-6 py-2 bg-brand-primary hover:bg-brand-primary/90 rounded-lg font-medium text-sm transition"
+                >
+                  Done
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

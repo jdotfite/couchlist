@@ -286,28 +286,48 @@ export default function LibraryManagePage() {
         resultCount={filteredItems.length}
       />
 
-      {/* Add to List Action Bar */}
-      {isAddToListMode && selectedIds.size > 0 && (
+      {/* Add to List Action Bar - always visible in addToList mode */}
+      {isAddToListMode && listInfo && (
         <div className="fixed inset-x-0 bottom-0 z-[100]">
           <div className="bg-gradient-to-t from-black via-black/95 to-transparent pt-8 pb-20 px-4">
-            <div className="max-w-lg mx-auto">
-              <button
-                onClick={handleAddToList}
-                disabled={isAddingToList}
-                className="w-full py-3 bg-brand-primary hover:bg-brand-primary/90 rounded-xl font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isAddingToList ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-5 h-5" />
-                    Add {selectedIds.size} item{selectedIds.size > 1 ? 's' : ''} to "{listInfo?.name}"
-                  </>
-                )}
-              </button>
+            <div className="max-w-lg mx-auto bg-zinc-900 border border-zinc-700 rounded-xl p-4 shadow-2xl">
+              {selectedIds.size > 0 ? (
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-sm">
+                    {selectedIds.size} item{selectedIds.size > 1 ? 's' : ''} selected
+                  </span>
+                  <button
+                    onClick={handleAddToList}
+                    disabled={isAddingToList}
+                    className="px-6 py-2 bg-brand-primary hover:bg-brand-primary/90 rounded-lg font-medium text-sm transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isAddingToList ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Add to List
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">Select items to add</p>
+                    <p className="text-xs text-gray-400">{listInfo.name}</p>
+                  </div>
+                  <Link
+                    href={`/lists/${listInfo.slug}`}
+                    className="px-6 py-2 bg-zinc-700 hover:bg-zinc-600 rounded-lg font-medium text-sm transition"
+                  >
+                    Done
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
