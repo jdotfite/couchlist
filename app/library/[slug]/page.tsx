@@ -143,6 +143,7 @@ function ListItemWrapper({
   return (
     <div
       {...(isManageMode ? {} : longPressHandlers)}
+      onContextMenu={(e) => e.preventDefault()}
       onClick={isManageMode ? onToggleSelect : undefined}
       className={`flex items-center gap-3 p-2 rounded-lg transition group ${
         isManageMode ? 'cursor-pointer' : ''
@@ -248,6 +249,7 @@ function GridItemWrapper({
   return (
     <div
       {...(isManageMode ? {} : longPressHandlers)}
+      onContextMenu={(e) => e.preventDefault()}
       className={`group relative ${isManageMode ? 'cursor-pointer' : ''} ${
         isSelected ? 'ring-2 ring-brand-primary rounded-lg' : ''
       }`}
