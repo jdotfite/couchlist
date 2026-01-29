@@ -33,6 +33,9 @@ import {
   Loader2,
   Plus,
   Search,
+  CheckSquare,
+  Square,
+  X,
 } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
@@ -125,6 +128,14 @@ export default function ListPage({ params }: PageProps) {
   const [selectedItem, setSelectedItem] = useState<ResolvedItem | null>(null);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
+  // Select mode state
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  // Add items sheet state
+  const [showAddSheet, setShowAddSheet] = useState(false);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -206,12 +217,62 @@ export default function ListPage({ params }: PageProps) {
   };
 
   const handleItemClick = (item: ResolvedItem) => {
+    if (isSelectMode) {
+      toggleSelect(item);
+      return;
+    }
     router.push(`/${item.mediaType}/${item.tmdbId}`);
   };
 
   const handleItemLongPress = (item: ResolvedItem) => {
+    if (isSelectMode) {
+      toggleSelect(item);
+      return;
+    }
     setSelectedItem(item);
     setIsOptionsOpen(true);
+  };
+
+  const toggleSelect = (item: ResolvedItem) => {
+    const key = item.id || item.tmdbId;
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(key)) {
+      newSelected.delete(key);
+    } else {
+      newSelected.add(key);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const exitSelectMode = () => {
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleRemoveSelected = async () => {
+    if (!list || selectedIds.size === 0) return;
+
+    setIsRemoving(true);
+    try {
+      // Remove each selected item from the list
+      const itemsToRemove = items.filter(item => selectedIds.has(item.id || item.tmdbId));
+
+      await Promise.all(
+        itemsToRemove.map(item =>
+          fetch(`/api/lists/${list.id}/pins?tmdbId=${item.tmdbId}&mediaType=${item.mediaType}`, {
+            method: 'DELETE',
+          })
+        )
+      );
+
+      showSuccess(`Removed ${selectedIds.size} item${selectedIds.size > 1 ? 's' : ''}`);
+      exitSelectMode();
+      fetchListData();
+    } catch (error) {
+      showError('Failed to remove items');
+    } finally {
+      setIsRemoving(false);
+    }
   };
 
   if (status === 'loading' || isLoading) {
@@ -237,74 +298,118 @@ export default function ListPage({ params }: PageProps) {
     <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-black/95 backdrop-blur px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/library" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
-              <ChevronLeft className="w-6 h-6" />
-            </Link>
-            <div className={`w-10 h-10 rounded-lg ${colorClass} flex items-center justify-center`}>
-              <IconComponent className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">{list.name}</h1>
-              <p className="text-sm text-gray-400">
-                {items.length} {items.length === 1 ? 'item' : 'items'}
-                {list.isPublic && ' • Public'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href={`/search?addToList=${list.id}`}
-              className="p-2 hover:bg-zinc-800 rounded-full transition"
-              title="Add items"
-            >
-              <Plus className="w-5 h-5" />
-            </Link>
-
-            <div className="relative">
+        {isSelectMode ? (
+          /* Select Mode Header */
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="p-2 hover:bg-zinc-800 rounded-full transition"
+                onClick={exitSelectMode}
+                className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition"
               >
-                <MoreVertical className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
-
-            {showMenu && (
-              <>
-                <div
-                  className="fixed inset-0"
-                  onClick={() => setShowMenu(false)}
-                />
-                <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded-lg shadow-lg overflow-hidden min-w-[180px] z-20">
-                  <button
-                    onClick={handleTogglePublic}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 transition"
-                  >
-                    {list.isPublic ? (
-                      <GlobeLock className="w-5 h-5" />
-                    ) : (
-                      <Globe className="w-5 h-5" />
-                    )}
-                    <span>{list.isPublic ? 'Make Private' : 'Make Public'}</span>
-                  </button>
-                  <button
-                    onClick={handleDeleteList}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 transition text-red-400"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                    <span>Delete List</span>
-                  </button>
-                </div>
-              </>
-            )}
+              <span className="text-lg font-medium">
+                {selectedIds.size} selected
+              </span>
             </div>
+            <button
+              onClick={handleRemoveSelected}
+              disabled={selectedIds.size === 0 || isRemoving}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-lg text-sm font-medium transition"
+            >
+              {isRemoving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              Remove
+            </button>
           </div>
-        </div>
+        ) : (
+          /* Normal Header */
+          <>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Link href="/library" className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition">
+                  <ChevronLeft className="w-6 h-6" />
+                </Link>
+                <div className={`w-10 h-10 rounded-lg ${colorClass} flex items-center justify-center`}>
+                  <IconComponent className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold">{list.name}</h1>
+                  <p className="text-sm text-gray-400">
+                    {items.length} {items.length === 1 ? 'item' : 'items'}
+                    {list.isPublic && ' • Public'}
+                  </p>
+                </div>
+              </div>
 
-        {list.description && (
-          <p className="text-sm text-gray-400 mt-2 px-2">{list.description}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowAddSheet(true)}
+                  className="p-2 hover:bg-zinc-800 rounded-full transition"
+                  title="Add items"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="p-2 hover:bg-zinc-800 rounded-full transition"
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+
+                  {showMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0"
+                        onClick={() => setShowMenu(false)}
+                      />
+                      <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded-lg shadow-lg overflow-hidden min-w-[180px] z-20">
+                        {items.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setShowMenu(false);
+                              setIsSelectMode(true);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 transition"
+                          >
+                            <CheckSquare className="w-5 h-5" />
+                            <span>Select Items</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={handleTogglePublic}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 transition"
+                        >
+                          {list.isPublic ? (
+                            <GlobeLock className="w-5 h-5" />
+                          ) : (
+                            <Globe className="w-5 h-5" />
+                          )}
+                          <span>{list.isPublic ? 'Make Private' : 'Make Public'}</span>
+                        </button>
+                        <button
+                          onClick={handleDeleteList}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 transition text-red-400"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                          <span>Delete List</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {list.description && (
+              <p className="text-sm text-gray-400 mt-2 px-2">{list.description}</p>
+            )}
+          </>
         )}
       </header>
 
@@ -334,46 +439,64 @@ export default function ListPage({ params }: PageProps) {
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-            {items.map((item) => (
-              <div
-                key={item.id || `${item.mediaType}-${item.tmdbId}`}
-                className="relative group cursor-pointer"
-                onClick={() => handleItemClick(item)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  handleItemLongPress(item);
-                }}
-              >
-                <div className="aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800">
-                  {item.posterPath ? (
-                    <Image
-                      src={getImageUrl(item.posterPath)}
-                      alt={item.title}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, 16vw"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Film className="w-8 h-8 text-zinc-600" />
-                    </div>
-                  )}
+            {items.map((item) => {
+              const itemKey = item.id || item.tmdbId;
+              const isSelected = selectedIds.has(itemKey);
 
-                  {/* Rating Badge */}
-                  {item.rating && (
-                    <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/70 rounded text-xs font-medium flex items-center gap-0.5">
-                      <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
-                      {item.rating}
-                    </div>
+              return (
+                <div
+                  key={item.id || `${item.mediaType}-${item.tmdbId}`}
+                  className={`relative group cursor-pointer transition ${
+                    isSelectMode && isSelected ? 'ring-2 ring-brand-primary rounded-lg' : ''
+                  }`}
+                  onClick={() => handleItemClick(item)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    handleItemLongPress(item);
+                  }}
+                >
+                  <div className="aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800">
+                    {item.posterPath ? (
+                      <Image
+                        src={getImageUrl(item.posterPath)}
+                        alt={item.title}
+                        fill
+                        className={`object-cover ${isSelectMode && isSelected ? 'opacity-80' : ''}`}
+                        sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, 16vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Film className="w-8 h-8 text-zinc-600" />
+                      </div>
+                    )}
+
+                    {/* Select Mode Checkbox */}
+                    {isSelectMode && (
+                      <div className="absolute top-2 left-2 z-[1]">
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-brand-primary bg-black rounded" />
+                        ) : (
+                          <Square className="w-5 h-5 text-white/60 bg-black/50 rounded" />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Rating Badge */}
+                    {!isSelectMode && item.rating && (
+                      <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-black/70 rounded text-xs font-medium flex items-center gap-0.5">
+                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                        {item.rating}
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="mt-1 text-sm font-medium truncate">{item.title}</p>
+                  {item.releaseYear && (
+                    <p className="text-xs text-gray-400">{item.releaseYear}</p>
                   )}
                 </div>
-
-                <p className="mt-1 text-sm font-medium truncate">{item.title}</p>
-                {item.releaseYear && (
-                  <p className="text-xs text-gray-400">{item.releaseYear}</p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
@@ -394,6 +517,54 @@ export default function ListPage({ params }: PageProps) {
           onStatusChange={() => fetchListData()}
           onRemove={() => fetchListData()}
         />
+      )}
+
+      {/* Add Items Sheet */}
+      {showAddSheet && (
+        <div className="fixed inset-0 z-50 bg-black/80" onClick={() => setShowAddSheet(false)}>
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-zinc-900 rounded-t-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 bg-zinc-600 rounded-full" />
+            </div>
+
+            <div className="px-4 pb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold">Add Items</h2>
+                <button
+                  onClick={() => setShowAddSheet(false)}
+                  className="p-2 hover:bg-zinc-800 rounded-full"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                <Link
+                  href={`/search?addToList=${list.id}`}
+                  className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white transition"
+                  onClick={() => setShowAddSheet(false)}
+                >
+                  <Search className="w-6 h-6" />
+                  <span className="text-sm font-medium">Search</span>
+                  <span className="text-xs text-gray-500">Find new movies & shows</span>
+                </Link>
+                <Link
+                  href={`/library/manage?addToList=${list.id}`}
+                  className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white transition"
+                  onClick={() => setShowAddSheet(false)}
+                >
+                  <Film className="w-6 h-6" />
+                  <span className="text-sm font-medium">From Library</span>
+                  <span className="text-xs text-gray-500">Add from your collection</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

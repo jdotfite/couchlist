@@ -53,6 +53,20 @@ export default function SearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // If navigated with ?focus=1 (from the home fake-search link), focus the input so the user can start typing immediately
+  useEffect(() => {
+    try {
+      if (searchParams.get('focus')) {
+        // schedule focus after render to avoid timing issues
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 0);
+      }
+    } catch (err) {
+      // searchParams might be null in some environments; fail silently
+    }
+  }, [searchParams]);
+
   // Add to list mode
   const addToListId = searchParams.get('addToList');
   const isAddToListMode = !!addToListId;
@@ -86,6 +100,32 @@ export default function SearchPage() {
   // Media options sheet
   const [selectedItem, setSelectedItem] = useState<TrendingItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  // Trending content for addToList mode
+  const [trendingItems, setTrendingItems] = useState<(Movie | TVShow)[]>([]);
+  const [isTrendingLoading, setIsTrendingLoading] = useState(false);
+
+  // Fetch trending when in addToList mode
+  useEffect(() => {
+    if (!isAddToListMode) return;
+
+    const fetchTrending = async () => {
+      setIsTrendingLoading(true);
+      try {
+        const res = await fetch('/api/trending?type=all');
+        if (res.ok) {
+          const data = await res.json();
+          setTrendingItems(data.results || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch trending:', error);
+      } finally {
+        setIsTrendingLoading(false);
+      }
+    };
+
+    fetchTrending();
+  }, [isAddToListMode]);
 
   // Fetch list info when in addToList mode
   useEffect(() => {
@@ -495,6 +535,24 @@ export default function SearchPage() {
               )}
             </div>
           </>
+        )}
+
+        {/* Add to List Mode - Show trending when no search */}
+        {isAddToListMode && !hasSearched && !hasFiltered && (
+          <div className="mb-8">
+            <p className="text-sm text-gray-400 mb-4">
+              Search above or browse popular titles to add to your list
+            </p>
+            <h2 className="text-lg font-semibold mb-3">Trending Now</h2>
+            <SearchResults
+              results={trendingItems}
+              isLoading={isTrendingLoading}
+              addToListId={listInfo?.id}
+              addToListName={listInfo?.name}
+              existingTmdbIds={existingTmdbIds}
+              onAddToList={handleAddToList}
+            />
+          </div>
         )}
 
         {/* Search/Discover Results */}
