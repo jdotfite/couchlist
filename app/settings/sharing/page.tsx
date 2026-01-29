@@ -84,7 +84,7 @@ export default function SharingSettingsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ id: number; name: string; username: string | null; image: string | null }[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; username: string | null } | null>(null);
+  const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; username: string | null; image: string | null } | null>(null);
 
   // Remove/revoke state
   const [removingPartnerId, setRemovingPartnerId] = useState<number | null>(null);
@@ -800,10 +800,14 @@ export default function SharingSettingsPage() {
                           }}
                           className="w-full flex items-center gap-3 p-3 hover:bg-zinc-700 transition"
                         >
-                          <div className="w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-pink-500 font-semibold text-sm">
-                              {user.name?.charAt(0).toUpperCase()}
-                            </span>
+                          <div className="w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {user.image ? (
+                              <img src={user.image} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-pink-500 font-semibold text-sm">
+                                {user.name?.charAt(0).toUpperCase()}
+                              </span>
+                            )}
                           </div>
                           <div className="text-left">
                             <p className="text-sm font-medium">{user.name}</p>
@@ -824,10 +828,14 @@ export default function SharingSettingsPage() {
                 {/* Selected user */}
                 {selectedUser && (
                   <div className="mb-4 p-3 bg-pink-500/10 border border-pink-500 rounded-lg flex items-center gap-3">
-                    <div className="w-10 h-10 bg-pink-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-pink-500 font-semibold">
-                        {selectedUser.name?.charAt(0).toUpperCase()}
-                      </span>
+                    <div className="w-10 h-10 bg-pink-500/20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {selectedUser.image ? (
+                        <img src={selectedUser.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-pink-500 font-semibold">
+                          {selectedUser.name?.charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">{selectedUser.name}</p>
@@ -1030,10 +1038,14 @@ export default function SharingSettingsPage() {
                           }}
                           className="w-full flex items-center gap-3 p-3 hover:bg-zinc-700 transition"
                         >
-                          <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-blue-500 font-semibold text-sm">
-                              {user.name?.charAt(0).toUpperCase()}
-                            </span>
+                          <div className="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {user.image ? (
+                              <img src={user.image} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-blue-500 font-semibold text-sm">
+                                {user.name?.charAt(0).toUpperCase()}
+                              </span>
+                            )}
                           </div>
                           <div className="text-left">
                             <p className="text-sm font-medium">{user.name}</p>
@@ -1054,10 +1066,14 @@ export default function SharingSettingsPage() {
                 {/* Selected user */}
                 {selectedUser && (
                   <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500 rounded-lg flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-blue-500 font-semibold">
-                        {selectedUser.name?.charAt(0).toUpperCase()}
-                      </span>
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {selectedUser.image ? (
+                        <img src={selectedUser.image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-blue-500 font-semibold">
+                          {selectedUser.name?.charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="font-medium">{selectedUser.name}</p>
