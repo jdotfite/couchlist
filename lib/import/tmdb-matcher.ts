@@ -413,3 +413,41 @@ export async function batchSearchTMDb(
 
   return results;
 }
+
+/**
+ * Fetch full movie/TV details from TMDB to get runtime and genre_ids
+ * These fields aren't available in search/find results
+ */
+export async function fetchTMDbDetails(
+  tmdbId: number,
+  mediaType: 'movie' | 'tv'
+): Promise<{ runtime: number | null; genreIds: number[] } | null> {
+  try {
+    const endpoint = mediaType === 'movie' ? `/movie/${tmdbId}` : `/tv/${tmdbId}`;
+    const response = await tmdbGetWithRetry<{
+      runtime?: number;
+      episode_run_time?: number[];
+      genres?: Array<{ id: number }>;
+    }>(endpoint, {});
+
+    const data = response.data;
+
+    // Movies have runtime, TV shows have episode_run_time array
+    let runtime: number | null = null;
+    if (mediaType === 'movie') {
+      runtime = data.runtime || null;
+    } else if (data.episode_run_time && data.episode_run_time.length > 0) {
+      // Use average episode runtime for TV shows
+      runtime = Math.round(
+        data.episode_run_time.reduce((a, b) => a + b, 0) / data.episode_run_time.length
+      );
+    }
+
+    const genreIds = data.genres?.map(g => g.id) || [];
+
+    return { runtime, genreIds };
+  } catch (error) {
+    console.error(`Failed to fetch TMDB details for ${mediaType}/${tmdbId}:`, error);
+    return null;
+  }
+}

@@ -15,7 +15,7 @@ export interface NewEpisodeItem {
   media_id: number;
   title: string;
   poster_path: string | null;
-  next_episode_to_air_date: string;
+  next_episode_to_air_date: string | Date;
   next_episode_season: number;
   next_episode_number: number;
   next_episode_name: string | null;

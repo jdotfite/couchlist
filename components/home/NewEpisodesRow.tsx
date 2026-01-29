@@ -10,10 +10,26 @@ interface NewEpisodesRowProps {
   episodes: NewEpisodeItem[];
 }
 
-function getRelativeDate(dateString: string): string {
-  const date = new Date(dateString + 'T00:00:00');
+function getRelativeDate(dateValue: string | Date): string {
+  // Handle both Date objects (from PostgreSQL) and date strings
+  let date: Date;
+  if (dateValue instanceof Date) {
+    date = dateValue;
+  } else if (typeof dateValue === 'string') {
+    // If it's a string like "2025-01-30", append time to avoid timezone issues
+    date = new Date(dateValue + 'T00:00:00');
+  } else {
+    return 'TBD';
+  }
+
+  // Check for invalid date
+  if (isNaN(date.getTime())) {
+    return 'TBD';
+  }
+
   const now = new Date();
   now.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
   const diffTime = date.getTime() - now.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 

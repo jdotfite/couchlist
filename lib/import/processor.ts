@@ -7,7 +7,7 @@ import {
   getSystemTagId,
   addTagToUserMedia,
 } from '@/lib/library';
-import { searchTMDbMovie, searchTMDbTV, findByIMDbId } from './tmdb-matcher';
+import { searchTMDbMovie, searchTMDbTV, findByIMDbId, fetchTMDbDetails } from './tmdb-matcher';
 import { tmdbRateLimiter } from './rate-limiter';
 import type {
   ImportItem,
@@ -317,6 +317,10 @@ async function processItem(
         };
       }
 
+      // Fetch full TMDB details for runtime and genres
+      await tmdbRateLimiter.acquire();
+      const details = await fetchTMDbDetails(match.tmdbId, mediaType);
+
       // Create new entry
       const mediaId = await upsertMedia({
         media_id: match.tmdbId,
@@ -324,6 +328,8 @@ async function processItem(
         title: match.title,
         poster_path: match.posterPath,
         release_year: match.year,
+        runtime: details?.runtime ?? undefined,
+        genre_ids: details?.genreIds && details.genreIds.length > 0 ? details.genreIds : undefined,
       });
 
       // Map status: Letterboxd 'watchlist' → 'watchlist', 'watched' → 'finished'
