@@ -6,7 +6,7 @@ import { Search } from 'lucide-react';
 export default function SearchHero() {
   return (
     <Link
-      href="/search"
+      href="/search?focus=1"
       className="card card-interactive block w-full mb-6 group"
     >
       <div className="flex items-center gap-3">
