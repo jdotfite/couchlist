@@ -32,10 +32,17 @@ export default function LibraryManagePage() {
   const [isAddingToList, setIsAddingToList] = useState(false);
   const [existingTmdbIds, setExistingTmdbIds] = useState<Set<number>>(new Set());
 
+  // Get type filter from URL params
+  const typeParam = searchParams.get('type');
+  const initialMediaType = typeParam === 'movie' || typeParam === 'tv' ? typeParam : 'all';
+
   // Search, sort, filters, and layout
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('added-desc');
-  const [filters, setFilters] = useState<LibraryFilters>(DEFAULT_LIBRARY_FILTERS);
+  const [filters, setFilters] = useState<LibraryFilters>({
+    ...DEFAULT_LIBRARY_FILTERS,
+    mediaType: initialMediaType,
+  });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSelectMode, setIsSelectMode] = useState(isAddToListMode);
   const [layout, setLayout] = useState<LayoutOption>('grid');

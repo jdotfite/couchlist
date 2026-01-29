@@ -441,20 +441,20 @@ export default function ProfilePage() {
           </div>
 
           <div className="flex gap-6">
-            <div className="flex items-center gap-2">
+            <Link href="/library/manage?type=movie" className="flex items-center gap-2 hover:opacity-80 transition">
               <Film className="w-4 h-4 text-gray-400" />
               <span className="text-sm">
                 <span className="font-semibold">{counts.movies}</span>
                 <span className="text-gray-400"> movies</span>
               </span>
-            </div>
-            <div className="flex items-center gap-2">
+            </Link>
+            <Link href="/library/manage?type=tv" className="flex items-center gap-2 hover:opacity-80 transition">
               <Tv className="w-4 h-4 text-gray-400" />
               <span className="text-sm">
                 <span className="font-semibold">{counts.tv}</span>
                 <span className="text-gray-400"> shows</span>
               </span>
-            </div>
+            </Link>
           </div>
         </div>
 

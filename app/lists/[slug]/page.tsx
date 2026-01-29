@@ -41,6 +41,7 @@ import {
 import { getImageUrl } from '@/lib/tmdb';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import SortFilterBar, { LayoutOption, filterItems } from '@/components/SortFilterBar';
+import EditListModal from '@/components/lists/EditListModal';
 import { showSuccess, showError } from '@/lib/toast';
 
 interface ResolvedItem {
@@ -141,6 +142,9 @@ export default function ListPage({ params }: PageProps) {
 
   // Add items sheet state
   const [showAddSheet, setShowAddSheet] = useState(false);
+
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Portal mount state
   const [mounted, setMounted] = useState(false);
@@ -356,6 +360,16 @@ export default function ListPage({ params }: PageProps) {
                     onClick={() => setShowMenu(false)}
                   />
                   <div className="absolute right-0 top-full mt-1 bg-zinc-800 rounded-lg shadow-lg overflow-hidden min-w-[180px] z-20">
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        setShowEditModal(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 transition"
+                    >
+                      <Pencil className="w-5 h-5" />
+                      <span>List Settings</span>
+                    </button>
                     <button
                       onClick={handleTogglePublic}
                       className="w-full flex items-center gap-3 px-4 py-3 hover:bg-zinc-700 transition"
@@ -649,6 +663,21 @@ export default function ListPage({ params }: PageProps) {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Edit List Modal */}
+      {list && (
+        <EditListModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          list={list}
+          onUpdated={(updatedList) => {
+            setList({
+              ...list,
+              ...updatedList,
+            });
+          }}
+        />
       )}
 
     </div>

@@ -176,7 +176,7 @@ export default function StatsPage() {
         {/* Category Cards Row */}
         <div className="grid grid-cols-4 gap-3">
           {/* Movies */}
-          <div className="bg-zinc-900 rounded-2xl p-4 text-center">
+          <Link href="/library/manage?type=movie" className="bg-zinc-900 rounded-2xl p-4 text-center hover:bg-zinc-800 transition">
             <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
               <Film className="w-5 h-5 text-white" />
             </div>
@@ -188,10 +188,10 @@ export default function StatsPage() {
                 style={{ width: `${(overview.totalMovies / totalItems) * 100}%` }}
               />
             </div>
-          </div>
+          </Link>
 
           {/* TV Shows */}
-          <div className="bg-zinc-900 rounded-2xl p-4 text-center">
+          <Link href="/library/manage?type=tv" className="bg-zinc-900 rounded-2xl p-4 text-center hover:bg-zinc-800 transition">
             <div className="w-10 h-10 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
               <Tv className="w-5 h-5 text-white" />
             </div>
@@ -203,7 +203,7 @@ export default function StatsPage() {
                 style={{ width: `${(overview.totalTVShows / totalItems) * 100}%` }}
               />
             </div>
-          </div>
+          </Link>
 
           {/* Episodes */}
           <div className="bg-zinc-900 rounded-2xl p-4 text-center">

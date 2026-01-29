@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Clock, Film, Tv, Star, Play } from 'lucide-react';
 import SectionHeader from '@/components/ui/SectionHeader';
 
@@ -100,7 +101,7 @@ export default function QuickStats() {
       {/* Category Cards Row */}
       <div className="grid grid-cols-4 gap-3">
         {/* Movies */}
-        <div className="bg-zinc-900 rounded-2xl p-3 text-center">
+        <Link href="/library/manage?type=movie" className="bg-zinc-900 rounded-2xl p-3 text-center hover:bg-zinc-800 transition">
           <div className="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
             <Film className="w-4 h-4 text-white" />
           </div>
@@ -112,10 +113,10 @@ export default function QuickStats() {
               style={{ width: `${(stats.totalMovies / totalItems) * 100}%` }}
             />
           </div>
-        </div>
+        </Link>
 
         {/* TV Shows */}
-        <div className="bg-zinc-900 rounded-2xl p-3 text-center">
+        <Link href="/library/manage?type=tv" className="bg-zinc-900 rounded-2xl p-3 text-center hover:bg-zinc-800 transition">
           <div className="w-8 h-8 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
             <Tv className="w-4 h-4 text-white" />
           </div>
@@ -127,7 +128,7 @@ export default function QuickStats() {
               style={{ width: `${(stats.totalTVShows / totalItems) * 100}%` }}
             />
           </div>
-        </div>
+        </Link>
 
         {/* Episodes */}
         <div className="bg-zinc-900 rounded-2xl p-3 text-center">
