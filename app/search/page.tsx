@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Loader2, X, SlidersHorizontal, ChevronLeft, Check } from 'lucide-react';
 import SearchResults from '@/components/SearchResults';
@@ -51,33 +51,32 @@ interface ListInfo {
 
 export default function SearchPage() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   // If navigated with ?focus=1 (from the home fake-search link), focus the input so the user can start typing immediately
-  useEffect(() => {
-    try {
-      if (searchParams.get('focus')) {
-        // schedule focus after render to avoid timing issues
-        setTimeout(() => {
-          inputRef.current?.focus();
+  const focusValue = searchParams?.get('focus') ?? null;
 
-          // Remove the focus param from the URL so refreshing/returning doesn't re-trigger focus
-          try {
-            const params = new URLSearchParams(searchParams.toString());
-            params.delete('focus');
-            const newPath = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
-            // Replace to avoid adding a history entry
-            router.replace(newPath);
-          } catch (_) {
-            // ignore any errors updating the URL
-          }
-        }, 0);
+  useEffect(() => {
+    if (!focusValue) return;
+
+    // schedule focus after render to avoid timing issues
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+
+      // Remove the focus param from the URL so refreshing/returning doesn't re-trigger focus
+      try {
+        const params = new URLSearchParams(window.location.search);
+        params.delete('focus');
+        const newPath = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+        // Replace the state without adding a history entry
+        window.history.replaceState(null, '', newPath);
+      } catch (_) {
+        // ignore any errors updating the URL
       }
-    } catch (err) {
-      // searchParams might be null in some environments; fail silently
-    }
-  }, [searchParams, router]);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [focusValue]);
 
   // Add to list mode
   const addToListId = searchParams.get('addToList');
