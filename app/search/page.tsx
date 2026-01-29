@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Loader2, X, SlidersHorizontal } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Search, Loader2, X, SlidersHorizontal, ChevronLeft } from 'lucide-react';
 import SearchResults from '@/components/SearchResults';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import MainHeader from '@/components/ui/MainHeader';
@@ -40,8 +42,22 @@ interface DiscoverResult {
   genre_ids: number[];
 }
 
+interface ListInfo {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export default function SearchPage() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Add to list mode
+  const addToListId = searchParams.get('addToList');
+  const isAddToListMode = !!addToListId;
+  const [listInfo, setListInfo] = useState<ListInfo | null>(null);
+  const [existingTmdbIds, setExistingTmdbIds] = useState<Set<number>>(new Set());
 
   // Search state
   const [query, setQuery] = useState('');
@@ -70,6 +86,64 @@ export default function SearchPage() {
   // Media options sheet
   const [selectedItem, setSelectedItem] = useState<TrendingItem | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  // Fetch list info when in addToList mode
+  useEffect(() => {
+    if (!isAddToListMode || !addToListId) return;
+
+    const fetchListInfo = async () => {
+      try {
+        const listsRes = await fetch('/api/lists');
+        if (listsRes.ok) {
+          const data = await listsRes.json();
+          const list = data.lists.find((l: ListInfo) => l.id === parseInt(addToListId, 10));
+          if (list) {
+            setListInfo(list);
+            // Fetch existing items in the list
+            const itemsRes = await fetch(`/api/lists/${list.id}/items`);
+            if (itemsRes.ok) {
+              const itemsData = await itemsRes.json();
+              const tmdbIds = new Set<number>(
+                (itemsData.items || []).map((item: { tmdbId: number }) => item.tmdbId)
+              );
+              setExistingTmdbIds(tmdbIds);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch list info:', error);
+      }
+    };
+
+    fetchListInfo();
+  }, [isAddToListMode, addToListId]);
+
+  // Handler for adding items to list
+  const handleAddToList = async (item: Movie | TVShow) => {
+    if (!listInfo) return;
+
+    const mediaType = 'title' in item && !('name' in item) ? 'movie' : 'tv';
+    const title = 'title' in item ? item.title : (item as TVShow).name;
+
+    const res = await fetch(`/api/lists/${listInfo.id}/pins`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tmdbId: item.id,
+        mediaType,
+        title,
+        posterPath: item.poster_path,
+        pinType: 'include',
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to add item to list');
+    }
+
+    // Update existingTmdbIds locally
+    setExistingTmdbIds(prev => new Set(prev).add(item.id));
+  };
 
   // Debounced search
   useEffect(() => {
@@ -235,8 +309,8 @@ export default function SearchPage() {
     (filters.ratingMin ? 1 : 0) +
     (filters.runtimeMin || filters.runtimeMax ? 1 : 0);
 
-  // Show browse view when not searching and not filtered
-  const showBrowseView = !hasSearched && !hasFiltered;
+  // Show browse view when not searching and not filtered (hide in addToList mode)
+  const showBrowseView = !isAddToListMode && !hasSearched && !hasFiltered;
 
   // Convert discover results to the format expected by SearchResults
   const resultsForDisplay = hasFiltered
@@ -247,55 +321,82 @@ export default function SearchPage() {
       }))
     : searchResults;
 
+  // Shared search input component
+  const searchInput = (
+    <div className="flex gap-2">
+      <div className="relative flex-1">
+        {isSearching ? (
+          <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />
+        ) : (
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+        )}
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search movies & TV shows..."
+          className="w-full h-12 pl-11 pr-12 bg-zinc-900 rounded-lg border border-transparent text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary transition-all"
+        />
+
+        {query && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white transition-colors"
+            aria-label="Clear search"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+
+      {/* Filter Button - only show in normal mode */}
+      {!isAddToListMode && (
+        <button
+          onClick={() => setIsFilterOpen(true)}
+          className={`relative h-12 px-4 rounded-lg flex items-center gap-2 transition font-medium ${
+            hasActiveFilters
+              ? 'bg-brand-primary text-white'
+              : 'bg-zinc-900 text-gray-400 hover:text-white'
+          }`}
+        >
+          <SlidersHorizontal className="w-5 h-5" />
+          {activeFilterCount > 0 && (
+            <span className="text-sm">{activeFilterCount}</span>
+          )}
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-black text-white pb-24">
-      <MainHeader title="Search">
-        {/* Search Input with Filter */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            {isSearching ? (
-              <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 animate-spin" />
-            ) : (
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            )}
-
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Search movies & TV shows..."
-              className="w-full h-12 pl-11 pr-12 bg-zinc-900 rounded-lg border border-transparent text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary transition-all"
-            />
-
-            {query && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-white transition-colors"
-                aria-label="Clear search"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
+      {/* Custom header for addToList mode */}
+      {isAddToListMode ? (
+        <header className="sticky top-0 z-10 bg-black px-4 py-3">
+          <div className="flex items-center gap-3 mb-3">
+            <Link
+              href={listInfo ? `/lists/${listInfo.slug}` : '/library'}
+              className="p-2 -ml-2 hover:bg-zinc-800 rounded-full transition"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold">Search to Add</h1>
+              {listInfo && (
+                <p className="text-sm text-gray-400">Adding to "{listInfo.name}"</p>
+              )}
+            </div>
           </div>
-
-          {/* Filter Button - connected to search */}
-          <button
-            onClick={() => setIsFilterOpen(true)}
-            className={`relative h-12 px-4 rounded-lg flex items-center gap-2 transition font-medium ${
-              hasActiveFilters
-                ? 'bg-brand-primary text-white'
-                : 'bg-zinc-900 text-gray-400 hover:text-white'
-            }`}
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-            {activeFilterCount > 0 && (
-              <span className="text-sm">{activeFilterCount}</span>
-            )}
-          </button>
-        </div>
-      </MainHeader>
+          {searchInput}
+        </header>
+      ) : (
+        <MainHeader title="Search">
+          {searchInput}
+        </MainHeader>
+      )}
 
       <main className="px-4">
         {/* Active Filters */}
@@ -403,6 +504,10 @@ export default function SearchPage() {
               results={resultsForDisplay as (Movie | TVShow)[]}
               isLoading={isSearching || isDiscovering}
               activeProvider={filters.providers.length === 1 ? filters.providers[0] : undefined}
+              addToListId={listInfo?.id}
+              addToListName={listInfo?.name}
+              existingTmdbIds={existingTmdbIds}
+              onAddToList={isAddToListMode ? handleAddToList : undefined}
             />
           </div>
         )}

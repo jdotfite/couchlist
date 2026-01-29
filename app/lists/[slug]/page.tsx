@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use, useMemo } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -36,7 +36,6 @@ import {
 } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
-import ListSearchSheet from '@/components/lists/ListSearchSheet';
 import { showSuccess, showError } from '@/lib/toast';
 
 interface ResolvedItem {
@@ -125,14 +124,6 @@ export default function ListPage({ params }: PageProps) {
   // Media options sheet state
   const [selectedItem, setSelectedItem] = useState<ResolvedItem | null>(null);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-
-  // Search sheet state
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  // Track existing TMDB IDs to show checkmarks in search
-  const existingTmdbIds = useMemo(() => {
-    return new Set(items.map(item => item.tmdbId));
-  }, [items]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -264,13 +255,13 @@ export default function ListPage({ params }: PageProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsSearchOpen(true)}
+            <Link
+              href={`/search?addToList=${list.id}`}
               className="p-2 hover:bg-zinc-800 rounded-full transition"
               title="Add items"
             >
               <Plus className="w-5 h-5" />
-            </button>
+            </Link>
 
             <div className="relative">
               <button
@@ -324,13 +315,13 @@ export default function ListPage({ params }: PageProps) {
             <div className="border-2 border-dashed border-zinc-700 rounded-xl p-6">
               <p className="text-center text-gray-400 mb-4">Add items to your list</p>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setIsSearchOpen(true)}
+                <Link
+                  href={`/search?addToList=${list.id}`}
                   className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white transition group"
                 >
                   <Search className="w-6 h-6" />
                   <span className="text-sm font-medium">Search</span>
-                </button>
+                </Link>
                 <Link
                   href={`/library/manage?addToList=${list.id}`}
                   className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white transition group"
@@ -405,17 +396,6 @@ export default function ListPage({ params }: PageProps) {
         />
       )}
 
-      {/* Search Sheet for Adding Items */}
-      {list && (
-        <ListSearchSheet
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
-          listId={list.id}
-          listName={list.name}
-          existingTmdbIds={existingTmdbIds}
-          onItemAdded={() => fetchListData()}
-        />
-      )}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/tmdb';
 import { Movie, TVShow } from '@/types';
-import { Star, Plus, Clock, Play, CheckCircle2 } from 'lucide-react';
+import { Star, Plus, Clock, Play, CheckCircle2, Check, Loader2 } from 'lucide-react';
 import { MediaTypeBadge } from './icons/MediaTypeIcons';
 import MediaOptionsSheet from './MediaOptionsSheet';
 import EmptyState from './EmptyState';
@@ -26,11 +26,28 @@ interface SearchResultsProps {
   results: (Movie | TVShow)[];
   isLoading: boolean;
   activeProvider?: number; // Provider ID when filtering by a specific service
+  // Add to list mode
+  addToListId?: number;
+  addToListName?: string;
+  existingTmdbIds?: Set<number>;
+  onAddToList?: (item: Movie | TVShow) => Promise<void>;
 }
 
-export default function SearchResults({ results, isLoading, activeProvider }: SearchResultsProps) {
+export default function SearchResults({
+  results,
+  isLoading,
+  activeProvider,
+  addToListId,
+  addToListName,
+  existingTmdbIds,
+  onAddToList,
+}: SearchResultsProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<(Movie | TVShow) | null>(null);
+  const [addingIds, setAddingIds] = useState<Set<number>>(new Set());
+  const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
+
+  const isAddToListMode = !!addToListId;
 
   // Track local status updates (for immediate feedback after adding)
   const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
@@ -56,9 +73,31 @@ export default function SearchResults({ results, isLoading, activeProvider }: Se
     return localStatuses[key] || getStatus(id, mediaType);
   };
 
-  const handleAddClick = (e: React.MouseEvent, item: Movie | TVShow) => {
+  const handleAddClick = async (e: React.MouseEvent, item: Movie | TVShow) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // In addToList mode, directly add to the list
+    if (isAddToListMode && onAddToList) {
+      if (addingIds.has(item.id) || addedIds.has(item.id)) return;
+
+      setAddingIds(prev => new Set(prev).add(item.id));
+      try {
+        await onAddToList(item);
+        setAddedIds(prev => new Set(prev).add(item.id));
+      } catch (error) {
+        console.error('Failed to add item:', error);
+      } finally {
+        setAddingIds(prev => {
+          const next = new Set(prev);
+          next.delete(item.id);
+          return next;
+        });
+      }
+      return;
+    }
+
+    // Normal mode - open sheet
     setSelectedItem(item);
     setIsSheetOpen(true);
   };
@@ -139,6 +178,42 @@ export default function SearchResults({ results, isLoading, activeProvider }: Se
 
                   {/* Status/Add Button - Top Right */}
                   {(() => {
+                    // In addToList mode, show different states
+                    if (isAddToListMode) {
+                      const isInList = existingTmdbIds?.has(item.id);
+                      const isAdding = addingIds.has(item.id);
+                      const isAdded = addedIds.has(item.id);
+
+                      if (isInList || isAdded) {
+                        // Already in list or just added
+                        return (
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center z-10">
+                            <Check className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        );
+                      }
+
+                      if (isAdding) {
+                        // Currently adding
+                        return (
+                          <div className="absolute top-2 right-2 w-6 h-6 bg-black/75 backdrop-blur-sm rounded-full flex items-center justify-center z-10">
+                            <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                          </div>
+                        );
+                      }
+
+                      // Not in list - show add button
+                      return (
+                        <button
+                          onClick={(e) => handleAddClick(e, item)}
+                          className="absolute top-2 right-2 w-6 h-6 bg-black/75 hover:bg-brand-primary backdrop-blur-sm rounded-full flex items-center justify-center transition z-10"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      );
+                    }
+
+                    // Normal mode - show library status
                     const status = getCombinedStatus(item.id, mediaType as 'movie' | 'tv');
                     const statusConfig = status ? STATUS_ICONS[status] : null;
 
