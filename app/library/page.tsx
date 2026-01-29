@@ -200,7 +200,7 @@ export default function LibraryPage() {
           {customLists.length === 0 ? (
             <Link
               href="/lists"
-              className="flex items-center gap-4 p-4 border-2 border-dashed border-zinc-700 hover:border-brand-primary rounded-xl transition group"
+              className="flex items-center gap-4 p-3 border-2 border-dashed border-zinc-700 hover:border-brand-primary rounded-xl transition group"
             >
               <div className="w-12 h-12 rounded-lg bg-zinc-800 group-hover:bg-zinc-700 flex items-center justify-center transition">
                 <Plus className="w-6 h-6 text-gray-400 group-hover:text-white" />
