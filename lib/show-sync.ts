@@ -86,7 +86,7 @@ export async function getTrackedTVShows(): Promise<Array<{ media_id: number; tmd
     FROM media m
     JOIN user_media um ON m.id = um.media_id
     WHERE m.media_type = 'tv'
-      AND um.status IN ('watching', 'watchlist', 'onhold')
+      AND um.status IN ('watching', 'watchlist', 'onhold', 'finished')
   `;
 
   return result.rows as Array<{ media_id: number; tmdb_id: number }>;

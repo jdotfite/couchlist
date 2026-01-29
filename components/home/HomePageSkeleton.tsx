@@ -26,26 +26,7 @@ export default function HomePageSkeleton() {
           </div>
         </div>
 
-        {/* Lists Grid Skeleton */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <div className="h-7 w-24 bg-zinc-800 rounded animate-pulse" />
-            <div className="h-5 w-14 bg-zinc-800 rounded animate-pulse" />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="flex items-center gap-3 bg-zinc-900 rounded-md overflow-hidden">
-                <div className="w-16 h-16 bg-zinc-800 animate-pulse" />
-                <div>
-                  <div className="h-5 w-16 bg-zinc-800 rounded animate-pulse mb-1" />
-                  <div className="h-4 w-14 bg-zinc-800 rounded animate-pulse" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Library Rows Skeleton (Continue Watching, Watchlist, Watched) */}
+        {/* Media Rows Skeleton (Continue Watching, Recommendations, Trending) */}
         {[1, 2, 3].map((i) => (
           <section key={i} className="mb-8">
             <div className="flex items-center justify-between mb-3">

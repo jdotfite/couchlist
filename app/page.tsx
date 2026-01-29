@@ -1,31 +1,47 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import MainHeader from '@/components/ui/MainHeader';
 import SearchHero from '@/components/home/SearchHero';
 import MediaRow from '@/components/home/MediaRow';
-import ListsGrid from '@/components/home/ListsGrid';
+import NewEpisodesRow from '@/components/home/NewEpisodesRow';
+import TrendingRow from '@/components/home/TrendingRow';
 import HomePageSkeleton from '@/components/home/HomePageSkeleton';
-import { useListPreferences } from '@/hooks/useListPreferences';
 import { useLibraryStore } from '@/stores/useLibraryStore';
-import { Play, List, CheckCircle2, LayoutGrid } from 'lucide-react';
+import { useHomeRecommendations } from '@/hooks/useHomeRecommendations';
+import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 
 export default function Home() {
   const { status } = useSession();
   const router = useRouter();
-  const { getListName } = useListPreferences();
 
-  // Get state and actions from Zustand store
+  // Get watching items from Zustand store
   const {
     watchingItems,
-    watchlistItems,
-    finishedItems,
-    isLoading,
+    isLoading: isLibraryLoading,
     lastFetched,
     fetchLibrary,
   } = useLibraryStore();
+
+  // Get recommendations data
+  const {
+    newEpisodes,
+    recommendationSource,
+    recommendations,
+    trending,
+    isLoading: isRecommendationsLoading,
+  } = useHomeRecommendations();
+
+  // Status modal state for quick-add from trending/recommendations
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<{
+    id: number;
+    title: string;
+    poster_path: string | null;
+    media_type: 'movie' | 'tv';
+  } | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -35,46 +51,32 @@ export default function Home() {
     }
   }, [status, router, fetchLibrary]);
 
+  // Handle quick-add from trending/recommendation rows
+  const handleAddClick = (item: {
+    id: number;
+    title?: string;
+    name?: string;
+    poster_path: string | null;
+    media_type: 'movie' | 'tv';
+  }) => {
+    setSelectedItem({
+      id: item.id,
+      title: item.title || item.name || 'Unknown',
+      poster_path: item.poster_path,
+      media_type: item.media_type,
+    });
+    setModalOpen(true);
+  };
+
   // Show skeleton while loading (only on first load)
-  if (status === 'loading' || status === 'unauthenticated' || (isLoading && !lastFetched)) {
+  if (status === 'loading' || status === 'unauthenticated' || (isLibraryLoading && !lastFetched)) {
     return <HomePageSkeleton />;
   }
 
-  // Build lists data for the grid
-  const listsData = [
-    {
-      slug: 'watching',
-      title: getListName('watching') || 'Watching',
-      count: watchingItems.length,
-      posterPath: watchingItems[0]?.poster_path || null,
-      icon: Play,
-      color: 'from-emerald-500 to-emerald-900',
-    },
-    {
-      slug: 'watchlist',
-      title: getListName('watchlist') || 'Watchlist',
-      count: watchlistItems.length,
-      posterPath: watchlistItems[0]?.poster_path || null,
-      icon: List,
-      color: 'from-blue-600 to-blue-900',
-    },
-    {
-      slug: 'finished',
-      title: getListName('finished') || 'Watched',
-      count: finishedItems.length,
-      posterPath: finishedItems[0]?.poster_path || null,
-      icon: CheckCircle2,
-      color: 'from-brand-primary to-brand-primary-darker',
-    },
-    {
-      slug: 'all',
-      title: 'All Lists',
-      count: 3, // System lists: watching, watchlist, finished
-      posterPath: null,
-      icon: LayoutGrid,
-      color: 'from-zinc-600 to-zinc-800',
-    },
-  ];
+  // Build recommendation row title
+  const recommendationTitle = recommendationSource
+    ? `Because you're watching ${recommendationSource.title}`
+    : 'Recommended For You';
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
@@ -85,36 +87,53 @@ export default function Home() {
         {/* Search Hero */}
         <SearchHero />
 
-        {/* Your Lists */}
-        <ListsGrid lists={listsData} />
+        {/* Continue Watching */}
+        {watchingItems.length > 0 && (
+          <MediaRow
+            title="Continue Watching"
+            items={watchingItems}
+            seeAllHref="/library?status=watching"
+            addHref="/search"
+            status="watching"
+          />
+        )}
 
-        {/* Watching */}
-        <MediaRow
-          title={getListName('watching') || 'Watching'}
-          items={watchingItems}
-          seeAllHref="/library?status=watching"
-          addHref="/search"
-          status="watching"
-        />
+        {/* Airing Soon - shows with upcoming episodes */}
+        <NewEpisodesRow episodes={newEpisodes} />
 
-        {/* Watchlist */}
-        <MediaRow
-          title={getListName('watchlist') || 'Watchlist'}
-          items={watchlistItems}
-          seeAllHref="/library?status=watchlist"
-          addHref="/search"
-          status="watchlist"
-        />
+        {/* Personalized Recommendations */}
+        {recommendations.length > 0 && (
+          <TrendingRow
+            title={recommendationTitle}
+            items={recommendations}
+            onAddClick={handleAddClick}
+          />
+        )}
 
-        {/* Watched */}
-        <MediaRow
-          title={getListName('finished') || 'Watched'}
-          items={finishedItems}
-          seeAllHref="/library?status=finished"
-          addHref="/search"
-          status="finished"
-        />
+        {/* Trending Now - discovery fallback */}
+        {trending.length > 0 && (
+          <TrendingRow
+            title="Trending Now"
+            items={trending}
+            onAddClick={handleAddClick}
+          />
+        )}
       </main>
+
+      {/* Media Options Sheet for quick-add */}
+      {selectedItem && (
+        <MediaOptionsSheet
+          isOpen={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedItem(null);
+          }}
+          mediaId={selectedItem.id}
+          mediaType={selectedItem.media_type}
+          title={selectedItem.title}
+          posterPath={selectedItem.poster_path || ''}
+        />
+      )}
     </div>
   );
 }
