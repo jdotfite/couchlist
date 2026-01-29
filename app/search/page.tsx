@@ -53,49 +53,6 @@ export default function SearchPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
 
-  // If navigated with ?focus=1 (from the home fake-search link), focus the input so the user can start typing immediately
-  const focusValue = searchParams?.get('focus') ?? null;
-
-  useEffect(() => {
-    if (!focusValue) return;
-
-    // On iOS, programmatic focus after navigation won't auto-open the keyboard.
-    // We try multiple focus attempts with delays to maximize chances of the input
-    // being ready and focused. The keyboard will still require a tap on iOS,
-    // but at least the input will be visually focused.
-    const focusInput = () => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-        // On some browsers, scrollIntoView helps ensure visibility
-        inputRef.current.scrollIntoView({ behavior: 'instant', block: 'center' });
-      }
-    };
-
-    // Try focusing at multiple intervals to handle different loading scenarios
-    const timer1 = setTimeout(focusInput, 0);
-    const timer2 = setTimeout(focusInput, 100);
-    const timer3 = setTimeout(focusInput, 300);
-
-    // Remove the focus param from the URL after a short delay
-    const cleanupTimer = setTimeout(() => {
-      try {
-        const params = new URLSearchParams(window.location.search);
-        params.delete('focus');
-        const newPath = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
-        window.history.replaceState(null, '', newPath);
-      } catch (_) {
-        // ignore any errors updating the URL
-      }
-    }, 100);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      clearTimeout(cleanupTimer);
-    };
-  }, [focusValue]);
-
   // Add to list mode
   const addToListId = searchParams.get('addToList');
   const isAddToListMode = !!addToListId;
@@ -410,10 +367,7 @@ export default function SearchPage() {
 
         <input
           ref={inputRef}
-          type="search"
-          inputMode="search"
-          enterKeyHint="search"
-          autoFocus={!!focusValue}
+          type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Search movies & TV shows..."
