@@ -21,7 +21,8 @@ export async function GET() {
         c.created_at,
         c.collaborator_id,
         u.name as target_name,
-        u.username as target_username
+        u.username as target_username,
+        u.profile_image as target_image
       FROM collaborators c
       LEFT JOIN users u ON c.collaborator_id = u.id
       WHERE c.owner_id = ${userId}
@@ -41,6 +42,7 @@ export async function GET() {
         id: row.collaborator_id,
         name: row.target_name,
         username: row.target_username,
+        image: row.target_image,
       } : null,
     }));
 

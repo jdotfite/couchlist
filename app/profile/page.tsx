@@ -8,7 +8,7 @@ import Link from 'next/link';
 import {
   ChevronRight, Bell, Shield, Share2, Upload, Download,
   LogOut, Settings, Film, Tv, Users, UserPlus,
-  Search, Loader2, XCircle, X, Check, Trash2, MessageCircle, Camera, Info, MoreVertical
+  Search, Loader2, XCircle, X, Check, Trash2, MessageCircle, Camera, MoreVertical
 } from 'lucide-react';
 import ProfilePageSkeleton from '@/components/skeletons/ProfilePageSkeleton';
 import MainHeader from '@/components/ui/MainHeader';
@@ -52,6 +52,7 @@ interface PendingInvite {
     id: number;
     name: string;
     username: string | null;
+    image: string | null;
   } | null;
   createdAt: string;
   expiresAt: string;
@@ -95,7 +96,6 @@ export default function ProfilePage() {
 
   // Modal state
   const [showFriendModal, setShowFriendModal] = useState(false);
-  const [showFriendInfo, setShowFriendInfo] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   // Search state
@@ -470,23 +470,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <p className="text-xs text-gray-400 mb-3 flex items-start gap-1">
-            <span>Send recommendations to friends—they can accept to add them to their own lists.</span>
-            <button
-              onClick={() => setShowFriendInfo(!showFriendInfo)}
-              className="text-gray-400 hover:text-gray-300 transition flex-shrink-0"
-            >
-              <Info className="w-3.5 h-3.5" />
-            </button>
-          </p>
-
-          {showFriendInfo && (
-            <div className="mb-3 p-3 bg-zinc-800 rounded-lg text-xs text-gray-300 space-y-2">
-              <p><strong className="text-white">Share lists:</strong> Let friends view your watchlist, watching, or finished lists.</p>
-              <p><strong className="text-white">Collaborative lists:</strong> Create a shared list that you both can add to and manage together.</p>
-              <p><strong className="text-white">Suggestions:</strong> Send movie recommendations to friends. They choose to add them or dismiss.</p>
-            </div>
-          )}
 
           {sharingLoading ? (
             <div className="flex justify-center py-4">
@@ -573,8 +556,10 @@ export default function ProfilePage() {
 
                     return (
                       <div key={inv.id} className="flex items-center gap-3 p-3 bg-zinc-800 rounded-xl relative">
-                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                          {inv.targetUser ? (
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center overflow-hidden">
+                          {inv.targetUser?.image ? (
+                            <img src={inv.targetUser.image} alt="" className="w-full h-full object-cover" />
+                          ) : inv.targetUser ? (
                             <span className="text-white font-semibold">
                               {inv.targetUser.name?.[0]?.toUpperCase()}
                             </span>
