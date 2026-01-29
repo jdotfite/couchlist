@@ -11,13 +11,21 @@ interface NewEpisodesRowProps {
 }
 
 function getRelativeDate(dateValue: string | Date): string {
-  // Handle both Date objects (from PostgreSQL) and date strings
+  if (!dateValue) return 'TBD';
+
   let date: Date;
+
   if (dateValue instanceof Date) {
     date = dateValue;
   } else if (typeof dateValue === 'string') {
-    // If it's a string like "2025-01-30", append time to avoid timezone issues
-    date = new Date(dateValue + 'T00:00:00');
+    // Handle both formats:
+    // - Date-only: "2025-01-30" (append time to avoid timezone issues)
+    // - ISO datetime: "2025-01-30T00:00:00.000Z" (use directly)
+    if (dateValue.includes('T')) {
+      date = new Date(dateValue);
+    } else {
+      date = new Date(dateValue + 'T00:00:00');
+    }
   } else {
     return 'TBD';
   }
