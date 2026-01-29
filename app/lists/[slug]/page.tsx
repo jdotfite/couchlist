@@ -32,10 +32,13 @@ import {
   Flag,
   Loader2,
   Plus,
+  Search,
+  Library,
 } from 'lucide-react';
 import { getImageUrl } from '@/lib/tmdb';
 import MediaOptionsSheet from '@/components/MediaOptionsSheet';
 import ListSearchSheet from '@/components/lists/ListSearchSheet';
+import LibrarySelectSheet from '@/components/lists/LibrarySelectSheet';
 import { showSuccess, showError } from '@/lib/toast';
 
 interface ResolvedItem {
@@ -127,6 +130,9 @@ export default function ListPage({ params }: PageProps) {
 
   // Search sheet state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Library select sheet state
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
   // Track existing TMDB IDs to show checkmarks in search
   const existingTmdbIds = useMemo(() => {
@@ -320,18 +326,25 @@ export default function ListPage({ params }: PageProps) {
       <main className="px-4 pt-4">
         {items.length === 0 ? (
           <div className="py-8">
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              className="w-full py-8 border-2 border-dashed border-zinc-700 hover:border-brand-primary rounded-xl flex flex-col items-center justify-center gap-3 text-gray-400 hover:text-white transition group"
-            >
-              <div className="w-12 h-12 rounded-full bg-zinc-800 group-hover:bg-zinc-700 flex items-center justify-center transition">
-                <Plus className="w-6 h-6" />
+            <div className="border-2 border-dashed border-zinc-700 rounded-xl p-6">
+              <p className="text-center text-gray-400 mb-4">Add items to your list</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setIsSearchOpen(true)}
+                  className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white transition group"
+                >
+                  <Search className="w-6 h-6" />
+                  <span className="text-sm font-medium">Search</span>
+                </button>
+                <button
+                  onClick={() => setIsLibraryOpen(true)}
+                  className="flex-1 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-white transition group"
+                >
+                  <Library className="w-6 h-6" />
+                  <span className="text-sm font-medium">From Library</span>
+                </button>
               </div>
-              <div className="text-center">
-                <p className="font-medium">Add your first item</p>
-                <p className="text-sm text-gray-500 mt-1">Search for movies and TV shows to add</p>
-              </div>
-            </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
@@ -406,6 +419,18 @@ export default function ListPage({ params }: PageProps) {
           listName={list.name}
           existingTmdbIds={existingTmdbIds}
           onItemAdded={() => fetchListData()}
+        />
+      )}
+
+      {/* Library Select Sheet for Adding from Library */}
+      {list && (
+        <LibrarySelectSheet
+          isOpen={isLibraryOpen}
+          onClose={() => setIsLibraryOpen(false)}
+          listId={list.id}
+          listName={list.name}
+          existingTmdbIds={existingTmdbIds}
+          onItemsAdded={() => fetchListData()}
         />
       )}
     </div>
